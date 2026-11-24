@@ -22,7 +22,7 @@ const EVENT_LABEL: Record<string, string> = {
 export function Settings() {
   const user = useUser();
   const { setUser, logout } = useAuth();
-  const { toast } = useShell();
+  const { toast, openImport } = useShell();
   const { data: cfg } = useAppConfig();
   const invalidate = useInvalidateData();
   const [theme, setTheme] = useState<ThemePref>(getThemePref());
@@ -106,6 +106,7 @@ export function Settings() {
         <Security />
 
         <Card title="Tus datos" subtitle="Son tuyos: puedes llevártelos o borrarlos cuando quieras.">
+          <div className="setting"><div><b>Importar extractos bancarios</b><p>Sube el CSV o el PDF de tu banco y rellenamos tus movimientos y tu perfil.</p></div><button className="btn" onClick={openImport}><Icon name="upload" size={18} />Importar</button></div>
           <div className="setting"><div><b>Exportar mis datos</b><p>Un archivo JSON con tus movimientos y ajustes.</p></div><button className="btn" onClick={exportData}><Icon name="download" size={18} />Exportar</button></div>
           <DangerZone onDone={() => invalidate()} />
         </Card>

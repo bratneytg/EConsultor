@@ -15,6 +15,14 @@ Se cambia con el selector de la cabecera del Resumen o en *Ajustes → Interfaz*
 
 Con `ALLOW_DEMO_DATA` activo (por defecto en desarrollo y en el despliegue de pruebas de Render) existe una cuenta maestra: usuario **`admin`**, contraseña **`admin`**. Tiene plan Premium y seis meses de datos de demostración que se recargan en cada arranque; la contraseña, el bloqueo y el 2FA se restablecen también. No tiene privilegios especiales. **Con `ALLOW_DEMO_DATA=false` (producción real) la cuenta no existe**, así que esas credenciales públicas dejan de servir.
 
+## Importar extractos bancarios
+
+El botón **«Importar extractos bancarios»** (en *Movimientos* y en *Ajustes → Tus datos*) acepta el CSV o el PDF de tu banco. Funciona **sin IA y sin conexión a terceros**: el servidor lee el archivo, detecta fechas e importes (formatos ISO, `dd.mm.aaaa`, `1.234,56` o `1,234.56`), clasifica por reglas (comercios alemanes, españoles e ingleses, categorías de N26, traspasos entre tus cuentas) y te enseña el resultado para corregirlo antes de guardar. Lo que ya existe no se duplica. Al importar, el perfil financiero oculto se recalcula solo, porque se deriva de los movimientos.
+
+- **CSV** (recomendado): N26 → web app → descargar extracto en CSV. También vale cualquier CSV con columnas de fecha e importe.
+- **PDF**: se lee su texto con `unpdf`. Es una lectura heurística: va bien con tablas simples; un PDF escaneado (imagen) no tiene texto y no se puede leer sin OCR.
+- **IA opcional**: con `ANTHROPIC_API_KEY` aparece la casilla «Mejorar con IA», que envía a Claude solo las descripciones de lo que las reglas no reconocen (sin IBAN ni emails) y ayuda con PDFs de formato raro.
+
 ## Qué incluye
 
 | Área | Estado |

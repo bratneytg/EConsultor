@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { MASTER_LOGIN } from '@econsultor/shared';
 import type { Config } from '../../config.js';
 import { todayIn } from '../../lib/dates.js';
 import { hashPassword, verifyPassword } from '../../security/password.js';
@@ -7,7 +8,6 @@ import { clearAdviceCache } from '../advice/advisor.js';
 import { generateDemoTransactions } from './seed.js';
 
 /** Cuenta maestra de pruebas: usuario «admin», contraseña «admin». Sin privilegios especiales. */
-export const MASTER_LOGIN = 'admin';
 const MASTER_PASSWORD = 'admin';
 const MASTER_TZ = 'Europe/Berlin';
 

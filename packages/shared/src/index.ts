@@ -86,8 +86,19 @@ export const registerInput = z.object({
 export const uiModeSchema = z.enum(['simple', 'pro']);
 export type UiMode = z.infer<typeof uiModeSchema>;
 
-/** `identifier` es el email o, en la cuenta maestra de pruebas, el usuario (p. ej. «admin»). */
-export const loginInput = z.object({ identifier: z.string().trim().toLowerCase().min(1).max(254), password: z.string().min(1).max(128) });
+/** Usuario de la cuenta maestra de pruebas: la única excepción a «el acceso es con email». */
+export const MASTER_LOGIN = 'admin';
+
+/** El acceso exige un email válido; solo la cuenta maestra se identifica sin él. */
+export const loginInput = z.object({
+  identifier: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(254)
+    .refine((v) => v === MASTER_LOGIN || emailSchema.safeParse(v).success, 'Introduce un email válido'),
+  password: z.string().min(1).max(128),
+});
 export const mfaVerifyInput = z
   .object({
     mfaToken: z.string().min(10),

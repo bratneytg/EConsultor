@@ -153,5 +153,5 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
     return toPublicUser(req.user);
   });
 
-  app.get('/config', async () => ({ googleClientId: cfg.googleClientId ?? null, demo: cfg.allowDemoData }));
+  app.get('/config', async () => ({ googleClientId: cfg.googleClientId ?? null, demo: cfg.allowDemoData, ai: !!cfg.anthropicApiKey }));
 }

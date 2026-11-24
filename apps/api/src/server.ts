@@ -11,6 +11,7 @@ import type { Config } from './config.js';
 import { AppError, unauthorized } from './lib/errors.js';
 import { authRoutes } from './routes/auth.js';
 import { dataRoutes } from './routes/data.js';
+import { importRoutes } from './routes/import.js';
 import { notificationRoutes } from './routes/notifications.js';
 import { verifyAccess } from './security/tokens.js';
 import type { Store, UserRecord } from './store/types.js';
@@ -113,6 +114,7 @@ export async function buildApp(cfg: Config, store: Store): Promise<FastifyInstan
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(dataRoutes, { prefix: '/api' });
   await app.register(notificationRoutes, { prefix: '/api/notifications' });
+  await app.register(importRoutes, { prefix: '/api/import' });
 
   // ── Web compilada (opcional): un único proceso sirve API + PWA en un servidor casero ──
   if (cfg.staticDir && existsSync(cfg.staticDir)) {

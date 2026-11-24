@@ -28,6 +28,13 @@ Los datos financieros son sensibles. Esta es la superficie de ataque y cómo se 
 
 Es una credencial pública a propósito, para probar la interfaz. Se limita así: solo existe con `ALLOW_DEMO_DATA=true`; no tiene privilegios (es un usuario más, con sus datos de demostración); el límite de intentos y el bloqueo siguen activos; y en producción real hay que poner `ALLOW_DEMO_DATA=false`, lo que impide crearla.
 
+## Importación de extractos
+
+- Rutas `/api/import/preview` y `/commit`: requieren sesión, límite de 20 peticiones por minuto, cuerpo máximo de 16 MB (vista previa) y 4 MB (confirmar), 5000 movimientos por importación.
+- El análisis es local en el servidor. La IA solo se usa si el usuario marca la casilla y hay `ANTHROPIC_API_KEY`; antes de enviar se eliminan IBAN, emails y números largos.
+- Los IBAN del extracto no se guardan en las notas. La confirmación valida categoría, fecha (no futura) e importe en servidor; el tipo gasto/ingreso se deduce de la categoría.
+- Los datos de un extracto real son sensibles. Mientras el despliegue de Render use disco efímero y `ALLOW_DEMO_DATA=true`, **no importes tus movimientos reales ahí**: usa tu servidor propio con `ALLOW_DEMO_DATA=false`.
+
 ## Reglas operativas
 
 1. **Nunca** subas `.env` ni `data/` (ya están en `.gitignore`).

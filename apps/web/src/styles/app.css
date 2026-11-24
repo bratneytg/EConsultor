@@ -277,3 +277,47 @@ h1, h2, h3, p { margin: 0; }
 .advice-card[data-sev='warn'] { border-color: color-mix(in srgb, var(--serious) 35%, var(--hair)); }
 .advice-card.locked { align-items: flex-start; justify-content: center; background: linear-gradient(135deg, var(--accent-wash), transparent 70%), var(--surface); }
 .advice-card.locked > svg { color: var(--accent); }
+
+/* ── Importar extractos bancarios ─────────────────────────────── */
+.import-sheet { max-width: 640px; }
+.imp-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.imp-head h2 { font-family: var(--font-display); font-weight: 650; font-size: 20px; letter-spacing: -0.02em; }
+.icon-btn { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; border: 1px solid var(--hair); background: transparent; }
+.icon-btn:hover:not(:disabled) { background: var(--surface-2); }
+.icon-btn:disabled { opacity: .4; cursor: default; }
+.drop { width: 100%; display: grid; justify-items: center; gap: 6px; text-align: center; padding: 28px 18px; border-radius: 20px; border: 1.5px dashed var(--hair-strong, var(--ink-3)); background: var(--plane); color: var(--ink-2); }
+.drop b { color: var(--ink); font-weight: 600; }
+.drop span { font-size: 13px; color: var(--ink-3); }
+.drop:hover, .drop[data-drag='true'] { border-color: var(--accent); background: var(--accent-wash); color: var(--accent); }
+.imp-notes { margin: 14px 0 6px; padding-left: 18px; display: grid; gap: 6px; color: var(--ink-2); font-size: 13.5px; }
+.imp-ai { display: flex; gap: 10px; align-items: flex-start; margin-top: 10px; padding: 12px 14px; border: 1px solid var(--hair); border-radius: 16px; }
+.imp-ai input { margin-top: 3px; accent-color: var(--accent); }
+.imp-ai b { display: block; font-weight: 600; }
+.imp-ai small { color: var(--ink-3); font-size: 12.5px; }
+.imp-wait { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 48px 10px; color: var(--ink-2); }
+.spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--surface-3); border-top-color: var(--accent); animation: imp-spin .8s linear infinite; }
+@keyframes imp-spin { to { transform: rotate(360deg); } }
+.imp-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.imp-summary > div { background: var(--plane); border: 1px solid var(--hair); border-radius: 16px; padding: 10px 12px; min-width: 0; }
+.imp-summary span { display: block; font-size: 12px; color: var(--ink-3); }
+.imp-summary b { font-family: var(--font-display); font-size: 17px; letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.imp-range { margin: 8px 2px 6px; }
+.imp-warn { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--ink-2); background: var(--surface-2); border-radius: 12px; padding: 8px 10px; margin: 6px 0; }
+.imp-warn svg { flex: none; margin-top: 2px; color: var(--ink-3); }
+.imp-list { list-style: none; margin: 10px 0; padding: 0; max-height: 44dvh; overflow: auto; border: 1px solid var(--hair); border-radius: 16px; }
+.imp-list li { display: flex; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--hair); align-items: flex-start; }
+.imp-list li:last-child { border-bottom: 0; }
+.imp-list li[data-off='true'] { opacity: .5; }
+.imp-list li[data-low='true'] { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.imp-check { padding-top: 2px; }
+.imp-check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.imp-main { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.imp-line { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.imp-line.sub { font-size: 12.5px; color: var(--ink-3); }
+.imp-note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.imp-line b { white-space: nowrap; font-weight: 600; }
+.imp-line b.pos { color: var(--good-text); }
+.imp-summary b.pos { color: var(--good-text); }
+.imp-tag { font-style: normal; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--surface-3); color: var(--ink-2); }
+.imp-cat { max-width: 48%; border: 1px solid var(--hair); background: var(--surface); border-radius: 999px; padding: 3px 8px; font-size: 12.5px; color: var(--ink-2); border-left: 4px solid var(--tile-c, var(--hair)); }
+.imp-actions { display: grid; gap: 10px; margin-top: 12px; }

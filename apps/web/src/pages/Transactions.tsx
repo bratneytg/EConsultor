@@ -12,7 +12,7 @@ type Filter = 'all' | 'expense' | 'income';
 
 export function Transactions() {
   const user = useUser();
-  const { month, setMonth, today, openAdd, toast } = useShell();
+  const { month, setMonth, today, openAdd, openImport, toast } = useShell();
   const { data, isPending, isPlaceholderData } = useMonthTransactions(month);
   const { data: cfg } = useAppConfig();
   const invalidate = useInvalidateData();
@@ -47,6 +47,7 @@ export function Transactions() {
           <span>{monthLabel(month)}</span>
           <button aria-label="Mes siguiente" disabled={isCurrent} onClick={() => setMonth(shiftMonth(month, 1))}><Icon name="right" size={18} /></button>
         </div>
+        <button className="btn" onClick={openImport}><Icon name="upload" size={18} />Importar extractos bancarios</button>
       </header>
 
       <div style={{ display: 'grid', gap: 12, marginBottom: 6 }}>

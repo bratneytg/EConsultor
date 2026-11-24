@@ -308,3 +308,16 @@ describe('cuenta maestra y modo de interfaz', () => {
     expect(json(await app.inject({ method: 'GET', url: '/api/me', headers: authed(token) })).uiMode).toBe('pro');
   });
 });
+
+describe('acceso: el email es obligatorio salvo la cuenta maestra', () => {
+  it('rechaza identificadores que no son email (excepto admin)', async () => {
+    for (const identifier of ['juan', 'juan@', 'a b@c.d', 'root']) {
+      const r = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { identifier, password: 'loquesea' } });
+      expect(r.statusCode).toBe(400);
+      expect(json(r).message).toBe('Introduce un email válido');
+    }
+    // «admin» pasa la validación (y falla con 401 si la contraseña es incorrecta, como cualquier cuenta)
+    const wrong = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { identifier: 'admin', password: 'mal' } });
+    expect(wrong.statusCode).toBe(401);
+  });
+});

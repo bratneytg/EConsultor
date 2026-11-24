@@ -4,6 +4,7 @@ import { NavLink, Outlet, useSearchParams } from 'react-router-dom';
 import { useUser } from '../lib/auth';
 import { isoToday } from '../lib/format';
 import { AddSheet } from './AddSheet';
+import { ImportSheet } from './ImportSheet';
 import { Icon, type IconName } from './Icon';
 import { Toast } from './ui';
 
@@ -12,6 +13,7 @@ interface ShellCtx {
   setMonth: (m: string) => void;
   today: string;
   openAdd: (editing?: Transaction) => void;
+  openImport: () => void;
   toast: (t: string) => void;
 }
 const Ctx = createContext<ShellCtx | null>(null);
@@ -33,12 +35,14 @@ export function Shell() {
   const today = isoToday(user.timezone);
   const [month, setMonthState] = useState(today.slice(0, 7));
   const [sheet, setSheet] = useState<{ open: boolean; editing: Transaction | null }>({ open: false, editing: null });
+  const [importing, setImporting] = useState(false);
   const [toastText, setToastText] = useState<string | null>(null);
   const [params, setParams] = useSearchParams();
 
   // Nunca se navega al futuro.
   const setMonth = useCallback((m: string) => setMonthState(m > today.slice(0, 7) ? today.slice(0, 7) : m), [today]);
   const openAdd = useCallback((editing?: Transaction) => setSheet({ open: true, editing: editing ?? null }), []);
+  const openImport = useCallback(() => setImporting(true), []);
   const toast = useCallback((t: string) => {
     setToastText(t);
     setTimeout(() => setToastText(null), 2200);
@@ -53,7 +57,7 @@ export function Shell() {
     }
   }, [params, setParams, openAdd]);
 
-  const value = useMemo(() => ({ month, setMonth, today, openAdd, toast }), [month, setMonth, today, openAdd, toast]);
+  const value = useMemo(() => ({ month, setMonth, today, openAdd, openImport, toast }), [month, setMonth, today, openAdd, openImport, toast]);
 
   const tab = (n: (typeof NAV)[number]) => (
     <NavLink key={n.to} to={n.to} end={n.to === '/'} className="tab">
@@ -88,6 +92,7 @@ export function Shell() {
         </nav>
       </div>
       <AddSheet open={sheet.open} editing={sheet.editing} onClose={() => setSheet((s) => ({ ...s, open: false }))} onDone={toast} />
+      <ImportSheet open={importing} onClose={() => setImporting(false)} onDone={toast} />
       <Toast text={toastText} />
     </Ctx.Provider>
   );

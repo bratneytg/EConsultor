@@ -15,7 +15,7 @@
 - Presupuestos por categoría con avisos al acercarse al límite.
 - Objetivos de ahorro con progreso visual y fecha estimada.
 - Movimientos recurrentes (alquiler, nómina, suscripciones) generados automáticamente.
-- Importar extractos bancarios (CSV / Camt.053) con categorización asistida.
+- Importar extractos bancarios: **hecho** para CSV y PDF con texto. Pendiente: Camt.053/MT940, OCR para PDF escaneados y aprender de tus correcciones de categoría.
 - Varias cuentas y monedas, con conversión.
 - Escenarios «¿y si…?» sobre la previsión (recortar X, subir ingresos Y).
 - Internacionalización (hoy: español).
