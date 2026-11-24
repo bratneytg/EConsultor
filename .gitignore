@@ -1,0 +1,20 @@
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+*.log
+.DS_Store
+
+# Entorno y secretos: NUNCA al repositorio
+.env
+.env.*
+!.env.example
+
+# Datos locales del servidor propio (contienen datos financieros)
+data/
+*.enc
+*.key
+caddy_data/
+caddy_config/
+.shots/

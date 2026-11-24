@@ -1,0 +1,94 @@
+/*
+ * Tokens de diseño de EConsultor.
+ * Colores de series: paleta categórica validada (orden fijo, CVD-safe) — ver docs/DESIGN.md.
+ * Oscuro por defecto; el claro tiene sus propios pasos (no es una inversión automática).
+ */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --font-display: 'Bricolage Grotesque Variable', 'Avenir Next', system-ui, sans-serif;
+  --font-body: 'DM Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --plane: #0d0d0d;
+  --surface: #1a1a19;
+  --surface-2: #232321;
+  --surface-3: #2c2c2a;
+  --ink: #f0efec;
+  --ink-2: #c3c2b7;
+  --ink-3: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --hair: rgba(255, 255, 255, 0.1);
+  --scrim: rgba(0, 0, 0, 0.62);
+
+  --accent: #9085e9;
+  --accent-ink: #0d0d0d;
+  --accent-wash: rgba(144, 133, 233, 0.14);
+
+  --s1: #3987e5;
+  --s2: #d95926;
+  --s3: #199e70;
+  --s4: #c98500;
+  --s5: #d55181;
+  --s6: #0ca30c;
+  --s7: #9085e9;
+  --s8: #e66767;
+  --s-other: #898781;
+
+  --income: var(--s3);
+  --expense: var(--s2);
+  --balance: var(--s1);
+
+  --good: #0ca30c;
+  --warn: #fab219;
+  --serious: #ec835a;
+  --crit: #d03b3b;
+  --good-text: #0ca30c;
+
+  /* secuencial (mapa de calor): azul, bajo → alto */
+  --h0: #232321;
+  --h1: #104281;
+  --h2: #1c5cab;
+  --h3: #3987e5;
+  --h4: #86b6ef;
+
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 18px 40px -24px rgba(0, 0, 0, 0.8);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --plane: #f9f9f7;
+  --surface: #fcfcfb;
+  --surface-2: #f1f0ec;
+  --surface-3: #e7e6e0;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --ink-3: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --hair: rgba(11, 11, 11, 0.1);
+  --scrim: rgba(11, 11, 11, 0.4);
+
+  --accent: #6250d6;
+  --accent-ink: #ffffff;
+  --accent-wash: rgba(98, 80, 214, 0.1);
+
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --s3: #1baf7a;
+  --s4: #eda100;
+  --s5: #e87ba4;
+  --s6: #008300;
+  --s7: #6250d6;
+  --s8: #e34948;
+
+  --good-text: #006300;
+
+  --h0: #efeee9;
+  --h1: #cde2fb;
+  --h2: #86b6ef;
+  --h3: #3987e5;
+  --h4: #184f95;
+
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 18px 40px -28px rgba(40, 38, 30, 0.35);
+}

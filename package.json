@@ -1,0 +1,26 @@
+{
+  "name": "econsultor",
+  "private": true,
+  "version": "0.1.0",
+  "description": "EConsultor — planificador de economía personal con gráficas, MFA y consejos de IA.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:api dev:web",
+    "dev:api": "npm run dev -w @econsultor/api",
+    "dev:web": "npm run dev -w @econsultor/web",
+    "build": "npm run build -w @econsultor/api && npm run build -w @econsultor/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "gen:keys": "node scripts/gen-keys.mjs"
+  },
+  "devDependencies": {
+    "npm-run-all2": "^7.0.1",
+    "typescript": "^5.6.3"
+  }
+}

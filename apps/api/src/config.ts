@@ -1,0 +1,110 @@
+import { randomBytes } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
+import { z } from 'zod';
+
+const bool = z
+  .enum(['true', 'false', '1', '0'])
+  .transform((v) => v === 'true' || v === '1');
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  PORT: z.coerce.number().int().default(8787),
+  HOST: z.string().default('127.0.0.1'),
+  /** Origen público de la web (CORS estricto + cookies). */
+  PUBLIC_ORIGIN: z.string().url().default('http://localhost:5173'),
+  ACCESS_TOKEN_SECRET: z.string().min(32).optional(),
+  /** 32 bytes en base64. Cifra TOTP, y el fichero de datos en producción. */
+  DATA_ENCRYPTION_KEY: z.string().optional(),
+  DATA_FILE: z.string().default('./data/store.json'),
+  /** Sirve la web compilada desde la propia API (útil en un servidor casero). */
+  STATIC_DIR: z.string().optional(),
+  ALLOW_DEMO_DATA: bool.optional(),
+  /** true cuando hay un proxy inverso (Caddy/Cloudflare) delante: se confía en X-Forwarded-For. */
+  TRUST_PROXY: bool.default('false'),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  ANTHROPIC_MODEL: z.string().default('claude-sonnet-5-5'),
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().default('mailto:admin@localhost'),
+});
+
+export interface Config {
+  env: 'development' | 'test' | 'production';
+  isProd: boolean;
+  port: number;
+  host: string;
+  publicOrigin: string;
+  accessSecret: Uint8Array;
+  dataKey: Buffer;
+  dataFile: string | null;
+  encryptDataFile: boolean;
+  staticDir?: string;
+  trustProxy: boolean;
+  /** Intentos por minuto e IP en rutas sensibles de autenticación. */
+  authRateLimit: number;
+  allowDemoData: boolean;
+  googleClientId?: string;
+  anthropicApiKey?: string;
+  anthropicModel: string;
+  vapid?: { publicKey: string; privateKey: string; subject: string };
+}
+
+function devKey(path: string): Buffer {
+  if (existsSync(path)) return Buffer.from(readFileSync(path, 'utf8').trim(), 'base64');
+  const key = randomBytes(32);
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, key.toString('base64'), { mode: 0o600 });
+  return key;
+}
+
+export function loadConfig(source: NodeJS.ProcessEnv = process.env): Config {
+  const e = envSchema.parse(source);
+  const isProd = e.NODE_ENV === 'production';
+
+  if (isProd) {
+    const missing = ['ACCESS_TOKEN_SECRET', 'DATA_ENCRYPTION_KEY'].filter((k) => !source[k]);
+    if (missing.length) {
+      throw new Error(`Faltan variables obligatorias en producción: ${missing.join(', ')} (usa "npm run gen:keys")`);
+    }
+    if (!e.PUBLIC_ORIGIN.startsWith('https://')) {
+      throw new Error('PUBLIC_ORIGIN debe ser https:// en producción');
+    }
+  }
+
+  let dataKey: Buffer;
+  if (e.DATA_ENCRYPTION_KEY) {
+    dataKey = Buffer.from(e.DATA_ENCRYPTION_KEY, 'base64');
+    if (dataKey.length !== 32) throw new Error('DATA_ENCRYPTION_KEY debe ser 32 bytes en base64');
+  } else if (e.NODE_ENV === 'test') {
+    dataKey = randomBytes(32);
+  } else {
+    dataKey = devKey('./data/dev.key');
+  }
+
+  const accessSecret = new TextEncoder().encode(e.ACCESS_TOKEN_SECRET ?? randomBytes(48).toString('base64url'));
+
+  return {
+    env: e.NODE_ENV,
+    isProd,
+    port: e.PORT,
+    host: e.HOST,
+    publicOrigin: e.PUBLIC_ORIGIN,
+    accessSecret,
+    dataKey,
+    dataFile: e.NODE_ENV === 'test' ? null : e.DATA_FILE,
+    encryptDataFile: isProd,
+    staticDir: e.STATIC_DIR,
+    trustProxy: e.TRUST_PROXY,
+    authRateLimit: e.NODE_ENV === 'test' ? 10_000 : 10,
+    allowDemoData: e.ALLOW_DEMO_DATA ?? !isProd,
+    googleClientId: e.GOOGLE_CLIENT_ID,
+    anthropicApiKey: e.ANTHROPIC_API_KEY,
+    anthropicModel: e.ANTHROPIC_MODEL,
+    vapid:
+      e.VAPID_PUBLIC_KEY && e.VAPID_PRIVATE_KEY
+        ? { publicKey: e.VAPID_PUBLIC_KEY, privateKey: e.VAPID_PRIVATE_KEY, subject: e.VAPID_SUBJECT }
+        : undefined,
+  };
+}

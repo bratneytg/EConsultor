@@ -1,0 +1,38 @@
+# docker compose up -d                      → solo la app en http://127.0.0.1:8787 (úsala tras Cloudflare Tunnel / Tailscale)
+# docker compose --profile caddy up -d      → además Caddy con HTTPS automático (necesita dominio y puertos 80/443)
+#
+# Requiere un archivo .env en esta carpeta con, como mínimo:
+#   ACCESS_TOKEN_SECRET, DATA_ENCRYPTION_KEY  (npm run gen:keys)  y  PUBLIC_ORIGIN=https://tu-dominio
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      TRUST_PROXY: "true"
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - econ-data:/data
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  caddy:
+    profiles: ["caddy"]
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [app]
+
+volumes:
+  econ-data:
+  caddy_data:
+  caddy_config:
