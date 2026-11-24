@@ -1,0 +1,44 @@
+# Blueprint de Render: un único servicio que sirve la API y la web (PWA) por HTTPS.
+# Pensado para PROBAR la interfaz en distintos dispositivos. El plan gratuito tiene disco efímero:
+# los datos se pierden al reiniciar o redesplegar (usa «Cargar datos de demostración»).
+# Para conservar datos hace falta un plan de pago con disco persistente o, mejor, la base de datos.
+services:
+  - type: web
+    name: econsultor
+    runtime: node
+    region: frankfurt
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: node apps/api/dist/index.js
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: TRUST_PROXY
+        value: "true"
+      - key: STATIC_DIR
+        value: apps/web/dist
+      - key: DATA_FILE
+        value: /tmp/econsultor/store.json
+      # Solo para pruebas: botón de datos de demostración y cambio de plan sin pago.
+      - key: ALLOW_DEMO_DATA
+        value: "true"
+      # Render genera valores aleatorios de 256 bits (base64) que se conservan entre despliegues.
+      - key: ACCESS_TOKEN_SECRET
+        generateValue: true
+      - key: DATA_ENCRYPTION_KEY
+        generateValue: true
+      # Opcionales: se rellenan a mano en el panel de Render.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false

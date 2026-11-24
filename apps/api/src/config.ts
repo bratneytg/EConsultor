@@ -60,7 +60,8 @@ function devKey(path: string): Buffer {
 }
 
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): Config {
-  const e = envSchema.parse(source);
+  // Render publica la URL https del servicio en RENDER_EXTERNAL_URL: sirve de origen si no se fija otro.
+  const e = envSchema.parse({ ...source, PUBLIC_ORIGIN: source.PUBLIC_ORIGIN || source.RENDER_EXTERNAL_URL || undefined });
   const isProd = e.NODE_ENV === 'production';
 
   if (isProd) {

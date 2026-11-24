@@ -72,6 +72,17 @@ Con Docker: `docker compose up -d` (ver `docker-compose.yml`; incluye un perfil 
 
 Notificaciones push: genera claves con `npx web-push generate-vapid-keys` y ponlas en `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`.
 
+## Probar en Render (móvil, tablet, otros navegadores)
+
+El repositorio incluye `render.yaml`, un *Blueprint* que despliega todo en un solo servicio con HTTPS (necesario para instalar la PWA en iPhone).
+
+1. En [render.com](https://render.com): **New → Blueprint** y elige el repositorio `EConsultor` (la primera vez hay que dar permiso a Render en GitHub).
+2. Confirma. Render genera solo `ACCESS_TOKEN_SECRET` y `DATA_ENCRYPTION_KEY`; el origen público se toma de `RENDER_EXTERNAL_URL`.
+3. Cuando termine, abre `https://econsultor-xxxx.onrender.com`, crea una cuenta y pulsa **Cargar datos de demostración**.
+4. En iPhone: Safari → Compartir → **Añadir a pantalla de inicio**.
+
+Limitaciones del plan gratuito: el servicio se duerme tras ~15 min sin uso (la primera carga tarda ~30 s) y **el disco es efímero**, así que los datos se borran al reiniciar o redesplegar. Sirve para probar la interfaz, no para datos reales. Las notificaciones push solo funcionan si añades las claves VAPID en el panel de Render.
+
 ## Documentación
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — decisiones y mapeo a los seis pilares del *Well-Architected Framework*
