@@ -123,7 +123,17 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
 
   // ───────── Login (contraseña) ─────────
   app.post('/login', strict, async (req, reply) => {
-    const body = loginInput.parse(req.body);
+    // Un cliente antiguo (PWA en caché) manda `email` en vez de `identifier`: se acepta igual.
+    const raw = (req.body && typeof req.body === 'object' ? req.body : {}) as Record<string, unknown>;
+    const candidate = { identifier: raw.identifier ?? raw.email, password: raw.password };
+    const parsed = loginInput.safeParse(candidate);
+    if (!parsed.success) {
+      // Solo formas, nunca el valor: sirve para diagnosticar «no me deja entrar» sin guardar credenciales.
+      const id = typeof candidate.identifier === 'string' ? candidate.identifier : '';
+      req.log.warn({ keys: Object.keys(raw), idLength: id.length, idHasAt: id.includes('@') }, 'login rechazado por formato');
+      throw parsed.error;
+    }
+    const body = parsed.data;
     const user = await store.users.byEmail(body.identifier);
     if (!user || !user.passwordHash) {
       await dummyVerify(body.password); // iguala tiempos: no revela si el email existe

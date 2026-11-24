@@ -320,4 +320,12 @@ describe('acceso: el email es obligatorio salvo la cuenta maestra', () => {
     const wrong = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { identifier: 'admin', password: 'mal' } });
     expect(wrong.statusCode).toBe(401);
   });
+
+  it('acepta la cuenta maestra con el campo antiguo `email` y con mayúsculas o espacios', async () => {
+    for (const payload of [{ email: 'admin', password: 'admin' }, { identifier: ' Admin ', password: 'admin' }]) {
+      const r = await app.inject({ method: 'POST', url: '/api/auth/login', payload });
+      expect(r.statusCode).toBe(200);
+      expect(json(r).accessToken).toBeTruthy();
+    }
+  });
 });
