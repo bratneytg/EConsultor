@@ -1,4 +1,5 @@
 import { loadConfig } from './config.js';
+import { ensureMasterUser } from './modules/demo/master.js';
 import { startReminderScheduler } from './modules/notifications/scheduler.js';
 import { buildApp } from './server.js';
 import { FileStore } from './store/file-store.js';
@@ -6,6 +7,9 @@ import { FileStore } from './store/file-store.js';
 const cfg = loadConfig();
 const store = new FileStore({ file: cfg.dataFile, encryptionKey: cfg.encryptDataFile ? cfg.dataKey : undefined });
 const app = await buildApp(cfg, store);
+
+const master = await ensureMasterUser(cfg, store);
+if (master) app.log.info(`Cuenta de pruebas «admin» lista (${master.created ? 'creada' : 'existente'}, ${master.seeded} movimientos cargados)`);
 
 const stopReminders = startReminderScheduler(cfg, store, {
   info: (m) => app.log.info(m),

@@ -26,6 +26,7 @@ export function toPublicUser(u: UserRecord): PublicUser {
     timezone: u.timezone,
     reminderEnabled: u.reminderEnabled,
     reminderTime: u.reminderTime,
+    uiMode: u.uiMode ?? 'simple',
     mfaEnabled: u.mfa.enabled,
     hasPassword: !!u.passwordHash,
     googleLinked: !!u.googleSub,
@@ -109,6 +110,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       timezone: body.timezone ?? 'Europe/Berlin',
       reminderEnabled: true,
       reminderTime: '21:00',
+      uiMode: 'simple',
       mfa: { enabled: false, recoveryHashes: [] },
       failedLogins: 0,
       createdAt: now,
@@ -122,17 +124,17 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   // ───────── Login (contraseña) ─────────
   app.post('/login', strict, async (req, reply) => {
     const body = loginInput.parse(req.body);
-    const user = await store.users.byEmail(body.email);
+    const user = await store.users.byEmail(body.identifier);
     if (!user || !user.passwordHash) {
       await dummyVerify(body.password); // iguala tiempos: no revela si el email existe
       await audit(req, 'login_failed', undefined, 'unknown');
-      throw unauthorized('Email o contraseña incorrectos', 'invalid_credentials');
+      throw unauthorized('Usuario o contraseña incorrectos', 'invalid_credentials');
     }
     assertNotLocked(user);
     if (!(await verifyPassword(body.password, user.passwordHash))) {
       await registerFailure(user);
       await audit(req, 'login_failed', user.id);
-      throw unauthorized('Email o contraseña incorrectos', 'invalid_credentials');
+      throw unauthorized('Usuario o contraseña incorrectos', 'invalid_credentials');
     }
     if (user.mfa.enabled) {
       return reply.send({ mfaRequired: true, mfaToken: await signMfa(cfg.accessSecret, user.id) } satisfies AuthResponse);

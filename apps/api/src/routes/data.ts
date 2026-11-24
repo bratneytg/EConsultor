@@ -44,6 +44,7 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
     if (body.currency) u.currency = body.currency;
     if (body.reminderEnabled !== undefined) u.reminderEnabled = body.reminderEnabled;
     if (body.reminderTime) u.reminderTime = body.reminderTime;
+    if (body.uiMode) u.uiMode = body.uiMode;
     u.updatedAt = new Date().toISOString();
     await store.users.update(u);
     return toPublicUser(u);

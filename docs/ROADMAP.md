@@ -2,6 +2,8 @@
 
 ## Siguiente (necesita una decisión o dato tuyo)
 
+0. **Antes de usar datos reales:** poner `ALLOW_DEMO_DATA=false` (elimina la cuenta `admin/admin` y los botones de demostración) y desplegar con base de datos persistente.
+
 1. **Base de datos.** Cuando decidas motor (recomendado: PostgreSQL), se implementa `PostgresStore` contra el puerto `Store` (`apps/api/src/store/types.ts`) y se añaden migraciones. Nada más cambia.
 2. **Acceso con Google.** La API (`POST /api/auth/google`) ya valida el ID token. Falta el botón en la web: crear un *OAuth Client ID* en Google Cloud, ponerlo en `GOOGLE_CLIENT_ID` y permitir `accounts.google.com` en la CSP (`script-src`, `frame-src`, `connect-src`).
 3. **Claves de notificaciones push** (`npx web-push generate-vapid-keys`) y dominio HTTPS para probar en iPhone.

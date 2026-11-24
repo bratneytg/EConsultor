@@ -58,7 +58,7 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
 }
 
 export const authApi = {
-  login: (email: string, password: string) => api<AuthResponse>('/auth/login', { method: 'POST', json: { email, password } }),
+  login: (identifier: string, password: string) => api<AuthResponse>('/auth/login', { method: 'POST', json: { identifier, password } }),
   register: (d: { email: string; password: string; displayName: string }) =>
     api<AuthResponse>('/auth/register', {
       method: 'POST',

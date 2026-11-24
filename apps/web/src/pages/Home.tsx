@@ -1,4 +1,5 @@
 import { Icon } from '../components/Icon';
+import { ModeSwitch } from '../components/ModeSwitch';
 import { useShell } from '../components/Shell';
 import { Card, ChartCard, HeroMoney, useNarrow } from '../components/ui';
 import { BalanceArea, BalanceLegend } from '../charts/BalanceArea';
@@ -19,7 +20,7 @@ function greeting(): string {
   return h < 6 ? 'Buenas noches' : h < 13 ? 'Buenos días' : h < 21 ? 'Buenas tardes' : 'Buenas noches';
 }
 
-export function Home() {
+export function HomePro() {
   const user = useUser();
   const { month, setMonth, today, openAdd } = useShell();
   const { data: o, isPending, isError, isPlaceholderData, refetch } = useOverview(month);
@@ -33,10 +34,13 @@ export function Home() {
         <p className="muted" style={{ marginBottom: 4 }}>{greeting()}, {user.displayName.split(' ')[0]}</p>
         <h1>Tu economía</h1>
       </div>
-      <div className="month-switch" role="group" aria-label="Mes">
-        <button aria-label="Mes anterior" onClick={() => setMonth(shiftMonth(month, -1))}><Icon name="left" size={18} /></button>
-        <span>{monthLabel(month)}</span>
-        <button aria-label="Mes siguiente" disabled={isCurrent} onClick={() => setMonth(shiftMonth(month, 1))}><Icon name="right" size={18} /></button>
+      <div className="head-tools">
+        <ModeSwitch />
+        <div className="month-switch" role="group" aria-label="Mes">
+          <button aria-label="Mes anterior" onClick={() => setMonth(shiftMonth(month, -1))}><Icon name="left" size={18} /></button>
+          <span>{monthLabel(month)}</span>
+          <button aria-label="Mes siguiente" disabled={isCurrent} onClick={() => setMonth(shiftMonth(month, 1))}><Icon name="right" size={18} /></button>
+        </div>
       </div>
     </header>
   );

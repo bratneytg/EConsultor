@@ -136,7 +136,7 @@ export function ruleBasedAdvice(p: FinancialProfile, o: Overview): Advice[] {
   if (p.expenseTrend === 'falling') {
     add({ id: 'trend-down', kind: 'win', severity: 'win', scope: 'specific', title: 'Tus gastos van a la baja', body: 'El último mes completo gastaste menos que tu media anterior. Mantén lo que estés haciendo.' });
   } else if (p.expenseTrend === 'rising') {
-    add({ id: 'trend-up', kind: 'spending', severity: 'tip', scope: 'specific', title: 'Tus gastos suben mes a mes', body: 'El último mes completo gastaste más que tu media previa. Revisa en Estadísticas qué categorías han crecido.' });
+    add({ id: 'trend-up', kind: 'spending', severity: 'tip', scope: 'specific', title: 'Tus gastos suben mes a mes', body: 'El último mes completo gastaste más que tu media previa. Revisa en el Resumen qué categorías han crecido.' });
   }
 
   // ── Genéricos (buenas prácticas) ──

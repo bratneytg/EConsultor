@@ -1,4 +1,4 @@
-import type { Plan, Transaction } from '@econsultor/shared';
+import type { Plan, Transaction, UiMode } from '@econsultor/shared';
 
 export interface UserRecord {
   id: string;
@@ -11,6 +11,8 @@ export interface UserRecord {
   timezone: string;
   reminderEnabled: boolean;
   reminderTime: string; // HH:MM hora local del usuario
+  /** Ausente en cuentas antiguas → «simple». */
+  uiMode?: UiMode;
   lastReminderDate?: string; // YYYY-MM-DD local
   mfa: {
     enabled: boolean;

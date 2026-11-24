@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import QRCode from 'qrcode';
 import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
+import { ModeSwitch } from '../components/ModeSwitch';
 import { useShell } from '../components/Shell';
 import { Card, Switch } from '../components/ui';
 import { api, ApiError } from '../lib/api';
@@ -56,6 +57,10 @@ export function Settings() {
     <div>
       <header className="page-head"><h1>Ajustes</h1></header>
       <div className="stack">
+        <Card title="Interfaz" subtitle="Sencilla: lo esencial, con pocos gráficos. Profesional: el análisis completo.">
+          <ModeSwitch />
+        </Card>
+
         <Card title="Perfil">
           <div className="field">
             <label htmlFor="dn">Nombre</label>

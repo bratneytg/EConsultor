@@ -82,7 +82,12 @@ export const registerInput = z.object({
   timezone: z.string().max(64).optional(),
   currency: z.string().length(3).toUpperCase().optional(),
 });
-export const loginInput = z.object({ email: emailSchema, password: z.string().min(1).max(128) });
+/** Interfaz: «simple» (resumen y pocos gráficos) o «pro» (análisis completo). */
+export const uiModeSchema = z.enum(['simple', 'pro']);
+export type UiMode = z.infer<typeof uiModeSchema>;
+
+/** `identifier` es el email o, en la cuenta maestra de pruebas, el usuario (p. ej. «admin»). */
+export const loginInput = z.object({ identifier: z.string().trim().toLowerCase().min(1).max(254), password: z.string().min(1).max(128) });
 export const mfaVerifyInput = z
   .object({
     mfaToken: z.string().min(10),
@@ -99,6 +104,7 @@ export const settingsInput = z
     timezone: z.string().min(1).max(64),
     reminderEnabled: z.boolean(),
     reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+    uiMode: uiModeSchema,
   })
   .partial();
 export type SettingsInput = z.infer<typeof settingsInput>;
@@ -116,6 +122,7 @@ export interface PublicUser {
   timezone: string;
   reminderEnabled: boolean;
   reminderTime: string;
+  uiMode: UiMode;
   mfaEnabled: boolean;
   hasPassword: boolean;
   googleLinked: boolean;

@@ -5,7 +5,7 @@ import { FAMILIES, categoryLabel, familyOf } from '../lib/categories';
 import { money, monthShort, pct, shiftMonth } from '../lib/format';
 
 /** Barra segmentada (un total repartido en familias) + ranking de categorías con variación mensual. */
-export function Breakdown({ o }: { o: Overview }) {
+export function Breakdown({ o, compact = false }: { o: Overview; compact?: boolean }) {
   const wrap = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<TipState | null>(null);
   const total = o.totals.expenseMinor;
@@ -60,7 +60,7 @@ export function Breakdown({ o }: { o: Overview }) {
       <Tip tip={tip} />
 
       <div className="rank">
-        {o.expenseByCategory.slice(0, 8).map((c) => {
+        {o.expenseByCategory.slice(0, compact ? 4 : 8).map((c) => {
           const ch = c.prevAmountMinor > 0 ? (c.amountMinor - c.prevAmountMinor) / c.prevAmountMinor : null;
           const color = familyOf(c.categoryId).color;
           return (
@@ -72,7 +72,7 @@ export function Breakdown({ o }: { o: Overview }) {
               </div>
               <div className="amt num">
                 {money(c.amountMinor, o.currency, 0)}
-                {ch !== null && Math.abs(ch) >= 0.03 ? (
+                {!compact && ch !== null && Math.abs(ch) >= 0.03 ? (
                   <span className={`delta ${ch > 0 ? 'up' : 'down'}`}>{ch > 0 ? '▲' : '▼'} {pct(Math.abs(ch))} vs {prevLabel}</span>
                 ) : (
                   <span className="delta">{pct(c.share)} del gasto</span>

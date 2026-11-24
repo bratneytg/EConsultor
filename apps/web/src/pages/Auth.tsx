@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { ApiError, authApi } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { useAppConfig } from '../lib/queries';
 
 /** Cintas de color: el motivo gráfico de la marca (flujo de dinero), con deriva lenta. */
 function Ribbons() {
@@ -22,6 +23,7 @@ function Ribbons() {
 
 export function Auth() {
   const { accept } = useAuth();
+  const { data: cfg } = useAppConfig();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -87,7 +89,11 @@ export function Auth() {
             {mode === 'register' && (
               <div className="field"><label htmlFor="name">Nombre</label><input id="name" className="input" autoComplete="given-name" required maxLength={60} value={name} onChange={(e) => setName(e.target.value)} /></div>
             )}
-            <div className="field"><label htmlFor="email">Email</label><input id="email" className="input" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+            {mode === 'login' ? (
+              <div className="field"><label htmlFor="email">Usuario o email</label><input id="email" className="input" type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+            ) : (
+              <div className="field"><label htmlFor="email">Email</label><input id="email" className="input" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+            )}
             <div className="field">
               <label htmlFor="pw">Contraseña</label>
               <input id="pw" className="input" type="password" required minLength={mode === 'register' ? 10 : 1} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -98,6 +104,11 @@ export function Auth() {
             <button type="button" className="btn btn-ghost btn-block" style={{ marginTop: 8 }} onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}>
               {mode === 'login' ? 'No tengo cuenta · Crear una' : 'Ya tengo cuenta · Entrar'}
             </button>
+            {cfg?.demo && mode === 'login' && (
+              <button type="button" className="btn btn-ghost btn-block" disabled={busy} onClick={() => run(async () => { const token = accept(await authApi.login('admin', 'admin')); if (token) setMfaToken(token); })}>
+                Entrar con la cuenta de pruebas
+              </button>
+            )}
           </form>
         )}
       </div>

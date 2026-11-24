@@ -24,6 +24,10 @@ Los datos financieros son sensibles. Esta es la superficie de ataque y cómo se 
 | Perfil financiero expuesto | Se calcula en servidor y nunca se serializa; test que busca sus campos en todas las respuestas | `test/api.test.ts` |
 | Derechos RGPD | Exportar (art. 20) y eliminar la cuenta (art. 17) con confirmación | `/me/export`, `DELETE /me` |
 
+## Cuenta de pruebas `admin/admin`
+
+Es una credencial pública a propósito, para probar la interfaz. Se limita así: solo existe con `ALLOW_DEMO_DATA=true`; no tiene privilegios (es un usuario más, con sus datos de demostración); el límite de intentos y el bloqueo siguen activos; y en producción real hay que poner `ALLOW_DEMO_DATA=false`, lo que impide crearla.
+
 ## Reglas operativas
 
 1. **Nunca** subas `.env` ni `data/` (ya están en `.gitignore`).

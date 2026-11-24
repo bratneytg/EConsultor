@@ -4,6 +4,17 @@ Planificador de economía personal: anota gastos e ingresos en segundos, entiend
 
 Funciona como **PWA** (aplicación web instalable): en iPhone se añade a la pantalla de inicio y se comporta como una app nativa, con recordatorio diario por notificación push. Más adelante puede empaquetarse con Capacitor para la App Store sin reescribir nada.
 
+## Dos interfaces
+
+- **Sencilla** (por defecto): el mes en un vistazo —balance, estado en una frase, ingresos/gastos/ahorro—, dos gráficos (saldo del mes y en qué gastas) y tres consejos en tarjetas.
+- **Profesional**: el análisis completo (río de dinero, 12 meses, mapa de calor, patrón semanal, pulso financiero…).
+
+Se cambia con el selector de la cabecera del Resumen o en *Ajustes → Interfaz*, y la elección se guarda en el perfil, así que te acompaña a cualquier dispositivo.
+
+## Cuenta de pruebas
+
+Con `ALLOW_DEMO_DATA` activo (por defecto en desarrollo y en el despliegue de pruebas de Render) existe una cuenta maestra: usuario **`admin`**, contraseña **`admin`**. Tiene plan Premium y seis meses de datos de demostración que se recargan en cada arranque; la contraseña, el bloqueo y el 2FA se restablecen también. No tiene privilegios especiales. **Con `ALLOW_DEMO_DATA=false` (producción real) la cuenta no existe**, así que esas credenciales públicas dejan de servir.
+
 ## Qué incluye
 
 | Área | Estado |

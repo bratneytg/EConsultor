@@ -55,8 +55,8 @@ describe('autenticación', () => {
 
   it('login incorrecto devuelve el mismo error exista o no el email', async () => {
     const { email } = await register();
-    const a = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email, password: 'incorrecta-123456' } });
-    const b = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'nadie@example.com', password: 'incorrecta-123456' } });
+    const a = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { identifier: email, password: 'incorrecta-123456' } });
+    const b = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { identifier: 'nadie@example.com', password: 'incorrecta-123456' } });
     expect(a.statusCode).toBe(401);
     expect(b.statusCode).toBe(401);
     expect(json(a).message).toBe(json(b).message);
@@ -64,8 +64,8 @@ describe('autenticación', () => {
 
   it('bloquea la cuenta tras 5 fallos', async () => {
     const { email } = await register();
-    for (let i = 0; i < 5; i++) await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email, password: 'incorrecta-123456' } });
-    const locked = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email, password: PASS } });
+    for (let i = 0; i < 5; i++) await app.inject({ method: 'POST', url: '/api/auth/login', payload: { identifier: email, password: 'incorrecta-123456' } });
+    const locked = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { identifier: email, password: PASS } });
     expect(locked.statusCode).toBe(429);
     expect(json(locked).error).toBe('account_locked');
   });
@@ -124,7 +124,7 @@ describe('segundo factor (TOTP)', () => {
     expect(open(cfg.dataKey, stored.mfa.secretSealed!).toString()).toBe(setup.secret);
 
     // login → ahora exige MFA y NO entrega sesión
-    const login = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email, password: PASS } });
+    const login = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { identifier: email, password: PASS } });
     expect(json(login).mfaRequired).toBe(true);
     expect(json(login).accessToken).toBeUndefined();
     expect(cookieOf(login)).toBe('');
@@ -142,7 +142,7 @@ describe('segundo factor (TOTP)', () => {
     expect(replay.statusCode).toBe(401);
 
     // código de recuperación: funciona una vez
-    const login2 = json(await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email, password: PASS } }));
+    const login2 = json(await app.inject({ method: 'POST', url: '/api/auth/login', payload: { identifier: email, password: PASS } }));
     const rec = await app.inject({ method: 'POST', url: '/api/auth/mfa/verify', payload: { mfaToken: login2.mfaToken, recoveryCode: recoveryCodes[0] } });
     expect(rec.statusCode).toBe(200);
     const rec2 = await app.inject({ method: 'POST', url: '/api/auth/mfa/verify', payload: { mfaToken: login2.mfaToken, recoveryCode: recoveryCodes[0] } });
@@ -153,7 +153,7 @@ describe('segundo factor (TOTP)', () => {
     const { email, token } = await register();
     const setup = json(await app.inject({ method: 'POST', url: '/api/auth/mfa/setup', headers: authed(token) }));
     await app.inject({ method: 'POST', url: '/api/auth/mfa/enable', headers: authed(token), payload: { code: totpAt(setup.secret, Date.now()) } });
-    const { mfaToken } = json(await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email, password: PASS } }));
+    const { mfaToken } = json(await app.inject({ method: 'POST', url: '/api/auth/login', payload: { identifier: email, password: PASS } }));
     expect((await app.inject({ method: 'GET', url: '/api/me', headers: authed(mfaToken) })).statusCode).toBe(401);
   });
 });
@@ -264,5 +264,47 @@ describe('cabeceras de seguridad', () => {
     const { token } = await register();
     const api = await app.inject({ method: 'GET', url: '/api/me', headers: authed(token) });
     expect(api.headers['cache-control']).toBe('no-store');
+  });
+});
+
+describe('cuenta maestra y modo de interfaz', () => {
+  it('admin/admin existe con datos de demostración, Premium y sin 2FA', async () => {
+    const { ensureMasterUser } = await import('../src/modules/demo/master.js');
+    const first = await ensureMasterUser(cfg, store);
+    expect(first?.created).toBe(true);
+    expect(first!.seeded).toBeGreaterThan(300);
+
+    const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { identifier: 'Admin', password: 'admin' } });
+    expect(res.statusCode).toBe(200);
+    const body = json(res);
+    expect(body.user.plan).toBe('premium');
+    expect(body.user.uiMode).toBe('simple');
+    const ov = await app.inject({ method: 'GET', url: '/api/analytics/overview', headers: authed(body.accessToken) });
+    expect(json(ov).monthly.some((m: any) => m.expenseMinor > 0)).toBe(true);
+
+    // Idempotente: no duplica datos y restablece la contraseña aunque se haya cambiado.
+    const admin = (await store.users.byEmail('admin'))!;
+    admin.passwordHash = 'basura';
+    await store.users.update(admin);
+    const again = await ensureMasterUser(cfg, store);
+    expect(again).toMatchObject({ created: false, seeded: 0 });
+    expect((await app.inject({ method: 'POST', url: '/api/auth/login', payload: { identifier: 'admin', password: 'admin' } })).statusCode).toBe(200);
+  });
+
+  it('con la demo desactivada (producción) no hay cuenta maestra', async () => {
+    const { ensureMasterUser } = await import('../src/modules/demo/master.js');
+    const prodLike = { ...cfg, allowDemoData: false };
+    const empty = new FileStore({ file: null });
+    expect(await ensureMasterUser(prodLike, empty)).toBeNull();
+    expect(await empty.users.byEmail('admin')).toBeUndefined();
+  });
+
+  it('el modo de interfaz se guarda en el perfil y solo admite simple o pro', async () => {
+    const { token } = await register();
+    const ok = await app.inject({ method: 'PATCH', url: '/api/me/settings', headers: authed(token), payload: { uiMode: 'pro' } });
+    expect(json(ok).uiMode).toBe('pro');
+    const bad = await app.inject({ method: 'PATCH', url: '/api/me/settings', headers: authed(token), payload: { uiMode: 'otro' } });
+    expect(bad.statusCode).toBe(400);
+    expect(json(await app.inject({ method: 'GET', url: '/api/me', headers: authed(token) })).uiMode).toBe('pro');
   });
 });
