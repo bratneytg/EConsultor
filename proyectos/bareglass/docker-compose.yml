@@ -1,0 +1,41 @@
+# BareGlass (API) en el servidor casero. Lo gestiona `bash scripts/servidor.sh bareglass …`; no hace falta tocarlo.
+# Diferencias con backend/deploy/docker-compose.yml del repositorio de BareGlass (pensado para un VPS):
+#  - sin Caddy: el HTTPS lo pone Tailscale (Serve en red privada; Funnel solo si tú lo decides);
+#  - la API solo escucha en 127.0.0.1:8100, nunca en la red local;
+#  - red, datos y claves aparte de EConsultor; el contenedor corre sin privilegios y con límites;
+#  - Litestream (copia continua a un bucket) es opcional: perfil «copias».
+name: bareglass
+services:
+  api:
+    build: ${BAREGLASS_SRC}/backend
+    restart: unless-stopped
+    env_file: ${BG_HOME}/.env
+    environment:
+      BG_DB_PATH: /data/bareglass.db
+    volumes:
+      - ${BG_HOME}/data:/data
+    ports:
+      - "127.0.0.1:8100:8000"
+    mem_limit: 384m
+    pids_limit: 200
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz',timeout=3).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  litestream:
+    profiles: ["copias"]
+    image: litestream/litestream:0.3
+    restart: unless-stopped
+    command: replicate
+    env_file: ${BG_HOME}/.env
+    volumes:
+      - ${BG_HOME}/data:/data
+      - ${BAREGLASS_SRC}/backend/deploy/litestream.yml:/etc/litestream.yml:ro
+    mem_limit: 128m

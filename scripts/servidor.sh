@@ -19,6 +19,7 @@
 #   bash scripts/servidor.sh activar          Activa Premium para todos, la IA y los avisos push (genera las claves VAPID)
 #   bash scripts/servidor.sh perfiles on|off  Muestra u oculta la pestaña «Perfiles» del panel (apagado por defecto)
 #   bash scripts/servidor.sh apk URL          Pone el enlace de descarga de la app de Android en la web
+#   bash scripts/servidor.sh bareglass …      Aloja BareGlass (API) en este servidor: instalar | estado | parar | publico | privado | actualizar
 #   bash scripts/servidor.sh tapa [arreglar]  Comprueba (o arregla) que cerrar la tapa del portátil NO suspenda el servidor
 set -euo pipefail
 
@@ -220,7 +221,13 @@ copiar() {
   docker compose exec -T app test -s /data/store.json || { alerta "Todavía no hay datos que copiar (/data/store.json no existe o está vacío)."; exit 1; }
   echo "$(date -Is) Copiando la base de datos..."
   docker compose exec -T app cat /data/store.json | restic backup --stdin --stdin-filename store.json --tag econsultor --quiet
-  restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune --quiet
+  if bg_instalado && bg_compose ps --status running --services 2>/dev/null | grep -q '^api$'; then
+    echo "$(date -Is) Copiando la base de datos de BareGlass..."
+    # Copia coherente con SQLite (no basta con copiar el archivo mientras se escribe).
+    bg_compose exec -T api python -c "import sqlite3,sys;o=sqlite3.connect('/data/bareglass.db');d=sqlite3.connect('/tmp/bg-copia.db');o.backup(d);d.close();sys.stdout.buffer.write(open('/tmp/bg-copia.db','rb').read())" \
+      | restic backup --stdin --stdin-filename bareglass.db --tag bareglass --quiet || aviso "No se pudo copiar la base de datos de BareGlass."
+  fi
+  restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune --quiet --group-by tags
   echo "$(date -Is) Copia hecha."
 }
 
@@ -364,6 +371,7 @@ direccion() {
   sudo tailscale serve reset
   if [ "$publico" -eq 1 ]; then sudo tailscale funnel --bg "${PUERTO}"; else sudo tailscale serve --bg "${PUERTO}"; fi
   if [ -f "${DIR}/.env.panel" ]; then sudo tailscale serve --bg --https=8443 "http://127.0.0.1:8788"; fi
+  if bg_instalado; then bg_exponer "$(env_leer "${BG_HOME}/.estado" EXPOSICION)"; fi
 
   compose up -d app
 
@@ -480,6 +488,113 @@ panel_parar() {
   sudo tailscale serve --https=8443 off >/dev/null 2>&1 || true
   echo "Panel apagado y fuera de Tailscale. Tu contraseña y los datos recogidos siguen en ${DIR} (.env.panel y estado/)."
   echo "Para volver a encenderlo: bash scripts/servidor.sh panel"
+}
+
+# ───────── BareGlass (API) en este servidor ─────────
+# Código en ~/proyectos/BareGlass (clon del repositorio), datos y claves en ~/proyectos/bareglass-datos.
+# Puerto 10000 de Tailscale (uno de los tres que Funnel permite: 443 = EConsultor, 8443 = panel, 10000 = BareGlass).
+BG_SRC="${BAREGLASS_SRC:-${HOME}/proyectos/BareGlass}"
+BG_HOME="${BG_HOME:-${HOME}/proyectos/bareglass-datos}"
+BG_REPO="${BAREGLASS_REPO:-https://github.com/bratneytg/BareGlass.git}"
+BG_PUERTO_API=8100
+export BAREGLASS_SRC="$BG_SRC" BG_HOME
+
+bg_instalado() { [ -f "${BG_HOME}/.env" ]; }
+bg_compose() { docker compose -f "${DIR}/proyectos/bareglass/docker-compose.yml" "$@"; }
+bg_clave() { python3 -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"; }
+
+# privado = solo tus dispositivos (Serve) · publico = internet (Funnel).
+bg_exponer() {
+  local modo="${1:-privado}"
+  if [ "$modo" = "publico" ]; then sudo tailscale funnel --bg --https=10000 "http://127.0.0.1:${BG_PUERTO_API}"
+  else sudo tailscale funnel --https=10000 off >/dev/null 2>&1 || true; sudo tailscale serve --bg --https=10000 "http://127.0.0.1:${BG_PUERTO_API}"; fi
+}
+
+bg_esperar() {
+  local i
+  for i in $(seq 1 40); do
+    if curl -fsS "http://127.0.0.1:${BG_PUERTO_API}/healthz" >/dev/null 2>&1; then return 0; fi
+    sleep 2
+  done
+  return 1
+}
+
+bareglass() {
+  local sub="${1:-estado}"
+  case "$sub" in
+    instalar)
+      command -v docker >/dev/null || { alerta "Falta Docker."; exit 1; }
+      command -v git >/dev/null || { alerta "Falta git."; exit 1; }
+      command -v python3 >/dev/null || { alerta "Falta python3."; exit 1; }
+      titulo "INSTALAR BAREGLASS"
+      mkdir -p "$(dirname "$BG_SRC")"
+      if [ -d "${BG_SRC}/.git" ]; then git -C "$BG_SRC" pull --ff-only; else git clone --depth 1 "$BG_REPO" "$BG_SRC"; fi
+      [ -f "${BG_SRC}/backend/Dockerfile" ] || { alerta "No encuentro backend/Dockerfile en ${BG_SRC}. ¿Es el repositorio correcto?"; exit 1; }
+      mkdir -p "${BG_HOME}/data"
+      # El contenedor corre como usuario 1000 (sin privilegios): necesita poder escribir en la carpeta de datos.
+      [ "$(id -u)" = "1000" ] || sudo chown 1000:1000 "${BG_HOME}/data"
+      if [ ! -f "${BG_HOME}/.env" ]; then
+        ( umask 077
+          {
+            echo "# Claves de BareGlass. NO las pierdas ni las compartas: sin BG_MASTER_KEY los datos de los usuarios no se pueden descifrar."
+            echo "BG_MASTER_KEY=$(bg_clave)"
+            echo "BG_JWT_SECRET=$(bg_clave)"
+            echo "BG_WEBHOOK_SECRET=$(bg_clave)"
+            echo "BG_CHECKOUT_URL="
+          } > "${BG_HOME}/.env" )
+        chmod 600 "${BG_HOME}/.env"
+        ok "Claves creadas en ${BG_HOME}/.env"
+        echo "    GUARDA YA una copia de BG_MASTER_KEY fuera del servidor (gestor de contraseñas). Si se pierde, los datos cifrados no se recuperan."
+      else
+        ok "Las claves ya existían: no las toco."
+      fi
+      [ -f "${BG_HOME}/.estado" ] || printf 'EXPOSICION=privado\n' > "${BG_HOME}/.estado"
+      echo "Construyendo y arrancando (la primera vez tarda unos minutos)..."
+      bg_compose up -d --build
+      bg_esperar || { alerta "La API no responde. Mira: docker compose -f proyectos/bareglass/docker-compose.yml logs api"; exit 1; }
+      bg_exponer "$(env_leer "${BG_HOME}/.estado" EXPOSICION)"
+      bareglass estado ;;
+
+    estado)
+      bg_instalado || { echo "BareGlass no está instalado. Ejecuta: bash scripts/servidor.sh bareglass instalar"; return 0; }
+      titulo "BAREGLASS"
+      if curl -fsS "http://127.0.0.1:${BG_PUERTO_API}/healthz" >/dev/null 2>&1; then ok "La API responde."; else alerta "La API no responde."; fi
+      local dominio modo; dominio="$(panel_url)"; modo="$(env_leer "${BG_HOME}/.estado" EXPOSICION)"
+      if [ "${modo:-privado}" = "publico" ]; then aviso "ABIERTA A INTERNET: https://${dominio}:10000"; else ok "Privada (solo tus dispositivos con Tailscale): https://${dominio}:10000"; fi
+      echo "Para que la app de Android use este servidor: GitHub → BareGlass → Settings → Variables → Actions → API_BASE = https://${dominio}:10000"
+      if [ -n "$(env_leer "${BG_HOME}/.env" BG_CHECKOUT_URL)" ]; then ok "Pagos: URL de cobro configurada."; else aviso "Pagos: sin BG_CHECKOUT_URL (Premium no se puede cobrar todavía)."; fi
+      if bg_compose ps --services --status running 2>/dev/null | grep -q litestream; then ok "Copia continua (Litestream) activa."; else aviso "Sin Litestream: la copia diaria de restic cubre la base de datos (bash scripts/servidor.sh copiar)."; fi ;;
+
+    parar)
+      bg_compose down
+      sudo tailscale funnel --https=10000 off >/dev/null 2>&1 || true
+      sudo tailscale serve --https=10000 off >/dev/null 2>&1 || true
+      ok "BareGlass parado y fuera de Tailscale. Los datos siguen en ${BG_HOME}/data." ;;
+
+    privado)
+      bg_instalado || { alerta "BareGlass no está instalado."; exit 1; }
+      env_poner "${BG_HOME}/.estado" EXPOSICION privado
+      bg_exponer privado
+      ok "BareGlass solo es accesible desde tus dispositivos con Tailscale." ;;
+
+    publico)
+      bg_instalado || { alerta "BareGlass no está instalado."; exit 1; }
+      echo "ATENCIÓN: vas a abrir a INTERNET un servicio con contenido para adultos desde tu casa."
+      echo "Antes de hacerlo revisa docs/07-legal-y-distribucion.md de BareGlass (verificación de edad en Alemania, RGPD, términos, pagos)."
+      read -r -p "Escribe ABRIR para continuar: " r
+      [ "$r" = "ABRIR" ] || { echo "Cancelado. No he cambiado nada."; exit 0; }
+      env_poner "${BG_HOME}/.estado" EXPOSICION publico
+      bg_exponer publico
+      aviso "BareGlass abierta a internet en el puerto 10000. Para cerrarla: bash scripts/servidor.sh bareglass privado" ;;
+
+    actualizar)
+      bg_instalado || { alerta "BareGlass no está instalado."; exit 1; }
+      git -C "$BG_SRC" pull --ff-only
+      bg_compose up -d --build
+      bg_esperar && ok "Actualizada y funcionando." || alerta "La API no responde tras actualizar." ;;
+
+    *) echo "Uso: bash scripts/servidor.sh bareglass instalar|estado|parar|privado|publico|actualizar" ;;
+  esac
 }
 
 # Qué hace el portátil al cerrar la tapa. Sin configurar, Ubuntu lo SUSPENDE y el servidor deja de responder.
@@ -627,5 +742,6 @@ case "${1:-ayuda}" in
   perfiles) perfiles "${2:-estado}" ;;
   apk) apk "${2:-}" ;;
   tapa) tapa "${2:-}" ;;
-  *) sed -n '2,22p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
+  bareglass) bareglass "${2:-estado}" ;;
+  *) sed -n '2,23p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
 esac
