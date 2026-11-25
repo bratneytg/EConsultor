@@ -15,6 +15,7 @@
 #   bash scripts/servidor.sh panel            Instala/actualiza el panel personal (web con gráficos, solo para ti)
 #   bash scripts/servidor.sh panel-clave      Genera una contraseña nueva para el panel
 #   bash scripts/servidor.sh panel-parar      Apaga el panel y lo quita de Tailscale
+#   bash scripts/servidor.sh direccion        Tras cambiar el nombre del equipo o de la red en Tailscale: actualiza todo
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -312,11 +313,71 @@ privado() {
   # Solo se cierra el puerto 443 (la app). El panel, en el 8443, no se toca.
   sudo tailscale funnel --https=443 off || true
   sudo tailscale serve --bg --https=443 "http://127.0.0.1:${PUERTO}"
-  if tailscale serve status 2>/dev/null | grep -q 'Funnel on'; then
+  local estado_serve
+  estado_serve="$(tailscale serve status 2>/dev/null || true)"
+  if [[ "$estado_serve" == *'Funnel on'* ]]; then
     aviso "Algo sigue abierto a internet. Revisa: tailscale serve status"
   else
     echo "La app vuelve a ser accesible solo desde tu red de Tailscale."
   fi
+  avisar_si_panel_expuesto
+}
+
+# ───────── cambio de nombre en Tailscale ─────────
+# Tras renombrar el equipo o la red, las asignaciones de «serve»/«funnel» siguen atadas al nombre viejo y el
+# nuevo no responde. Este comando las rehace, actualiza PUBLIC_ORIGIN y reinicia la app.
+direccion() {
+  command -v tailscale >/dev/null || { alerta "Tailscale no está instalado."; exit 1; }
+  [ -f "${DIR}/.env" ] || { alerta "No encuentro el archivo .env en ${DIR}."; exit 1; }
+  local dominio
+  dominio="$(panel_url)"
+  [ -n "$dominio" ] || { alerta "No pude leer la dirección de Tailscale. ¿Está conectado? Prueba: tailscale status"; exit 1; }
+  echo "Dirección actual de este equipo: https://${dominio}"
+
+  # ¿La app estaba abierta a internet? Se conserva ese estado.
+  local publico=0 estado_serve
+  estado_serve="$(tailscale serve status 2>/dev/null || true)"
+  case "$estado_serve" in *'Funnel on'*) publico=1 ;; esac
+  if [ "$publico" -eq 1 ]; then echo "La app estaba PÚBLICA (Funnel): se mantiene pública."
+  else echo "La app estaba PRIVADA (solo tu red de Tailscale): se mantiene privada. Para abrirla: bash scripts/servidor.sh publico"; fi
+
+  local antes
+  antes="$(grep '^PUBLIC_ORIGIN=' "${DIR}/.env" | head -1 | cut -d= -f2- || true)"
+  if [ "$antes" != "https://${dominio}" ]; then
+    cp -p "${DIR}/.env" "${DIR}/.env.antes-de-direccion"
+    chmod 600 "${DIR}/.env.antes-de-direccion"
+    if grep -q '^PUBLIC_ORIGIN=' "${DIR}/.env"; then
+      sed -i "s|^PUBLIC_ORIGIN=.*|PUBLIC_ORIGIN=https://${dominio}|" "${DIR}/.env"
+    else
+      printf '\nPUBLIC_ORIGIN=https://%s\n' "$dominio" >> "${DIR}/.env"
+    fi
+    echo "PUBLIC_ORIGIN actualizado (${antes:-vacío} → https://${dominio}). Copia del .env anterior: .env.antes-de-direccion"
+  else
+    ok "PUBLIC_ORIGIN ya tenía la dirección correcta."
+  fi
+
+  # Se rehacen las asignaciones con el nombre nuevo (por unos segundos la app no responde).
+  sudo tailscale serve reset
+  if [ "$publico" -eq 1 ]; then sudo tailscale funnel --bg "${PUERTO}"; else sudo tailscale serve --bg "${PUERTO}"; fi
+  if [ -f "${DIR}/.env.panel" ]; then sudo tailscale serve --bg --https=8443 "http://127.0.0.1:8788"; fi
+
+  compose up -d app
+
+  echo "Comprobando https://${dominio} (la primera vez Tailscale prepara el certificado y puede tardar hasta 2 minutos)..."
+  local i listo=0
+  for i in $(seq 1 24); do
+    if curl -fsS --max-time 8 "https://${dominio}/healthz" >/dev/null 2>&1; then listo=1; break; fi
+    sleep 5
+  done
+
+  titulo "RESULTADO"
+  if [ "$listo" -eq 1 ]; then ok "La app responde en https://${dominio}"
+  else
+    alerta "La app aún no responde en https://${dominio}. Espera un par de minutos y repite este comando."
+    echo "Si sigue igual, pega aquí la salida de: tailscale serve status"
+  fi
+  if [ -f "${DIR}/.env.panel" ]; then echo "El panel está en: https://${dominio}:8443"; fi
+  echo "Avisa a tus amigos de la dirección nueva: la antigua deja de funcionar."
   avisar_si_panel_expuesto
 }
 
@@ -415,8 +476,9 @@ case "${1:-ayuda}" in
   actualizaciones) actualizaciones ;;
   publico) publico ;;
   privado) privado ;;
+  direccion) direccion ;;
   panel) panel ;;
   panel-clave) panel_clave ;;
   panel-parar) panel_parar ;;
-  *) sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
+  *) sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
 esac

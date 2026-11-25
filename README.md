@@ -125,6 +125,7 @@ Limitaciones del plan gratuito: el servicio se duerme tras ~15 min sin uso (la p
 | `bash scripts/servidor.sh actualizaciones` | Programa `actualizar` cada 10 minutos |
 | `bash scripts/servidor.sh publico` / `privado` | Abre la app a internet con Tailscale Funnel / la deja solo en tu red privada |
 | `bash scripts/servidor.sh panel` | Instala o actualiza el panel personal (ver abajo) y muestra su contraseña la primera vez |
+| `bash scripts/servidor.sh direccion` | Tras renombrar el equipo o la red en Tailscale: rehace las asignaciones, actualiza `PUBLIC_ORIGIN` y reinicia la app |
 | `bash scripts/servidor.sh panel-clave` / `panel-parar` | Cambia la contraseña del panel / lo apaga y lo quita de Tailscale |
 
 Los informes los genera `apps/api/src/informe.ts` (dentro del contenedor, como `node dist/informe.js`): leen la base de datos
