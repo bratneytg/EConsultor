@@ -515,6 +515,16 @@ activar() {
   local origen; origen="$(env_leer "${DIR}/.env" PUBLIC_ORIGIN)"
   if [ -z "$(env_leer "${DIR}/.env" VAPID_SUBJECT)" ] && [ -n "$origen" ]; then env_poner "${DIR}/.env" VAPID_SUBJECT "$origen"; fi
 
+  if [ -z "$(env_leer "${DIR}/.env" APK_URL)" ]; then
+    local remoto repo
+    remoto="$(git -C "$DIR" remote get-url origin 2>/dev/null || true)"
+    repo="$(echo "$remoto" | sed -E 's#^(git@github.com:|https://github.com/)##; s#\.git$##')"
+    if echo "$repo" | grep -qE '^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$'; then
+      env_poner "${DIR}/.env" APK_URL "https://github.com/${repo}/releases/download/android-latest/econsultor.apk"
+      ok "Enlace de descarga de la app de Android puesto (${repo})."
+    fi
+  fi
+
   echo "Reiniciando la app..."
   compose up -d app
   local i
