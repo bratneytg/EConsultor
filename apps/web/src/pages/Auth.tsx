@@ -1,6 +1,8 @@
-import { useState, type FormEvent } from 'react';
-import { ApiError, authApi } from '../lib/api';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Icon } from '../components/Icon';
+import { ApiError, authApi, takeIdleFlag } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { deviceHasPasskey, loginWithPasskey, passkeyMessage, passkeysAvailable } from '../lib/passkey';
 
 /** Cintas de color: el motivo gráfico de la marca (flujo de dinero), con deriva lenta. */
 function Ribbons() {
@@ -31,6 +33,19 @@ export function Auth() {
   const [useRecovery, setUseRecovery] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [idleNotice] = useState(() => takeIdleFlag());
+  const [canPasskey, setCanPasskey] = useState(false);
+  useEffect(() => { if (deviceHasPasskey()) passkeysAvailable().then(setCanPasskey); }, []);
+
+  const withFingerprint = async () => {
+    setBusy(true); setError('');
+    try {
+      accept(await loginWithPasskey());
+    } catch (e) {
+      const m = e instanceof ApiError ? e.message : passkeyMessage(e);
+      if (m) setError(m);
+    } finally { setBusy(false); }
+  };
 
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true); setError('');
@@ -87,6 +102,13 @@ export function Auth() {
         ) : (
           <form onSubmit={submit} noValidate>
             <h1>{mode === 'login' ? 'Entrar' : 'Crear tu cuenta'}</h1>
+            {idleNotice && mode === 'login' && <p className="notice" role="status">Cerramos tu sesión tras 10 minutos sin actividad, para proteger tus datos. Puedes cambiarlo en Ajustes → Seguridad.</p>}
+            {canPasskey && mode === 'login' && (
+              <>
+                <button type="button" className="btn btn-primary btn-block" disabled={busy} onClick={withFingerprint}><Icon name="fingerprint" size={20} />Entrar con huella</button>
+                <p className="hint" style={{ textAlign: 'center', margin: '10px 0 14px' }}>o con tu email y contraseña</p>
+              </>
+            )}
             {mode === 'register' && (
               <div className="field"><label htmlFor="name">Nombre</label><input id="name" className="input" autoComplete="given-name" required maxLength={60} value={name} onChange={(e) => setName(e.target.value)} /></div>
             )}

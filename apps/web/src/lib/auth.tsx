@@ -1,7 +1,8 @@
 import type { AuthResponse, PublicUser } from '@econsultor/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { authApi, refreshSession, setAccessToken, setSessionLostHandler } from './api';
+import { IDLE_TIMEOUT_MIN } from '@econsultor/shared';
+import { authApi, flagIdle, msSinceInput, refreshSession, setAccessToken, setSessionLostHandler, touchActivity } from './api';
 
 interface AuthState {
   user: PublicUser | null;
@@ -21,8 +22,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setSessionLostHandler(() => { setUser(null); qc.clear(); });
-    refreshSession().then((r) => { setUser(r?.user ?? null); setReady(true); });
+    refreshSession(true).then((r) => { setUser(r?.user ?? null); setReady(true); });
   }, [qc]);
+
+  // Cierre por inactividad: a los 10 min sin tocar la app (salvo «Mantener conectado»). El servidor lo exige igualmente.
+  const idleOn = !!user && !user.keepSignedIn;
+  useEffect(() => {
+    if (!idleOn) return;
+    let last = 0;
+    const mark = () => { const t = Date.now(); if (t - last > 1000) { last = t; touchActivity(); } };
+    const events = ['pointerdown', 'keydown', 'touchstart', 'wheel', 'scroll'] as const;
+    events.forEach((e) => window.addEventListener(e, mark, { passive: true, capture: true }));
+    const check = () => {
+      if (msSinceInput() > IDLE_TIMEOUT_MIN * 60_000) {
+        flagIdle();
+        void (async () => { try { await authApi.logout(); } catch { /* ya sin sesión */ } setAccessToken(null); setUser(null); qc.clear(); })();
+      }
+    };
+    const timer = window.setInterval(check, 10_000);
+    const onVisible = () => { if (document.visibilityState === 'visible') check(); };
+    document.addEventListener('visibilitychange', onVisible);
+    touchActivity();
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, mark, { capture: true }));
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [idleOn, qc]);
 
   const accept = useCallback((res: AuthResponse) => {
     if (res.mfaRequired) return res.mfaToken;

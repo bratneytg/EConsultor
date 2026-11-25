@@ -24,6 +24,9 @@ Los datos financieros son sensibles. Esta es la superficie de ataque y cómo se 
 | Perfil financiero expuesto | Se calcula en servidor y ninguna ruta de la API lo serializa; test que busca sus campos en todas las respuestas | `test/api.test.ts` |
 | Perfiles en el panel del administrador | **Única excepción, deliberada y apagada por defecto**: el panel (servicio aparte, solo red privada Tailscale, contraseña propia) puede mostrarlos con `PANEL_VER_PERFILES=true` (`servidor.sh perfiles on`, pide confirmación). Es dato personal: debe constar en el aviso de privacidad; sin 5 movimientos no se calcula perfil; no incluye notas ni movimientos sueltos | `panel/perfiles.ts`, `test/panel-perfiles.test.ts` |
 | Reportes de fallos | Requiere sesión, límite por IP y 10/día por persona, mensaje ≤ 2000 caracteres; guarda pantalla y dispositivo, no importes; se borran al eliminar la cuenta; el panel los escapa | `POST /api/feedback` |
+| Sesión olvidada abierta | Cierre por inactividad (10 min por defecto, `IDLE_TIMEOUT_MIN`): el servidor guarda la última actividad real de cada sesión (solo cuenta la que lleva `X-User-Active`, es decir, con interacción de la persona; el refresco automático no la renueva) y responde 401 `idle_timeout` revocando la familia de tokens. La persona puede excluirse con «Mantener conectado» | `security/idle.ts`, `server.ts`, `/auth/refresh` |
+| Phishing / contraseña robada | **Passkeys (WebAuthn)** con huella o PIN del dispositivo: la clave privada no sale del móvil y está ligada al dominio (`rpID`), así que una web falsa no puede usarla. Verificación de usuario obligatoria, desafío de un solo uso (5 min), contador anti-clonado, máx. 5 por cuenta, no se puede quitar el último método de acceso. Solo se guarda la clave pública; no se exporta ni se muestra | `routes/passkeys.ts`, `test/sesion.test.ts` |
+| Consejos «a fondo» e IA | El análisis detallado es local. Solo con el botón de consentimiento se envía a la IA un resumen de comercios e importes (sin fechas ni notas; IBAN, correos y números largos eliminados); requiere Premium, clave y ≥ 15 movimientos | `advice/detailed.ts`, `advice/claude.ts` |
 | Premium para todos | `PREMIUM_FOR_ALL` solo cambia el plan efectivo; no abre ninguna ruta de pruebas (`ALLOW_DEMO_DATA` sigue en `false`) | `lib/plan.ts` |
 | Derechos RGPD | Exportar (art. 20) y eliminar la cuenta (art. 17) con confirmación | `/me/export`, `DELETE /me` |
 
@@ -35,6 +38,7 @@ Es una credencial pública a propósito, para probar la interfaz. Se limita así
 
 - Rutas `/api/import/preview` y `/commit`: requieren sesión, límite de 20 peticiones por minuto, cuerpo máximo de 16 MB (vista previa) y 4 MB (confirmar), 5000 movimientos por importación.
 - El análisis es local en el servidor. La IA solo se usa si el usuario marca la casilla y hay `ANTHROPIC_API_KEY`; antes de enviar se eliminan IBAN, emails y números largos.
+- La categorización usa reglas, el historial de la propia persona (si ya categorizó ese comercio, se repite su criterio) y, solo con consentimiento, la IA. Lo que no se puede saber se deja en «Otros» y se avisa; no se inventa.
 - Los IBAN del extracto no se guardan en las notas. La confirmación valida categoría, fecha (no futura) e importe en servidor; el tipo gasto/ingreso se deduce de la categoría.
 - Los datos de un extracto real son sensibles. Mientras el despliegue de Render use disco efímero y `ALLOW_DEMO_DATA=true`, **no importes tus movimientos reales ahí**: usa tu servidor propio con `ALLOW_DEMO_DATA=false`.
 

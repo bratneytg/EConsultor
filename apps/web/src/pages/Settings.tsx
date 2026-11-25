@@ -12,11 +12,13 @@ import { api, ApiError } from '../lib/api';
 import { useAuth, useUser } from '../lib/auth';
 import { useAppConfig, useInvalidateData } from '../lib/queries';
 import { disablePush, enablePush, hasPushSubscription, isIOS, isStandalone, pushSupported } from '../lib/push';
+import { forgetDevicePasskey, passkeyMessage, passkeysAvailable, registerPasskey } from '../lib/passkey';
 import { applyTheme, getThemePref, type ThemePref } from '../lib/theme';
 
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'MXN', 'ARS', 'COP', 'CLP', 'PEN', 'BRL'];
 const EVENT_LABEL: Record<string, string> = {
   login: 'Inicio de sesión', login_failed: 'Intento de acceso fallido', register: 'Cuenta creada', mfa_enabled: 'Verificación en dos pasos activada',
+  passkey_added: 'Huella añadida', passkey_removed: 'Huella eliminada',
   mfa_disabled: 'Verificación en dos pasos desactivada', mfa_failed: 'Código de verificación incorrecto', recovery_code_used: 'Código de recuperación usado',
   logout_all: 'Sesiones cerradas en todos los dispositivos', refresh_reuse_detected: 'Sesión sospechosa bloqueada',
 };
@@ -182,6 +184,29 @@ function Security() {
     await logout();
   };
 
+  const [canPasskey, setCanPasskey] = useState<boolean | null>(null);
+  const [pkBusy, setPkBusy] = useState(false);
+  useEffect(() => { passkeysAvailable().then(setCanPasskey); }, []);
+  const refreshMe = async () => setUser(await api<PublicUser>('/me'));
+  const addPasskey = async () => {
+    setPkBusy(true);
+    try { await registerPasskey(); await refreshMe(); toast('Huella activada en este dispositivo'); }
+    catch (e) { const m = e instanceof ApiError ? e.message : passkeyMessage(e); if (m) toast(m); }
+    finally { setPkBusy(false); }
+  };
+  const removePasskey = async (id: string) => {
+    try {
+      await api(`/auth/passkey/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      forgetDevicePasskey();
+      await refreshMe();
+      toast('Dispositivo eliminado');
+    } catch (e) { toast((e as Error).message); }
+  };
+  const setKeep = async (v: boolean) => {
+    try { setUser(await api<PublicUser>('/me/settings', { method: 'PATCH', json: { keepSignedIn: v } })); toast(v ? 'Mantendremos tu sesión abierta' : 'La sesión se cerrará tras 10 minutos sin actividad'); }
+    catch (e) { toast((e as Error).message); }
+  };
+
   return (
     <Card title="Seguridad" subtitle="Protege tu información financiera.">
       {step === 'idle' && (
@@ -234,6 +259,34 @@ function Security() {
           </div>
         </div>
       )}
+
+      <div className="setting">
+        <div>
+          <b>Mantener conectado</b>
+          <p>{user.keepSignedIn ? 'Tu sesión no se cierra sola. Hazlo solo en dispositivos tuyos y con bloqueo de pantalla.' : 'Por seguridad, cerramos tu sesión tras 10 minutos sin actividad.'}</p>
+        </div>
+        <Switch label="Mantener conectado" checked={user.keepSignedIn} onChange={setKeep} />
+      </div>
+
+      <div className="stack" style={{ gap: 8 }}>
+        <div className="setting">
+          <div>
+            <b>Entrar con huella</b>
+            <p>
+              {canPasskey === false
+                ? 'Este dispositivo o navegador no ofrece huella, cara o PIN para iniciar sesión.'
+                : 'Usa la huella (o la cara o el PIN) de este dispositivo en lugar de la contraseña. La huella nunca sale del dispositivo.'}
+            </p>
+          </div>
+          {canPasskey && <button className="btn btn-primary" disabled={pkBusy} onClick={addPasskey}><Icon name="fingerprint" size={18} />Activar aquí</button>}
+        </div>
+        {user.passkeys.map((k) => (
+          <div className="event" key={k.id}>
+            <span><Icon name="fingerprint" size={16} /> {k.name} <span className="muted">· desde {new Date(k.createdAt).toLocaleDateString('es-ES', { dateStyle: 'medium' })}</span></span>
+            <button className="chip-btn" onClick={() => removePasskey(k.id)}>Quitar</button>
+          </div>
+        ))}
+      </div>
 
       <div className="setting"><div><b>Cerrar sesión en todos los dispositivos</b><p>Útil si pierdes un teléfono u ordenador.</p></div><button className="btn" onClick={logoutAll}>Cerrar todas</button></div>
 

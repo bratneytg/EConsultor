@@ -27,6 +27,7 @@ export function AdviceCard({ a, currency, clamp = false }: { a: Advice; currency
       ) : null}
       <h3>{a.title}</h3>
       <p className={clamp ? 'clamp' : ''}>{a.body}</p>
+      {a.action && <div className="ac-action"><b>Qué hacer</b><span>{a.action}</span></div>}
     </article>
   );
 }

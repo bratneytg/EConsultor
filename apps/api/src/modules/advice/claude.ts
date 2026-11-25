@@ -2,7 +2,9 @@ import { z } from 'zod';
 import type { Advice, Overview } from '@econsultor/shared';
 import { categoryById } from '@econsultor/shared';
 import type { Config } from '../../config.js';
+import { scrub } from '../import/ai.js';
 import type { FinancialProfile } from '../profile/engine.js';
+import type { SpendingDetail } from './detailed.js';
 
 const itemSchema = z.object({
   kind: z.enum(['saving', 'spending', 'income', 'habit', 'risk', 'win']),
@@ -12,6 +14,9 @@ const itemSchema = z.object({
   impactMinor: z.number().int().nonnegative().max(1_000_000_00).optional(),
 });
 const responseSchema = z.array(itemSchema).min(1).max(8);
+
+const detailedItemSchema = itemSchema.extend({ action: z.string().min(10).max(320) });
+const detailedResponseSchema = z.array(detailedItemSchema).min(3).max(9);
 
 const SYSTEM = `Eres el coach financiero de EConsultor, una app de economía personal. Respondes SIEMPRE en español, con tono cercano, claro y motivador.
 Recibirás un resumen numérico y anónimo (importes en céntimos) del perfil financiero de un usuario. Genera entre 4 y 6 consejos concretos y accionables, mezclando:
@@ -79,6 +84,65 @@ export async function claudeAdvice(cfg: Config, p: FinancialProfile, o: Overview
     const json = text.slice(text.indexOf('['), text.lastIndexOf(']') + 1);
     const items = responseSchema.parse(JSON.parse(json));
     return items.map((it, i) => ({ id: `ai-${i}`, scope: 'specific' as const, ...it }));
+  } catch {
+    return null;
+  }
+}
+
+
+const DETAILED_SYSTEM = `Eres el analista de gastos de EConsultor, una app de economía personal. Respondes SIEMPRE en español, tono cercano y directo.
+Recibirás un análisis agregado de los gastos de una persona en los últimos ~90 días (importes en céntimos): categorías con ticket medio y frecuencia, comercios principales, cargos recurrentes, gastos pequeños repetidos y gastos grandes.
+Tu trabajo: 5 a 8 consejos PRÁCTICOS y muy concretos para reducir o reorganizar SUS gastos habituales. Cada consejo debe:
+ - nombrar comercios, categorías y cifras reales del resumen (en la moneda indicada, no en céntimos),
+ - proponer una acción que pueda hacer esta semana (tope concreto, cambio de hábito, cancelar o renegociar un cargo, sustituir un gasto),
+ - estimar el ahorro mensual realista en "impactMinor" (céntimos), sin exagerar,
+ - ordenarse de mayor a menor impacto.
+Incluye como máximo un consejo "win" si algo mejoró. Reglas: no eres asesor financiero regulado; no recomiendes productos financieros, inversiones, criptomonedas ni marcas concretas de sustitución; no inventes comercios ni cifras que no estén en el resumen; no pidas datos personales; si hay muchos gastos sin clasificar, dilo.
+Devuelve ÚNICAMENTE un array JSON válido: {"kind":"saving|spending|income|habit|risk|win","severity":"info|tip|warn|win","title":"…(máx. 80 car.)","body":"…diagnóstico con cifras (máx. 400 car.)","action":"…qué hacer exactamente (máx. 300 car.)","impactMinor": entero}`;
+
+/** Resumen para la IA: agregados y nombres de comercio saneados (sin IBAN, correos ni números largos). Nunca movimientos sueltos con fecha. */
+export function detailedDigest(d: SpendingDetail) {
+  const m = (x: { label: string; categoryId: string; totalMinor: number; count: number; avgMinor: number; monthlyMinor: number }) => ({
+    merchant: scrub(x.label).slice(0, 40), category: categoryById(x.categoryId)?.label ?? x.categoryId, monthlyMinor: x.monthlyMinor, payments: x.count, avgMinor: x.avgMinor,
+  });
+  return {
+    currency: d.currency,
+    periodDays: d.periodDays,
+    monthlyExpenseMinor: d.monthlyExpenseMinor,
+    variableWeeklyMinor: d.variableWeeklyMinor,
+    categories: d.categories.slice(0, 8).map((c) => ({
+      category: categoryById(c.categoryId)?.label ?? c.categoryId, monthlyMinor: c.monthlyMinor, sharePct: Math.round(c.share * 100),
+      payments: c.count, avgTicketMinor: c.avgTicketMinor, changeVsPrev3MonthsPct: c.changePct, topMerchants: c.merchants.map(m),
+    })),
+    topMerchants: d.merchants.slice(0, 12).map(m),
+    recurring: d.recurring.slice(0, 10).map((r) => ({ merchant: scrub(r.label).slice(0, 40), monthlyMinor: r.monthlyMinor, monthsSeen: r.months })),
+    smallFrequent: d.smallFrequent.slice(0, 6).map((s) => ({ merchant: scrub(s.label).slice(0, 40), payments: s.count, avgMinor: s.avgMinor, monthlyMinor: s.monthlyMinor })),
+    weekendSharePctOfDiscretionary: Math.round(d.weekend.share * 100),
+    unclassified: { pctOfSpending: Math.round(d.unclassified.pct * 100), payments: d.unclassified.count },
+    biggestPurchases: d.biggest.map((b) => ({ what: scrub(b.label).slice(0, 40), amountMinor: b.amountMinor })),
+  };
+}
+
+/** Consejos detallados con IA. `null` ante cualquier fallo: el llamador usa el análisis local. */
+export async function claudeDetailedAdvice(cfg: Config, d: SpendingDetail, signal?: AbortSignal): Promise<Advice[] | null> {
+  if (!cfg.anthropicApiKey) return null;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': cfg.anthropicApiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: cfg.anthropicModel,
+        max_tokens: 3000,
+        system: DETAILED_SYSTEM,
+        messages: [{ role: 'user', content: JSON.stringify(detailedDigest(d)) }],
+      }),
+      signal: signal ?? AbortSignal.timeout(40_000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { content?: { type: string; text?: string }[] };
+    const text = data.content?.find((c) => c.type === 'text')?.text ?? '';
+    const items = detailedResponseSchema.parse(JSON.parse(text.slice(text.indexOf('['), text.lastIndexOf(']') + 1)));
+    return items.map((it, i) => ({ id: `dai-${i}`, scope: 'specific' as const, ...it }));
   } catch {
     return null;
   }

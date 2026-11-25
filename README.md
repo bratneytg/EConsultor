@@ -38,7 +38,9 @@ El botón **«Importar extractos bancarios»** (en *Movimientos* y en *Ajustes �
 | Gráficas propias: saldo con previsión, «río» de dinero (Sankey), reparto por familias, 12 meses, mapa de calor, patrón semanal, pulso financiero | ✅ |
 | Recordatorio diario (Web Push, a la hora local del usuario, solo si no ha anotado nada) | ✅ (necesita claves VAPID) |
 | Perfil financiero interno (nunca se muestra ni se expone por la API) | ✅ |
-| Consejos: genéricos y específicos por reglas; con IA (Claude) en el plan Premium | ✅ (IA necesita `ANTHROPIC_API_KEY`) |
+| Consejos: pestaña «Generales» y pestaña «A fondo» (comercios, recurrentes, gastos pequeños, tendencias; con «qué hacer»); la IA es opcional y con consentimiento | ✅ (IA necesita `ANTHROPIC_API_KEY`) |
+| Cierre por inactividad (10 min, configurable con «Mantener conectado») y acceso con huella (passkeys) | ✅ (la huella exige HTTPS y `PUBLIC_ORIGIN` correcto) |
+| Importación con categorización por reglas, aprendizaje de tu historial y detección de comercios tras PayPal | ✅ |
 | Plan gratis / Premium (interruptor de demostración; falta pasarela de pago) | 🟡 |
 | Exportar y eliminar la cuenta (RGPD) | ✅ |
 | Base de datos | ⏳ Archivo cifrado por ahora; el puerto `Store` está listo para Postgres |

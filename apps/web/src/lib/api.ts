@@ -15,14 +15,34 @@ let onSessionLost: (() => void) | null = null;
 export const setSessionLostHandler = (fn: () => void) => { onSessionLost = fn; };
 export const setAccessToken = (t: string | null) => { accessToken = t; };
 
+/** Última vez que la persona tocó la pantalla. Solo con actividad reciente se marcan las peticiones como «activas». */
+let lastInput = Date.now();
+export const touchActivity = () => { lastInput = Date.now(); };
+export const msSinceInput = () => Date.now() - lastInput;
+const RECENT_MS = 90_000;
+
+/** Motivo por el que se perdió la sesión, para avisar en la pantalla de acceso. */
+export const flagIdle = () => { try { sessionStorage.setItem('ec_idle', '1'); } catch { /* sin almacenamiento */ } };
+export const takeIdleFlag = (): boolean => {
+  try { const v = sessionStorage.getItem('ec_idle') === '1'; sessionStorage.removeItem('ec_idle'); return v; } catch { return false; }
+};
+
 let refreshing: Promise<{ user: PublicUser } | null> | null = null;
 
 /** Renovación con "single-flight": varias peticiones concurrentes comparten un único refresh. */
-export function refreshSession(): Promise<{ user: PublicUser } | null> {
+export function refreshSession(opened = false): Promise<{ user: PublicUser } | null> {
   refreshing ??= (async () => {
     try {
-      const res = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'same-origin', headers: { 'x-requested-with': 'econsultor' } });
-      if (!res.ok) { accessToken = null; return null; }
+      // Abrir la app cuenta como actividad; el refresco automático en segundo plano no.
+      const headers: Record<string, string> = { 'x-requested-with': 'econsultor' };
+      if (opened) headers['x-user-active'] = '1';
+      const res = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'same-origin', headers });
+      if (!res.ok) {
+        accessToken = null;
+        const b = (await res.json().catch(() => ({}))) as { error?: string };
+        if (b.error === 'idle_timeout') flagIdle();
+        return null;
+      }
       const data = (await res.json()) as { accessToken: string; user: PublicUser };
       accessToken = data.accessToken;
       return { user: data.user };
@@ -39,6 +59,7 @@ async function raw(path: string, init: RequestInit): Promise<Response> {
   const headers = new Headers(init.headers);
   if (init.body) headers.set('content-type', 'application/json');
   if (accessToken) headers.set('authorization', `Bearer ${accessToken}`);
+  if (msSinceInput() < RECENT_MS) headers.set('x-user-active', '1');
   return fetch(`/api${path}`, { ...init, headers, credentials: 'same-origin' });
 }
 
@@ -47,6 +68,8 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
   const opts: RequestInit = { ...rest, body: json !== undefined ? JSON.stringify(json) : rest.body };
   let res = await raw(path, opts);
   if (res.status === 401 && !path.startsWith('/auth/')) {
+    const why = (await res.clone().json().catch(() => ({}))) as { error?: string };
+    if (why.error === 'idle_timeout') { flagIdle(); accessToken = null; onSessionLost?.(); throw new ApiError(401, 'idle_timeout', 'Sesión cerrada por inactividad'); }
     const ok = await refreshSession();
     if (ok) res = await raw(path, opts);
     else { onSessionLost?.(); }

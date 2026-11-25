@@ -13,6 +13,7 @@ import { authRoutes } from './routes/auth.js';
 import { dataRoutes } from './routes/data.js';
 import { importRoutes } from './routes/import.js';
 import { notificationRoutes } from './routes/notifications.js';
+import { idleExpired, noteActivity } from './security/idle.js';
 import { verifyAccess } from './security/tokens.js';
 import type { Store, UserRecord } from './store/types.js';
 
@@ -71,7 +72,7 @@ export async function buildApp(cfg: Config, store: Store): Promise<FastifyInstan
     origin: [cfg.publicOrigin],
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
-    allowedHeaders: ['content-type', 'authorization', 'x-requested-with'],
+    allowedHeaders: ['content-type', 'authorization', 'x-requested-with', 'x-user-active'],
   });
   await app.register(cookie);
   await app.register(rateLimit, { global: true, max: 300, timeWindow: '1 minute' });
@@ -92,6 +93,13 @@ export async function buildApp(cfg: Config, store: Store): Promise<FastifyInstan
     if (!session || session.revokedAt || session.userId !== claims.sub) throw unauthorized('Sesión revocada', 'session_revoked');
     const user = await store.users.byId(claims.sub);
     if (!user) throw unauthorized();
+    // Cierre por inactividad: salvo que la persona haya elegido «Mantener conectado».
+    if (idleExpired(cfg, user, session)) {
+      await store.sessions.revokeFamily(session.familyId);
+      throw unauthorized('Sesión cerrada por inactividad', 'idle_timeout');
+    }
+    // Solo cuenta como actividad lo que la persona hace (la web lo marca); no el refresco en segundo plano.
+    if (req.headers['x-user-active'] === '1') await noteActivity(store, session);
     req.user = user;
     req.sessionId = claims.sid;
   });

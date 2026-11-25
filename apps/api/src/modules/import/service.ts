@@ -5,7 +5,7 @@ import { badRequest, AppError } from '../../lib/errors.js';
 import { addDays } from '../../lib/dates.js';
 import type { Store, UserRecord } from '../../store/types.js';
 import { aiCategorize, aiExtractStatement } from './ai.js';
-import { categorize, haystack } from './categorize.js';
+import { buildHistory, categorize, haystack } from './categorize.js';
 import { rowsFromCsv } from './csv.js';
 import { pdfLines, rowsFromPdfLines } from './pdf.js';
 import type { ImportPreview, ImportRow, RawRow } from './types.js';
@@ -74,8 +74,13 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
   if (raw.length === 0) throw unprocessable('No hay movimientos válidos en el archivo.');
   if (raw.length > MAX_ROWS) throw new AppError(413, 'too_many_rows', `El archivo tiene ${raw.length} movimientos; el máximo por importación es ${MAX_ROWS}. Divide el extracto por años.`);
 
-  // Categorización: reglas offline y, si el usuario lo pide, IA para lo que no reconocen.
-  const cats = raw.map(categorize);
+  // Categorización: reglas offline, luego lo que la propia persona ya categorizó para ese comercio
+  // y, si lo pide, IA para lo que sigue sin reconocerse.
+  const mine = await store.transactions.list(user.id, { limit: 50_000 });
+  const history = buildHistory(mine);
+  const cats = raw.map((r) => categorize(r, history));
+  const learned = cats.filter((c) => c.via === 'history').length;
+  if (learned) warnings.push(`${learned === 1 ? '1 movimiento se ha clasificado' : `${learned} movimientos se han clasificado`} según lo que ya habías categorizado antes.`);
   if (input.useAi && cfg.anthropicApiKey) {
     const unknown = cats.map((c, i) => ({ c, i })).filter(({ c }) => c.confidence === 'low');
     if (unknown.length) {

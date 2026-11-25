@@ -13,6 +13,7 @@ export const useMonthTransactions = (month: string) =>
   });
 
 export const useAdvice = () => useQuery({ queryKey: ['advice'], queryFn: () => api<AdviceResponse>('/advice') });
+export const useDetailedAdvice = (enabled: boolean) => useQuery({ queryKey: ['advice', 'detailed'], queryFn: () => api<AdviceResponse>('/advice/detailed'), enabled });
 
 export const useAppConfig = () =>
   useQuery({ queryKey: ['config'], queryFn: () => api<{ googleClientId: string | null; demo: boolean; ai: boolean; apkUrl: string | null }>('/config'), staleTime: Infinity });

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { isoDate, monthStr, settingsInput, transactionInput, type Transaction } from '@econsultor/shared';
 import { addDays, monthOf, todayIn } from '../lib/dates.js';
 import { badRequest, conflict, forbidden, notFound, unauthorized } from '../lib/errors.js';
-import { getAdvice, clearAdviceCache } from '../modules/advice/advisor.js';
+import { getAdvice, getDetailedAdvice, clearAdviceCache } from '../modules/advice/advisor.js';
 import { buildOverview } from '../modules/analytics/analytics.js';
 import { generateDemoTransactions } from '../modules/demo/seed.js';
 import { effectivePlan } from '../lib/plan.js';
@@ -46,6 +46,7 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
     if (body.reminderEnabled !== undefined) u.reminderEnabled = body.reminderEnabled;
     if (body.reminderTime) u.reminderTime = body.reminderTime;
     if (body.uiMode) u.uiMode = body.uiMode;
+    if (body.keepSignedIn !== undefined) u.keepSignedIn = body.keepSignedIn;
     u.updatedAt = new Date().toISOString();
     await store.users.update(u);
     return toPublicUser(u, cfg.premiumForAll);
@@ -131,6 +132,16 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
     return getAdvice(cfg, {
       userId: req.user.id, plan: effectivePlan(cfg, req.user.plan), currency: req.user.currency,
       today: todayIn(req.user.timezone), txs, refresh: q.refresh === '1',
+    });
+  });
+
+  /** Consejos a fondo sobre tus gastos habituales. `ai=1` = la persona acepta enviar el resumen (comercios incluidos, saneados) a la IA. */
+  app.get('/advice/detailed', { ...auth, config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req) => {
+    const q = z.object({ refresh: z.enum(['1', '0']).optional(), ai: z.enum(['1', '0']).optional() }).parse(req.query);
+    const txs = await store.transactions.list(req.user.id);
+    return getDetailedAdvice(cfg, {
+      userId: req.user.id, plan: effectivePlan(cfg, req.user.plan), currency: req.user.currency,
+      today: todayIn(req.user.timezone), txs, refresh: q.refresh === '1', useAi: q.ai === '1',
     });
   });
 

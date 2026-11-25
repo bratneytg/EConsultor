@@ -60,6 +60,7 @@ Detallado en [`SECURITY.md`](SECURITY.md). Resumen: scrypt, MFA TOTP con anti-re
 ### 4. Eficiencia de rendimiento
 - Respuesta de analítica calculada en una pasada por los movimientos del usuario.
 - Web: *code-splitting* por ruta, assets con hash e inmutables, precaché del service worker, tipografías variables autohospedadas (sin terceros).
+- Sesiones: `lastActiveAt` por sesión; cierre por inactividad en servidor (`security/idle.ts`) y en cliente. Passkeys en `routes/passkeys.ts` (desafíos en memoria; en varias réplicas pasarán a Redis).
 - Caché de consejos por usuario (invalida al cambiar los datos) para no repetir llamadas a la IA.
 - *Camino de escala:* índices por `(user_id, date)`, agregados mensuales materializados, caché de `overview` en Redis.
 

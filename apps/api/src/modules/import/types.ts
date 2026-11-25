@@ -19,7 +19,7 @@ export interface ImportRow {
   amountMinor: number;
   note: string;
   confidence: 'high' | 'medium' | 'low';
-  via: 'rule' | 'bank' | 'ai' | 'default';
+  via: 'rule' | 'bank' | 'ai' | 'history' | 'default';
   /** Por qué se propone omitirla (el usuario puede forzarla). */
   skip?: 'duplicate' | 'internal';
 }

@@ -1,5 +1,18 @@
 import type { Plan, Transaction, UiMode } from '@econsultor/shared';
 
+/** Llave de acceso (huella, cara o PIN del dispositivo). Solo guardamos la clave PÚBLICA. */
+export interface PasskeyRecord {
+  /** ID de credencial, base64url. */
+  id: string;
+  /** Clave pública, base64url. */
+  publicKey: string;
+  counter: number;
+  transports?: string[];
+  name: string;
+  createdAt: string;
+  lastUsedAt?: string;
+}
+
 export interface UserRecord {
   id: string;
   email: string;
@@ -21,6 +34,9 @@ export interface UserRecord {
     lastStep?: number;
     recoveryHashes: string[];
   };
+  /** Si es true, la sesión no se cierra por inactividad. Ausente → se cierra a los 10 min. */
+  keepSignedIn?: boolean;
+  passkeys?: PasskeyRecord[];
   failedLogins: number;
   lockedUntil?: number;
   createdAt: string;
@@ -36,6 +52,8 @@ export interface SessionRecord {
   expiresAt: number;
   usedAt?: number;
   revokedAt?: number;
+  /** Última vez que la persona usó la app (no cuenta el refresco en segundo plano). */
+  lastActiveAt?: number;
   userAgent?: string;
 }
 

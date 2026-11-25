@@ -3,7 +3,8 @@ import type { Config } from '../../config.js';
 import { monthOf } from '../../lib/dates.js';
 import { buildOverview } from '../analytics/analytics.js';
 import { buildFinancialProfile } from '../profile/engine.js';
-import { claudeAdvice } from './claude.js';
+import { claudeAdvice, claudeDetailedAdvice } from './claude.js';
+import { buildSpendingDetail, detailedAdvice, MIN_DETAIL_TX } from './detailed.js';
 import { ruleBasedAdvice } from './rules.js';
 
 export const FREE_LIMIT = 3;
@@ -62,4 +63,42 @@ export async function getAdvice(
   };
 }
 
-export const clearAdviceCache = (userId: string): void => void cache.delete(userId);
+const detailedCache = new Map<string, Cached>();
+/** Consejos que bajan al detalle (comercios, frecuencia, importes). Siempre hay versión local; la IA solo si la persona lo pide (`useAi`). */
+export async function getDetailedAdvice(
+  cfg: Config,
+  args: { userId: string; plan: Plan; currency: string; today: string; txs: Transaction[]; refresh?: boolean; useAi?: boolean },
+): Promise<AdviceResponse> {
+  const { userId, plan, currency, today, txs, refresh } = args;
+  const detail = buildSpendingDetail(txs, today, currency);
+  const aiAvailable = !!cfg.anthropicApiKey && plan === 'premium' && detail.txCount >= MIN_DETAIL_TX;
+  const wantAi = !!args.useAi && aiAvailable;
+
+  const latest = txs.reduce((m, t) => (t.updatedAt > m ? t.updatedAt : m), '');
+  const key = `${plan}|${txs.length}|${latest}|${today}|${wantAi ? 'ai' : 'local'}`;
+  const hit = detailedCache.get(userId);
+
+  let items: Advice[];
+  let source: 'rules' | 'ai' = 'rules';
+  let at = Date.now();
+  if (hit && hit.key === key && Date.now() - hit.at < TTL && !refresh) {
+    ({ items, source, at } = hit);
+  } else {
+    items = detailedAdvice(detail);
+    if (wantAi) {
+      const ai = await claudeDetailedAdvice(cfg, detail);
+      if (ai) { items = ai; source = 'ai'; }
+    }
+    at = Date.now();
+    detailedCache.set(userId, { key, at, source, items });
+  }
+
+  // Gratis: se ven los 2 primeros; el resto se desbloquea con Premium.
+  const visible = plan === 'premium' ? items : items.slice(0, 2);
+  return {
+    source, plan, generatedAt: new Date(at).toISOString(), items: visible, lockedCount: items.length - visible.length,
+    basis: { periodDays: detail.periodDays, txCount: detail.txCount, merchants: detail.merchants.length, aiAvailable },
+  };
+}
+
+export const clearAdviceCache = (userId: string): void => { cache.delete(userId); detailedCache.delete(userId); };

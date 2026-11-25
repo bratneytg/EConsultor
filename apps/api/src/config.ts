@@ -32,6 +32,8 @@ const envSchema = z.object({
   PREMIUM_FOR_ALL: bool.default('false'),
   /** Dirección de descarga del APK de Android (la web la muestra en Ayuda y Ajustes). */
   APK_URL: z.string().url().optional(),
+  /** Minutos sin actividad tras los que se cierra la sesión (0 = nunca). Cada persona puede activar «Mantener conectado». */
+  IDLE_TIMEOUT_MIN: z.coerce.number().int().min(0).max(1440).default(10),
 });
 
 export interface Config {
@@ -54,6 +56,7 @@ export interface Config {
   anthropicModel: string;
   vapid?: { publicKey: string; privateKey: string; subject: string };
   premiumForAll: boolean;
+  idleTimeoutMin: number;
   apkUrl?: string;
 }
 
@@ -110,6 +113,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): Config {
     anthropicApiKey: e.ANTHROPIC_API_KEY,
     anthropicModel: e.ANTHROPIC_MODEL,
     premiumForAll: e.PREMIUM_FOR_ALL,
+    idleTimeoutMin: e.IDLE_TIMEOUT_MIN,
     apkUrl: e.APK_URL,
     vapid:
       e.VAPID_PUBLIC_KEY && e.VAPID_PRIVATE_KEY

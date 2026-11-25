@@ -106,6 +106,9 @@ export const mfaVerifyInput = z
     recoveryCode: z.string().trim().min(8).max(32).optional(),
   })
   .refine((v) => !!v.code !== !!v.recoveryCode, { message: 'Indica code o recoveryCode' });
+/** Minutos de inactividad tras los que se cierra la sesión (salvo «Mantener conectado»). */
+export const IDLE_TIMEOUT_MIN = 10;
+
 export const googleInput = z.object({ idToken: z.string().min(20) });
 
 export const settingsInput = z
@@ -116,6 +119,7 @@ export const settingsInput = z
     reminderEnabled: z.boolean(),
     reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
     uiMode: uiModeSchema,
+    keepSignedIn: z.boolean(),
   })
   .partial();
 export type SettingsInput = z.infer<typeof settingsInput>;
@@ -134,6 +138,10 @@ export interface PublicUser {
   reminderEnabled: boolean;
   reminderTime: string;
   uiMode: UiMode;
+  /** true → la sesión no se cierra tras 10 min de inactividad. */
+  keepSignedIn: boolean;
+  /** Llaves de acceso (huella) registradas. */
+  passkeys: { id: string; name: string; createdAt: string; lastUsedAt?: string }[];
   mfaEnabled: boolean;
   hasPassword: boolean;
   googleLinked: boolean;
@@ -216,6 +224,8 @@ export interface Advice {
   body: string;
   /** Impacto mensual estimado en céntimos (si aplica). */
   impactMinor?: number;
+  /** Qué hacer, en concreto (solo en los consejos detallados). */
+  action?: string;
 }
 
 export interface AdviceResponse {
@@ -225,4 +235,6 @@ export interface AdviceResponse {
   items: Advice[];
   /** Cuántos consejos adicionales se desbloquean con Premium. */
   lockedCount: number;
+  /** Solo en el análisis detallado: sobre qué datos se ha hecho. */
+  basis?: { periodDays: number; txCount: number; merchants: number; aiAvailable: boolean };
 }

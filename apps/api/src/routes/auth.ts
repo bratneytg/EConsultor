@@ -6,7 +6,9 @@ import { googleInput, loginInput, mfaVerifyInput, registerInput, type AuthRespon
 import { AppError, badRequest, conflict, unauthorized } from '../lib/errors.js';
 import { dummyVerify, hashPassword, passwordProblem, verifyPassword } from '../security/password.js';
 import { open, randomToken, seal, sha256 } from '../security/crypto.js';
+import { idleExpired } from '../security/idle.js';
 import { ACCESS_TTL_S, signAccess, signMfa, verifyMfa } from '../security/tokens.js';
+import { passkeyRoutes } from './passkeys.js';
 import { generateRecoveryCodes, generateSecret, otpauthUri, verifyTotp } from '../security/totp.js';
 import type { SessionRecord, UserRecord } from '../store/types.js';
 
@@ -27,6 +29,8 @@ export function toPublicUser(u: UserRecord, premiumForAll = false): PublicUser {
     reminderEnabled: u.reminderEnabled,
     reminderTime: u.reminderTime,
     uiMode: u.uiMode ?? 'simple',
+    keepSignedIn: !!u.keepSignedIn,
+    passkeys: (u.passkeys ?? []).map((k) => ({ id: k.id, name: k.name, createdAt: k.createdAt, lastUsedAt: k.lastUsedAt })),
     mfaEnabled: u.mfa.enabled,
     hasPassword: !!u.passwordHash,
     googleLinked: !!u.googleSub,
@@ -51,7 +55,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     });
   const clearRefreshCookie = (reply: FastifyReply) => reply.clearCookie(COOKIE, { path: '/api/auth' });
 
-  async function startSession(req: FastifyRequest, reply: FastifyReply, user: UserRecord, familyId: string = randomUUID()): Promise<string> {
+  async function startSession(req: FastifyRequest, reply: FastifyReply, user: UserRecord, familyId: string = randomUUID(), lastActiveAt: number = Date.now()): Promise<string> {
     const refresh = randomToken(32);
     const session: SessionRecord = {
       id: randomUUID(),
@@ -60,6 +64,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       tokenHash: sha256(refresh),
       createdAt: new Date().toISOString(),
       expiresAt: Date.now() + REFRESH_TTL_MS,
+      lastActiveAt,
       userAgent: req.headers['user-agent']?.slice(0, 200),
     };
     await store.sessions.create(session);
@@ -290,9 +295,16 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     }
     const user = await store.users.byId(session.userId);
     if (!user) throw unauthorized();
+    // Inactividad: el refresco en segundo plano NO cuenta como uso. Solo lo marca como activo la apertura de la app.
+    if (idleExpired(cfg, user, session)) {
+      await store.sessions.revokeFamily(session.familyId);
+      clearRefreshCookie(reply);
+      throw unauthorized('Sesión cerrada por inactividad', 'idle_timeout');
+    }
+    const active = req.headers['x-user-active'] === '1';
     session.usedAt = Date.now();
     await store.sessions.update(session);
-    const accessToken = await startSession(req, reply, user, session.familyId);
+    const accessToken = await startSession(req, reply, user, session.familyId, active ? Date.now() : (session.lastActiveAt ?? Date.parse(session.createdAt)));
     return reply.send({ accessToken, expiresIn: ACCESS_TTL_S, user: toPublicUser(user, cfg.premiumForAll) } as const);
   });
 
@@ -312,4 +324,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     clearRefreshCookie(reply);
     return reply.send({ ok: true });
   });
+
+  // ───────── Llaves de acceso (huella) ─────────
+  await app.register(passkeyRoutes, { prefix: '/passkey', complete, assertNotLocked, audit });
 }
