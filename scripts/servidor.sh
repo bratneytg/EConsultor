@@ -16,6 +16,9 @@
 #   bash scripts/servidor.sh panel-clave      Genera una contraseña nueva para el panel
 #   bash scripts/servidor.sh panel-parar      Apaga el panel y lo quita de Tailscale
 #   bash scripts/servidor.sh direccion        Tras cambiar el nombre del equipo o de la red en Tailscale: actualiza todo
+#   bash scripts/servidor.sh activar          Activa Premium para todos, la IA y los avisos push (genera las claves VAPID)
+#   bash scripts/servidor.sh perfiles on|off  Muestra u oculta la pestaña «Perfiles» del panel (apagado por defecto)
+#   bash scripts/servidor.sh apk URL          Pone el enlace de descarga de la app de Android en la web
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -393,10 +396,23 @@ except Exception:
     pass' || true
 }
 
+# Pone (o cambia) CLAVE=valor en un archivo de variables, sin tocar el resto.
+env_poner() {
+  local archivo="$1" clave="$2" valor="$3"
+  touch "$archivo"
+  if grep -q "^${clave}=" "$archivo"; then
+    sed -i "s|^${clave}=.*|${clave}=${valor}|" "$archivo"
+  else
+    printf '%s=%s\n' "$clave" "$valor" >> "$archivo"
+  fi
+}
+env_leer() { grep "^$2=" "$1" 2>/dev/null | head -1 | cut -d= -f2- || true; }
+
 panel_clave_nueva() {
-  local nueva ver="${1:-false}"
+  local nueva ver="${1:-false}" perfiles
+  perfiles="$(env_leer "${DIR}/.env.panel" PANEL_VER_PERFILES)"
   nueva="$(openssl rand -hex 16)"
-  ( umask 077; printf 'PANEL_PASSWORD=%s\nPANEL_VER_IMPORTES=%s\n' "$nueva" "$ver" > "${DIR}/.env.panel" )
+  ( umask 077; printf 'PANEL_PASSWORD=%s\nPANEL_VER_IMPORTES=%s\nPANEL_VER_PERFILES=%s\n' "$nueva" "$ver" "${perfiles:-false}" > "${DIR}/.env.panel" )
   chmod 600 "${DIR}/.env.panel"
   echo "$nueva"
 }
@@ -465,6 +481,87 @@ panel_parar() {
   echo "Para volver a encenderlo: bash scripts/servidor.sh panel"
 }
 
+# base64url sin relleno, como pide Web Push.
+b64url() { base64 -w0 | tr '+/' '-_' | tr -d '='; }
+
+vapid_generar() {
+  local tmp; tmp="$(mktemp -d)"; chmod 700 "$tmp"
+  openssl ecparam -name prime256v1 -genkey -noout -out "$tmp/k.pem" 2>/dev/null
+  VAPID_PRIVADA="$(openssl ec -in "$tmp/k.pem" -outform DER 2>/dev/null | tail -c +8 | head -c 32 | b64url)"
+  VAPID_PUBLICA="$(openssl ec -in "$tmp/k.pem" -pubout -outform DER 2>/dev/null | tail -c 65 | b64url)"
+  rm -rf "$tmp"
+  [ "${#VAPID_PRIVADA}" -eq 43 ] && [ "${#VAPID_PUBLICA}" -eq 87 ] || { alerta "No pude generar las claves de avisos (openssl)."; exit 1; }
+}
+
+activar() {
+  command -v openssl >/dev/null || { alerta "Falta openssl (sudo apt install openssl)."; exit 1; }
+  [ -f "${DIR}/.env" ] || { alerta "No encuentro el archivo .env en ${DIR}."; exit 1; }
+  titulo "ACTIVAR TODAS LAS FUNCIONES"
+  cp -p "${DIR}/.env" "${DIR}/.env.antes-de-activar"; chmod 600 "${DIR}/.env.antes-de-activar"
+
+  env_poner "${DIR}/.env" PREMIUM_FOR_ALL true
+  ok "Premium para todas las cuentas (consejos completos e IA) mientras no haya cobro."
+  env_poner "${DIR}/.env" ALLOW_DEMO_DATA false
+  ok "Cuenta de pruebas «admin» desactivada (la dejo así a propósito: es insegura)."
+
+  if [ -z "$(env_leer "${DIR}/.env" VAPID_PUBLIC_KEY)" ] || [ -z "$(env_leer "${DIR}/.env" VAPID_PRIVATE_KEY)" ]; then
+    vapid_generar
+    env_poner "${DIR}/.env" VAPID_PUBLIC_KEY "$VAPID_PUBLICA"
+    env_poner "${DIR}/.env" VAPID_PRIVATE_KEY "$VAPID_PRIVADA"
+    ok "Claves de avisos push creadas y guardadas en .env."
+  else
+    ok "Las claves de avisos push ya existían: no las toco (cambiarlas desconectaría los dispositivos ya suscritos)."
+  fi
+  local origen; origen="$(env_leer "${DIR}/.env" PUBLIC_ORIGIN)"
+  if [ -z "$(env_leer "${DIR}/.env" VAPID_SUBJECT)" ] && [ -n "$origen" ]; then env_poner "${DIR}/.env" VAPID_SUBJECT "$origen"; fi
+
+  echo "Reiniciando la app..."
+  compose up -d app
+  local i
+  for i in $(seq 1 30); do
+    if curl -fsS http://127.0.0.1:8787/healthz >/dev/null 2>&1; then break; fi
+    sleep 2
+  done
+  curl -fsS http://127.0.0.1:8787/healthz >/dev/null 2>&1 || { alerta "La app no arrancó. Mira: docker compose logs app"; exit 1; }
+
+  titulo "ESTADO"
+  local cfg; cfg="$(curl -fsS http://127.0.0.1:8787/api/config 2>/dev/null || true)"
+  if echo "$cfg" | grep -q '"ai":true'; then ok "IA activa."; else aviso "La IA NO está activa: falta ANTHROPIC_API_KEY en ${DIR}/.env (añádela tú; no la pegues en el chat)."; fi
+  if curl -fsS http://127.0.0.1:8787/api/notifications/config 2>/dev/null | grep -q '"publicKey":"'; then ok "Avisos push activos."; else aviso "Los avisos push no quedaron activos."; fi
+  if echo "$cfg" | grep -q '"googleClientId":"'; then ok "Entrar con Google activo."; else aviso "Entrar con Google no está configurado (necesita GOOGLE_CLIENT_ID; ver README)."; fi
+  if echo "$cfg" | grep -q '"apkUrl":"'; then ok "Enlace de la app de Android puesto."; else aviso "Sin enlace de la app de Android todavía: bash scripts/servidor.sh apk <URL del APK>"; fi
+}
+
+perfiles() {
+  [ -f "${DIR}/.env.panel" ] || { alerta "El panel aún no está instalado: bash scripts/servidor.sh panel"; exit 1; }
+  case "${1:-estado}" in
+    on)
+      echo "Vas a activar los PERFILES FINANCIEROS en el panel: verás, por cada persona, su nivel de ahorro,"
+      echo "tendencia, categorías principales y previsión (con importes)."
+      echo "Es información personal: avisa a quien use la app (política de privacidad / aviso) y úsalo solo para administrar el servicio."
+      read -r -p "Escribe SI para activarlo: " r
+      [ "$r" = "SI" ] || { echo "Cancelado. No he cambiado nada."; exit 0; }
+      env_poner "${DIR}/.env.panel" PANEL_VER_PERFILES true
+      compose up -d --force-recreate panel
+      ok "Pestaña «Perfiles» activada en el panel." ;;
+    off)
+      env_poner "${DIR}/.env.panel" PANEL_VER_PERFILES false
+      compose up -d --force-recreate panel
+      ok "Pestaña «Perfiles» desactivada." ;;
+    *)
+      if [ "$(env_leer "${DIR}/.env.panel" PANEL_VER_PERFILES)" = "true" ]; then echo "Perfiles: ACTIVADOS"; else echo "Perfiles: desactivados (bash scripts/servidor.sh perfiles on)"; fi ;;
+  esac
+}
+
+apk() {
+  local url="${1:-}"
+  [ -n "$url" ] || { echo "Uso: bash scripts/servidor.sh apk https://…/econsultor.apk"; exit 1; }
+  case "$url" in https://*) ;; *) alerta "El enlace debe empezar por https://"; exit 1 ;; esac
+  env_poner "${DIR}/.env" APK_URL "$url"
+  compose up -d app
+  ok "Enlace puesto. Aparecerá en Ajustes y en Ayuda."
+}
+
 case "${1:-ayuda}" in
   informe) informe ;;
   actividad) actividad "${2:-7}" ;;
@@ -480,5 +577,8 @@ case "${1:-ayuda}" in
   panel) panel ;;
   panel-clave) panel_clave ;;
   panel-parar) panel_parar ;;
-  *) sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
+  activar) activar ;;
+  perfiles) perfiles "${2:-estado}" ;;
+  apk) apk "${2:-}" ;;
+  *) sed -n '2,21p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
 esac

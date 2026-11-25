@@ -26,6 +26,10 @@ const P: Record<string, string> = {
   refresh: 'M20 11a8 8 0 00-14.5-4M4 4v4h4M4 13a8 8 0 0014.5 4M20 20v-4h-4',
   table: 'M3 5h18v14H3zM3 10h18M9 5v14',
   chart: 'M4 19V5M4 19h16M8 15l3-4 3 2 4-6',
+  bug: 'M9 7V6a3 3 0 016 0v1M7 9h10v5a5 5 0 01-10 0V9zM12 9v10M3 12h4M17 12h4M4 6l3 2M20 6l-3 2M4 19l3-2M20 19l-3-2',
+  help: 'M12 21a9 9 0 100-18 9 9 0 000 18zM9.5 9.500a2.500 2.500 0 114 2c-.9.6-1.500 1.100-1.500 2.500M12 17h.01',
+  search: 'M11 18a7 7 0 100-14 7 7 0 000 14zM21 21l-5-5',
+  phone: 'M7 3h10v18H7zM11 18h2',
   // categorías
   home: 'M4 11l8-7 8 7v9H4v-9zM10 20v-6h4v6',
   cart: 'M3 4h2l2.4 11h10.2L20 7H6M9 20h.01M17 20h.01',

@@ -126,6 +126,9 @@ Limitaciones del plan gratuito: el servicio se duerme tras ~15 min sin uso (la p
 | `bash scripts/servidor.sh publico` / `privado` | Abre la app a internet con Tailscale Funnel / la deja solo en tu red privada |
 | `bash scripts/servidor.sh panel` | Instala o actualiza el panel personal (ver abajo) y muestra su contraseña la primera vez |
 | `bash scripts/servidor.sh direccion` | Tras renombrar el equipo o la red en Tailscale: rehace las asignaciones, actualiza `PUBLIC_ORIGIN` y reinicia la app |
+| `bash scripts/servidor.sh activar` | Activa Premium para todos (`PREMIUM_FOR_ALL`), genera las claves de avisos push (VAPID) y avisa de lo que aún falta (clave de IA, Google) |
+| `bash scripts/servidor.sh perfiles on\|off` | Muestra u oculta la pestaña «Perfiles financieros» del panel (apagada por defecto; pide confirmar) |
+| `bash scripts/servidor.sh apk URL` | Pone el enlace de descarga de la app de Android en Ajustes y Ayuda |
 | `bash scripts/servidor.sh panel-clave` / `panel-parar` | Cambia la contraseña del panel / lo apaga y lo quita de Tailscale |
 
 Los informes los genera `apps/api/src/informe.ts` (dentro del contenedor, como `node dist/informe.js`): leen la base de datos

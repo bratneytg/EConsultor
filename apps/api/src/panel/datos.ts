@@ -11,7 +11,8 @@
  */
 import { readFileSync, statSync } from 'node:fs';
 import { open } from '../security/crypto.js';
-import type { AuditEvent, PushSubscriptionRecord, SessionRecord, UserRecord } from '../store/types.js';
+import type { AuditEvent, PushSubscriptionRecord, ReportRecord, SessionRecord, UserRecord } from '../store/types.js';
+import { construirPerfiles } from './perfiles.js';
 
 interface Tx {
   id: string;
@@ -31,6 +32,7 @@ export interface Instantanea {
   transactions: Tx[];
   push: PushSubscriptionRecord[];
   audit: AuditEvent[];
+  reports: ReportRecord[];
 }
 
 export interface ArchivoBase {
@@ -55,6 +57,8 @@ export interface OpcionesPanel {
   archivoHost: string;
   archivoHistorial: string;
   verImportes: boolean;
+  /** Opt-in: muestra el perfil financiero de cada persona (ver docs/SECURITY.md). */
+  verPerfiles?: boolean;
   puertoPanel: number;
   ahora?: number;
 }
@@ -120,6 +124,7 @@ export function leerBase(ruta: string, clave?: Buffer): ArchivoBase {
       transactions: s.transactions ?? [],
       push: s.push ?? [],
       audit: s.audit ?? [],
+      reports: s.reports ?? [],
     },
     ruta,
     bytes: st.size,
@@ -230,6 +235,8 @@ export interface DatosPanel {
   usuarios: Libre[];
   movimientos: Libre;
   actividad: Libre;
+  reportes: Libre;
+  perfiles: Libre;
 }
 
 const peor = (a: Nivel, b: Nivel): Nivel => (a === 'alerta' || b === 'alerta' ? 'alerta' : a === 'aviso' || b === 'aviso' ? 'aviso' : 'ok');
@@ -265,6 +272,8 @@ export function construirDatos(o: OpcionesPanel): DatosPanel {
   let baseInfo: Libre | { error: string } = { error: errorBase ?? 'sin datos' };
   let movimientos: Libre = {};
   let actividad: Libre = {};
+  let reportes: Libre = {};
+  let perfiles: Libre = { activo: false };
 
   if (base) {
     const { snap } = base;
@@ -398,6 +407,25 @@ export function construirDatos(o: OpcionesPanel): DatosPanel {
       if (e.at > r.ultimo) r.ultimo = e.at;
       porIp.set(e.ip, r);
     }
+    // Reportes de fallos e ideas enviados desde la app.
+    const reps = [...snap.reports].sort((a, b) => b.at.localeCompare(a.at));
+    const dias14: string[] = [];
+    for (let i = 13; i >= 0; i--) dias14.push(diaDe(ahora - i * DIA));
+    const repsPorDia = new Map<string, number>(dias14.map((d) => [d, 0]));
+    for (const r of reps) { const d = diaDe(r.at); if (repsPorDia.has(d)) repsPorDia.set(d, repsPorDia.get(d)! + 1); }
+    reportes = {
+      total: reps.length,
+      ultimas24h: reps.filter((r) => ahora - Date.parse(r.at) < DIA).length,
+      porTipo: { bug: reps.filter((r) => r.kind === 'bug').length, idea: reps.filter((r) => r.kind === 'idea').length, other: reps.filter((r) => r.kind === 'other').length },
+      porDia: dias14.map((d) => ({ dia: d, n: repsPorDia.get(d)! })),
+      porPantalla: [...reps.reduce((m, r) => m.set(r.page ?? '(sin dato)', (m.get(r.page ?? '(sin dato)') ?? 0) + 1), new Map<string, number>())].map(([pantalla, n]) => ({ pantalla, n })).sort((a, b) => b.n - a.n).slice(0, 8),
+      lista: reps.slice(0, 200).map((r) => ({ id: r.id.slice(0, 8), at: r.at, tipo: r.kind, email: email(r.userId), mensaje: r.message, pantalla: r.page ?? '', plataforma: r.platform ?? '', version: r.appVersion ?? '', navegador: r.userAgent ?? '' })),
+    };
+    const fallos72 = reps.filter((r) => r.kind === 'bug' && ahora - Date.parse(r.at) < 3 * DIA).length;
+    if (fallos72 > 0) avisar('aviso', 'Reportes', fallos72 === 1 ? '1 fallo reportado en los últimos 3 días' : `${fallos72} fallos reportados en los últimos 3 días`, 'Míralos en la pestaña Reportes.');
+
+    perfiles = o.verPerfiles ? construirPerfiles(snap.users, snap.transactions, ahora) : { activo: false };
+
     actividad = {
       porDia: dias30.map((d) => ({ dia: d, ...porDia.get(d)! })),
       ips: [...porIp].map(([ip, r]) => ({ ip, ...r })).sort((a, b) => b.eventos - a.eventos).slice(0, 25),
@@ -535,5 +563,7 @@ export function construirDatos(o: OpcionesPanel): DatosPanel {
     usuarios,
     movimientos,
     actividad,
+    reportes,
+    perfiles,
   };
 }

@@ -321,3 +321,30 @@ h1, h2, h3, p { margin: 0; }
 .imp-tag { font-style: normal; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--surface-3); color: var(--ink-2); }
 .imp-cat { max-width: 48%; border: 1px solid var(--hair); background: var(--surface); border-radius: 999px; padding: 3px 8px; font-size: 12.5px; color: var(--ink-2); border-left: 4px solid var(--tile-c, var(--hair)); }
 .imp-actions { display: grid; gap: 10px; margin-top: 12px; }
+
+/* ── Botón discreto para reportar fallos ── */
+.report-dot { position: fixed; z-index: 30; top: calc(env(safe-area-inset-top) + 8px); right: 8px; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; border: 0; background: transparent; color: var(--ink-3); opacity: 0.28; transition: opacity 0.15s, background 0.15s; }
+.report-dot:hover, .report-dot:focus-visible { opacity: 1; background: var(--surface-2); color: var(--ink); }
+.sheet-title { font-family: var(--font-display); font-size: 20px; letter-spacing: -0.02em; }
+textarea.input { resize: vertical; min-height: 110px; font: inherit; }
+.rail-help { opacity: 0.85; }
+
+/* ── Ayuda ── */
+.help-search { position: relative; }
+.help-search svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
+.help-search .input { padding-left: 42px; }
+.help-topics { display: flex; flex-wrap: wrap; gap: 8px; }
+.help-list-wrap { background: var(--surface); border: 1px solid var(--hair); border-radius: 22px; overflow: hidden; }
+.help-item + .help-item { border-top: 1px solid var(--grid); }
+.help-q { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; background: none; border: 0; padding: 15px 18px; color: var(--ink); }
+.help-q:hover { background: var(--surface-2); }
+.help-q b { display: block; font-weight: 600; }
+.help-q small { color: var(--ink-3); font-size: 12.5px; }
+.help-q svg { flex: none; color: var(--ink-3); transition: transform 0.18s; }
+.help-q svg.turn { transform: rotate(90deg); }
+.help-a { padding: 0 18px 18px; display: grid; gap: 10px; max-width: 68ch; line-height: 1.55; color: var(--ink-2); }
+.help-a .help-resumen { color: var(--ink); font-weight: 500; }
+.help-list { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.help-a .btn { display: inline-flex; width: auto; text-decoration: none; }
+.link-btn { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; font: inherit; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .help-q svg { transition: none; } }

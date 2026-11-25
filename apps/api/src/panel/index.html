@@ -157,6 +157,29 @@ dl.datos dd { margin: 0; overflow-wrap: anywhere; }
 .publicados { display: grid; gap: 10px; margin-top: 12px; } .pub { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; overflow-wrap: anywhere; }
 .tabla-datos { max-height: 260px; overflow: auto; margin-top: 8px; }
 
+
+/* ── reportes y perfiles ── */
+.reportes { display: grid; gap: 10px; }
+.reporte { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; }
+.reporte header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 6px; padding: 0; border: 0; }
+.reporte .msg { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 0 6px; }
+.reporte .meta { font-size: 12.5px; margin: 0; display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.reporte .nav { flex-basis: 100%; overflow-wrap: anywhere; }
+.perfiles { display: grid; gap: 18px; }
+.perfil { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+.perfil > header { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; margin: 0 0 4px; padding: 0; border: 0; }
+.perfil h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.perfil h4 { font-size: 14px; margin: 0 0 4px; }
+.perfil .nota { text-align: right; flex: none; }
+.perfil .nota .num { display: block; font-size: 30px; font-weight: 650; line-height: 1; letter-spacing: -0.02em; }
+.perfil .nota small { color: var(--muted); }
+.perfil .prevision { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.perfil .prevision p { margin: 4px 0 0; color: var(--ink-2); }
+.perfil .neg { color: var(--bad-ink); }
+.lecturas { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 4px; color: var(--ink-2); }
+.aviso-privacidad { border-color: var(--warn); }
+.aviso-privacidad p { margin: 6px 0; }
+
 /* ── barras horizontales ── */
 .hb { display: grid; grid-template-columns: minmax(80px, 38%) 1fr auto; gap: 6px 12px; align-items: center; margin-top: 10px; font-size: 14px; }
 .hb .et { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
@@ -264,7 +287,7 @@ function icono(nivel, cls = '') {
 }
 
 /* ───────────── estado ───────────── */
-const S = { datos: null, vista: 'resumen', rango: 'h24', auto: true, cargando: false, error: null, ultimaCarga: 0, verTabla: new Set(), filtros: { usuarios: '', eventos: '', tipo: '', registro: '', contenedor: '', soloErrores: false, limite: 150 } };
+const S = { datos: null, vista: 'resumen', rango: 'h24', auto: true, cargando: false, error: null, ultimaCarga: 0, verTabla: new Set(), filtros: { usuarios: '', eventos: '', tipo: '', reportes: '', tipoReporte: '', limiteReportes: 30, registro: '', contenedor: '', soloErrores: false, limite: 150 } };
 const specs = new Map();
 
 const VISTAS = [
@@ -273,6 +296,8 @@ const VISTAS = [
   ['base', 'Base de datos'],
   ['usuarios', 'Usuarios'],
   ['actividad', 'Actividad'],
+  ['reportes', 'Reportes'],
+  ['perfiles', 'Perfiles'],
   ['contenedores', 'Contenedores'],
   ['red', 'Red y copias'],
 ];
@@ -349,7 +374,7 @@ function pintarNav() {
     if (!f.length) return html``;
     return html`<span class="cuenta ${f.some((a) => a.nivel === 'alerta') ? '' : 'aviso'}" title="${plural(f.length, 'aviso', 'avisos')}">${f.length}</span>`;
   };
-  const mapa = { servidor: ['Servidor'], base: ['Base de datos'], actividad: ['Seguridad'], contenedores: ['Contenedores', 'La app'], red: ['Red', 'Copias'], resumen: [], usuarios: [] };
+  const mapa = { servidor: ['Servidor'], base: ['Base de datos'], actividad: ['Seguridad'], reportes: ['Reportes'], perfiles: [], contenedores: ['Contenedores', 'La app'], red: ['Red', 'Copias'], resumen: [], usuarios: [] };
   mount(nav, html`${VISTAS.map(([k, t]) => html`<button class="pestana" data-v="${k}" ${k === S.vista ? raw('aria-current="page"') : ''}><span>${t}</span>${cuenta(mapa[k])}</button>`)}`);
   nav.querySelectorAll('.pestana').forEach((b) => b.addEventListener('click', () => { location.hash = b.dataset.v; }));
 }
@@ -427,7 +452,7 @@ function tablaDe(spec) {
     ? spec.series[0].pts.map((p, i) => ({ k: spec.fmtX(p.x), v: spec.series.map((s) => s.pts[i]?.y) }))
     : spec.cats.map((c, i) => ({ k: c, v: spec.series.map((s) => s.vals[i]) }));
   const fmt = spec.fmt || ((v) => nf1.format(v));
-  return html`<div class="tabla tabla-datos"><table><thead><tr><th>${spec.tipo === 'linea' ? 'Momento' : 'Día'}</th>${spec.series.map((s) => html`<th class="r">${s.n}</th>`)}</tr></thead>
+  return html`<div class="tabla tabla-datos"><table><thead><tr><th>${spec.tipo === 'linea' ? 'Momento' : (spec.col || 'Día')}</th>${spec.series.map((s) => html`<th class="r">${s.n}</th>`)}</tr></thead>
     <tbody>${filas.slice().reverse().map((f) => html`<tr><td class="nw">${f.k}</td>${f.v.map((v) => html`<td class="r num">${v == null ? '—' : fmt(v)}</td>`)}</tr>`)}</tbody></table></div>`;
 }
 
@@ -691,6 +716,62 @@ function vActividad(d) {
       ${filtrados.length > S.filtros.limite ? html`<p class="mt10"><button class="btn suave" id="mas-eventos">Mostrar 150 más (${filtrados.length - S.filtros.limite} restantes)</button></p>` : ''}</section>`;
 }
 
+/* ───────────── reportes de fallos ───────────── */
+const TIPO_REPORTE = { bug: 'Fallo', idea: 'Idea', other: 'Otro' };
+const kpi = (et, vl, sb) => html`<div><div class="et">${et}</div><div class="vl num">${vl}</div>${sb ? html`<div class="sb">${sb}</div>` : ''}</div>`;
+
+function vReportes(d) {
+  const r = d.reportes;
+  if (!r?.lista) return html`<section class="bloque">${cabecera('Reportes')}${sinDatos(null, 'reportes')}</section>`;
+  const q = S.filtros.reportes.toLowerCase(); const t = S.filtros.tipoReporte;
+  const lista = r.lista.filter((x) => (!t || x.tipo === t) && (!q || `${x.email} ${x.mensaje} ${x.pantalla} ${x.plataforma}`.toLowerCase().includes(q)));
+  return html`<section class="bloque">${cabecera('Fallos e ideas enviados desde la app', 'Lo que las personas escriben con el botón discreto de la esquina (icono de insecto). Se guarda la pantalla y el tipo de dispositivo, nunca importes ni movimientos.')}
+    <div class="tira">${kpi('Recibidos', nf.format(r.total))}${kpi('Últimas 24 h', nf.format(r.ultimas24h))}${kpi('Fallos', nf.format(r.porTipo.bug))}${kpi('Ideas', nf.format(r.porTipo.idea))}</div>
+    <div class="rejilla mt14"><div class="panel">${grafico('rep-dia', { tipo: 'barras', titulo: 'Reportes por día', ayuda: 'Últimos 14 días.', series: [{ n: 'Reportes', vals: r.porDia.map((x) => x.n) }], cats: r.porDia.map((x) => x.dia) })}</div>
+      <div class="panel"><h3>Pantallas con más reportes</h3><p class="ayuda">Si una se repite, ahí hay algo que arreglar.</p>${r.porPantalla.length ? hbarras(r.porPantalla.map((x) => ({ l: x.pantalla, v: x.n }))) : html`<p class="vacio muted">Todavía no hay reportes.</p>`}</div></div></section>
+    <section class="bloque">${cabecera('Todos los reportes', `Los ${nf.format(r.lista.length)} más recientes.`)}
+      <div class="barra-filtros"><input id="f-reportes" type="search" placeholder="Buscar en el mensaje, la cuenta o la pantalla" value="${S.filtros.reportes}" aria-label="Buscar reportes"><select id="f-tipo-rep" aria-label="Tipo de reporte"><option value="">Todos</option>${Object.entries(TIPO_REPORTE).map(([k, v]) => html`<option value="${k}" ${k === t ? raw('selected') : ''}>${v}</option>`)}</select></div>
+      ${lista.length ? html`<div class="reportes">${lista.slice(0, S.filtros.limiteReportes).map((x) => html`<article class="reporte"><header><span class="etiqueta ${x.tipo === 'bug' ? 'med' : x.tipo === 'idea' ? 'bien' : ''}">${TIPO_REPORTE[x.tipo] ?? x.tipo}</span><span class="num muted">${fecha(x.at)}</span><span class="muted">${x.email}</span></header>
+        <p class="msg">${x.mensaje}</p><p class="meta muted">${[x.pantalla && `Pantalla ${x.pantalla}`, x.plataforma, x.version && `v${x.version}`].filter(Boolean).join(' · ') || 'Sin datos del dispositivo'}${x.navegador ? html`<span class="mono nav">${x.navegador}</span>` : ''}</p></article>`)}</div>
+        ${lista.length > S.filtros.limiteReportes ? html`<p class="mt10"><button class="btn suave" id="mas-reportes">Mostrar 30 más (${lista.length - S.filtros.limiteReportes} restantes)</button></p>` : ''}` : html`<p class="vacio muted">${r.total ? 'Ningún reporte coincide.' : 'Todavía nadie ha enviado nada. Cuando alguien lo haga, aparecerá aquí.'}</p>`}</section>`;
+}
+
+/* ───────────── perfiles financieros ───────────── */
+const dinero = (minor, moneda = 'EUR') => { try { return new Intl.NumberFormat('es-ES', { style: 'currency', currency: moneda, maximumFractionDigits: 0 }).format((minor || 0) / 100); } catch { return `${nf.format(Math.round((minor || 0) / 100))} ${moneda}`; } };
+const NIVEL_ARQ = { saver: 'bien', balanced: 'bien', tight: 'med', overspender: 'mal', irregular: 'med' };
+
+function tarjetaPerfil(p, i) {
+  const pv = p.prevision; const quedan = pv.diasMes - pv.diasTranscurridos;
+  return html`<article class="perfil"><header><div><h3>${p.nombre} <span class="etiqueta ${NIVEL_ARQ[p.arquetipo]}">${p.arquetipoNombre}</span></h3><p class="muted">${p.email} · ${p.moneda} · ${plural(p.meses, 'mes con datos', 'meses con datos')} · fiabilidad ${p.fiabilidad}</p></div>
+      <div class="nota"><span class="num">${p.salud.puntos}</span><small>${p.salud.etiqueta}</small></div></header>
+    <p class="ayuda">${p.arquetipoDescripcion}</p>
+    ${medidor('Riesgo financiero (0 resiliente – 100 vulnerable)', p.riesgo, `${p.riesgo} / 100`, 40, 60)}
+    <div class="tira mt10">${kpi('Ahorro medio', `${p.ahorroPct} %`, p.ahorroPct >= 20 ? 'Por encima del objetivo' : 'Objetivo: 20 %')}${kpi('Ingresa al mes', dinero(p.ingresoMedio, p.moneda))}${kpi('Gasta al mes', dinero(p.gastoMedio, p.moneda), `Fijos ${p.fijosPct} % de sus ingresos`)}${kpi('Constancia', `${p.constanciaPct} %`, p.racha ? `Racha de ${p.racha} d` : 'Últimos 30 días')}</div>
+    <div class="rejilla mt14"><div><h4>En qué gasta más</h4>${p.categorias.length ? hbarras(p.categorias.map((c) => ({ l: c.nombre, v: c.pct })), (v) => `${v} %`) : html`<p class="muted">Sin gastos suficientes.</p>`}
+        <dl class="datos"><dt>Tendencia del gasto</dt><dd>${p.tendenciaGasto}</dd><dt>Volatilidad de ingresos</dt><dd class="num">${nf1.format(p.volatilidadIngresos)}${p.volatilidadIngresos > 0.35 ? ' (alta)' : ''}</dd><dt>Fuentes de ingreso</dt><dd class="num">${p.fuentesIngreso}</dd><dt>Suscripciones</dt><dd class="num">${dinero(p.suscripciones, p.moneda)} / mes</dd><dt>Gasto fin de semana</dt><dd class="num">×${nf1.format(p.sesgoFinDeSemana)} vs. laborables</dd></dl></div>
+      <div>${grafico(`perfil-${i}`, { tipo: 'barras', titulo: 'Gasto de los últimos meses', col: 'Mes', fmt: (v) => dinero(v * 100, p.moneda), series: [{ n: 'Gasto', vals: p.meses12.map((m) => Math.round(m.gastos / 100)) }], cats: p.meses12.map((m) => m.mes) })}
+        <div class="prevision"><b>Previsión de este mes</b><p>Lleva ${dinero(p.mesActual.ingresos, p.moneda)} ingresados y ${dinero(p.mesActual.gastos, p.moneda)} gastados. ${quedan > 0 && pv.diasTranscurridos > 0 ? html`Al ritmo de ${dinero(pv.ritmoDiario, p.moneda)} al día, cerraría con <b class="${pv.cierreProyectado < 0 ? 'neg' : ''}">${dinero(pv.cierreProyectado, p.moneda)}</b>.` : 'El mes ya ha terminado.'}</p></div></div></div>
+    ${p.lecturas.length ? html`<h4 class="mt14">Cómo leerlo</h4><ul class="lecturas">${p.lecturas.map((l) => html`<li>${l}</li>`)}</ul>` : ''}</article>`;
+}
+
+function vPerfiles(d) {
+  const pf = d.perfiles;
+  if (!pf?.activo) return html`<section class="bloque">${cabecera('Perfiles financieros')}
+    <div class="panel aviso-privacidad"><h3>Esta sección está apagada a propósito</h3>
+      <p>Muestra, por cada persona, su perfil financiero: nivel de ahorro, tendencia de gasto, categorías principales, riesgo y previsión del mes, <b>con importes</b>. Es información personal, así que solo se enciende cuando tú lo decides.</p>
+      <p>Para activarla, en el servidor:</p><pre class="registro">bash scripts/servidor.sh perfiles on</pre>
+      <p class="muted">Antes de hacerlo, avisa a quien use la app (aviso de privacidad). La ayuda de la app ya lo explica. Para apagarla: <span class="mono">bash scripts/servidor.sh perfiles off</span>.</p></div></section>`;
+  const c = pf.conjunto;
+  return html`<section class="bloque">${cabecera('Perfiles financieros', 'Calculado con los mismos datos y el mismo motor que los consejos de la app. Es una estimación a partir de lo que cada persona ha anotado: cuantos más meses, más fiable.')}
+    <div class="panel aviso-privacidad"><p><b>Datos personales.</b> Úsalos solo para administrar y mejorar el servicio, no los compartas y recuerda que cada persona puede pedir que se borren. Se apaga con <span class="mono">perfiles off</span>.</p></div>
+    ${c.conPerfil ? html`<div class="tira mt14">${kpi('Perfiles', nf.format(c.conPerfil), c.sinDatosSuficientes ? `${c.sinDatosSuficientes} sin datos suficientes` : 'Todas las cuentas con datos')}${kpi('Ahorro mediano', c.ahorroMedianoPct == null ? '—' : `${nf1.format(c.ahorroMedianoPct)} %`, 'De lo que ingresan')}${kpi('Riesgo medio', c.riesgoMedio ?? '—', 'De 0 a 100')}${kpi('En riesgo alto', nf.format(c.enRiesgoAlto), c.gastanDeMas ? `${c.gastanDeMas} gastan más de lo que ingresan` : 'Nadie gasta más de lo que ingresa')}</div>
+      <div class="rejilla mt14"><div class="panel"><h3>Perfiles por tipo</h3><p class="ayuda">Cuántas personas encajan en cada arquetipo.</p>${hbarras(c.porArquetipo.map((a) => ({ l: a.nombre, v: a.n })))}</div>
+        <div class="panel"><h3>Categorías donde más se gasta</h3><p class="ayuda">En cuántas personas aparece entre su top 4 y qué porcentaje medio pesa.</p>${c.categoriasFrecuentes.length ? hbarras(c.categoriasFrecuentes.map((x) => ({ l: `${x.nombre} (${x.pctMedio} %)`, v: x.usuarios })), (v) => plural(v, 'persona', 'personas')) : html`<p class="muted">Sin datos.</p>`}</div></div>` : ''}</section>
+    <section class="bloque">${cabecera('Personas', 'De mayor a menor riesgo.')}
+      ${pf.perfiles.length ? html`<div class="perfiles">${pf.perfiles.map((p, i) => tarjetaPerfil(p, i))}</div>` : html`<p class="vacio muted">Todavía nadie tiene los 5 movimientos necesarios para calcular un perfil.</p>`}
+      ${pf.sinDatos.length ? html`<h3 class="mt14">Sin datos suficientes</h3><div class="tabla"><table><thead><tr><th>Cuenta</th><th class="r">Movimientos</th></tr></thead><tbody>${pf.sinDatos.map((u) => html`<tr><td>${u.email}</td><td class="r num">${u.movimientos}</td></tr>`)}</tbody></table></div>` : ''}</section>`;
+}
+
 function vContenedores(d) {
   const h = d.host; const dk = sec(h?.docker); const git = sec(h?.git);
   if (!dk) return html`<section class="bloque">${cabecera('Contenedores')}${sinDatos(h?.docker, 'docker')}</section>`;
@@ -730,7 +811,7 @@ function vRed(d) {
 }
 
 /* ───────────── pintado ───────────── */
-const RENDER = { resumen: vResumen, servidor: vServidor, base: vBase, usuarios: vUsuarios, actividad: vActividad, contenedores: vContenedores, red: vRed };
+const RENDER = { resumen: vResumen, servidor: vServidor, base: vBase, usuarios: vUsuarios, actividad: vActividad, reportes: vReportes, perfiles: vPerfiles, contenedores: vContenedores, red: vRed };
 function pintar() {
   if (!S.datos) return;
   specs.clear();
@@ -753,6 +834,9 @@ function conectar() {
   $('#mas-eventos')?.addEventListener('click', () => { S.filtros.limite += 150; pintar(); });
   $('#f-cont')?.addEventListener('change', (e) => { S.filtros.contenedor = e.target.value; pintar(); });
   f('#f-reg', (e) => { S.filtros.registro = e.target.value; repintarTabla('#f-reg'); });
+  f('#f-reportes', (e) => { S.filtros.reportes = e.target.value; S.filtros.limiteReportes = 30; repintarTabla('#f-reportes'); });
+  $('#f-tipo-rep')?.addEventListener('change', (e) => { S.filtros.tipoReporte = e.target.value; S.filtros.limiteReportes = 30; pintar(); });
+  $('#mas-reportes')?.addEventListener('click', () => { S.filtros.limiteReportes += 30; pintar(); });
   $('#f-err')?.addEventListener('change', (e) => { S.filtros.soloErrores = e.target.checked; pintar(); });
 }
 /* Al escribir en un buscador se repinta sin perder el foco ni la posición del cursor. */

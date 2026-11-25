@@ -6,6 +6,8 @@ import { Icon } from '../components/Icon';
 import { ModeSwitch } from '../components/ModeSwitch';
 import { useShell } from '../components/Shell';
 import { Card, Switch } from '../components/ui';
+import { Link } from 'react-router-dom';
+import { isAndroidApp } from '../lib/native';
 import { api, ApiError } from '../lib/api';
 import { useAuth, useUser } from '../lib/auth';
 import { useAppConfig, useInvalidateData } from '../lib/queries';
@@ -22,7 +24,7 @@ const EVENT_LABEL: Record<string, string> = {
 export function Settings() {
   const user = useUser();
   const { setUser, logout } = useAuth();
-  const { toast, openImport } = useShell();
+  const { toast, openImport, openReport } = useShell();
   const { data: cfg } = useAppConfig();
   const invalidate = useInvalidateData();
   const [theme, setTheme] = useState<ThemePref>(getThemePref());
@@ -92,6 +94,9 @@ export function Settings() {
             <div><b>Hora del aviso</b><p>En tu hora local ({user.timezone}).</p></div>
             <input className="input" type="time" aria-label="Hora del recordatorio" style={{ width: 130 }} value={user.reminderTime} onChange={(e) => e.target.value && patch({ reminderTime: e.target.value })} />
           </div>
+          {isAndroidApp() ? (
+            <div className="setting"><div><b>Aviso en este teléfono</b><p>La app de Android programa el aviso en tu teléfono: llega aunque la app esté cerrada.</p></div></div>
+          ) : (
           <div className="setting">
             <div>
               <b>Notificaciones en este dispositivo</b>
@@ -101,9 +106,18 @@ export function Settings() {
             </div>
             <Switch label="Notificaciones push" checked={pushOn} onChange={togglePush} />
           </div>
+          )}
         </Card>
 
         <Security />
+
+        <Card title="Ayuda" subtitle="Guías, trucos y respuestas. Búscalas cuando las necesites.">
+          <div className="setting"><div><b>Ayuda y tutorial</b><p>Cómo usar la app a diario o con un extracto mensual, qué significa cada gráfica…</p></div><Link className="btn" to="/ayuda"><Icon name="help" size={18} />Abrir</Link></div>
+          <div className="setting"><div><b>Reportar un fallo o una idea</b><p>También tienes un icono discreto arriba a la derecha en cualquier pantalla.</p></div><button className="btn" onClick={openReport}><Icon name="bug" size={18} />Reportar</button></div>
+          {!isAndroidApp() && cfg?.apkUrl && (
+            <div className="setting"><div><b>App para Android</b><p>Con el aviso diario nativo.</p></div><a className="btn" href={cfg.apkUrl}><Icon name="phone" size={18} />Descargar</a></div>
+          )}
+        </Card>
 
         <Card title="Tus datos" subtitle="Son tuyos: puedes llevártelos o borrarlos cuando quieras.">
           <div className="setting"><div><b>Importar extractos bancarios</b><p>Sube el CSV o el PDF de tu banco y rellenamos tus movimientos y tu perfil.</p></div><button className="btn" onClick={openImport}><Icon name="upload" size={18} />Importar</button></div>

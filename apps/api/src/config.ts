@@ -28,6 +28,10 @@ const envSchema = z.object({
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().default('mailto:admin@localhost'),
+  /** Mientras no haya cobro, todas las cuentas tienen las funciones Premium (consejos completos e IA). */
+  PREMIUM_FOR_ALL: bool.default('false'),
+  /** Dirección de descarga del APK de Android (la web la muestra en Ayuda y Ajustes). */
+  APK_URL: z.string().url().optional(),
 });
 
 export interface Config {
@@ -49,6 +53,8 @@ export interface Config {
   anthropicApiKey?: string;
   anthropicModel: string;
   vapid?: { publicKey: string; privateKey: string; subject: string };
+  premiumForAll: boolean;
+  apkUrl?: string;
 }
 
 function devKey(path: string): Buffer {
@@ -103,6 +109,8 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): Config {
     googleClientId: e.GOOGLE_CLIENT_ID,
     anthropicApiKey: e.ANTHROPIC_API_KEY,
     anthropicModel: e.ANTHROPIC_MODEL,
+    premiumForAll: e.PREMIUM_FOR_ALL,
+    apkUrl: e.APK_URL,
     vapid:
       e.VAPID_PUBLIC_KEY && e.VAPID_PRIVATE_KEY
         ? { publicKey: e.VAPID_PUBLIC_KEY, privateKey: e.VAPID_PRIVATE_KEY, subject: e.VAPID_SUBJECT }

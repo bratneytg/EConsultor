@@ -7,6 +7,7 @@ import { badRequest, conflict, forbidden, notFound, unauthorized } from '../lib/
 import { getAdvice, clearAdviceCache } from '../modules/advice/advisor.js';
 import { buildOverview } from '../modules/analytics/analytics.js';
 import { generateDemoTransactions } from '../modules/demo/seed.js';
+import { effectivePlan } from '../lib/plan.js';
 import { verifyPassword } from '../security/password.js';
 import { toPublicUser } from './auth.js';
 
@@ -31,7 +32,7 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
   const auth = { preHandler: app.requireAuth };
 
   // ───────── Perfil de cuenta ─────────
-  app.get('/me', auth, async (req) => toPublicUser(req.user));
+  app.get('/me', auth, async (req) => toPublicUser(req.user, cfg.premiumForAll));
 
   app.patch('/me/settings', auth, async (req) => {
     const body = settingsInput.parse(req.body);
@@ -47,7 +48,7 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
     if (body.uiMode) u.uiMode = body.uiMode;
     u.updatedAt = new Date().toISOString();
     await store.users.update(u);
-    return toPublicUser(u);
+    return toPublicUser(u, cfg.premiumForAll);
   });
 
   app.get('/me/security', auth, async (req) => {
@@ -59,7 +60,7 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
   app.get('/me/export', auth, async (req, reply) => {
     const txs = await store.transactions.list(req.user.id);
     reply.header('content-disposition', 'attachment; filename="econsultor-export.json"');
-    return { exportedAt: new Date().toISOString(), user: toPublicUser(req.user), transactions: txs };
+    return { exportedAt: new Date().toISOString(), user: toPublicUser(req.user, cfg.premiumForAll), transactions: txs };
   });
 
   /** Derecho de supresión (RGPD art. 17). */
@@ -71,6 +72,7 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
     await store.transactions.deleteAllForUser(u.id);
     for (const s of await store.push.forUser(u.id)) await store.push.remove(u.id, s.endpoint);
     await store.sessions.revokeAllForUser(u.id);
+    await store.reports.deleteForUser(u.id);
     await store.users.delete(u.id);
     clearAdviceCache(u.id);
     reply.clearCookie('econ_rt', { path: '/api/auth' });
@@ -127,7 +129,7 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
     const q = z.object({ refresh: z.enum(['1', '0']).optional() }).parse(req.query);
     const txs = await store.transactions.list(req.user.id);
     return getAdvice(cfg, {
-      userId: req.user.id, plan: req.user.plan, currency: req.user.currency,
+      userId: req.user.id, plan: effectivePlan(cfg, req.user.plan), currency: req.user.currency,
       today: todayIn(req.user.timezone), txs, refresh: q.refresh === '1',
     });
   });
@@ -150,8 +152,38 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
     req.user.updatedAt = new Date().toISOString();
     await store.users.update(req.user);
     clearAdviceCache(req.user.id);
-    return toPublicUser(req.user);
+    return toPublicUser(req.user, cfg.premiumForAll);
   });
 
-  app.get('/config', async () => ({ googleClientId: cfg.googleClientId ?? null, demo: cfg.allowDemoData, ai: !!cfg.anthropicApiKey }));
+  // ───────── Reportar un fallo o una idea ─────────
+  app.post('/feedback', { ...auth, config: { rateLimit: { max: cfg.env === 'test' ? 10_000 : 6, timeWindow: '1 hour' } } }, async (req, reply) => {
+    const b = z
+      .object({
+        kind: z.enum(['bug', 'idea', 'other']).default('bug'),
+        message: z.string().trim().min(5, 'Cuéntanos un poco más (mínimo 5 letras)').max(2000),
+        page: z.string().trim().max(120).optional(),
+        platform: z.string().trim().max(30).optional(),
+        appVersion: z.string().trim().max(30).optional(),
+      })
+      .parse(req.body);
+    // Tope por persona además del límite por IP: evita llenar el archivo de datos.
+    if ((await store.reports.countSince(req.user.id, Date.now() - 24 * 3600_000)) >= 10) {
+      throw conflict('Has enviado muchos reportes hoy. Gracias, ya los estamos revisando.', 'too_many_reports');
+    }
+    await store.reports.create({
+      id: randomUUID(),
+      userId: req.user.id,
+      at: new Date().toISOString(),
+      kind: b.kind,
+      message: b.message,
+      page: b.page,
+      platform: b.platform,
+      appVersion: b.appVersion,
+      userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+      ip: req.ip,
+    });
+    return reply.status(201).send({ ok: true });
+  });
+
+  app.get('/config', async () => ({ googleClientId: cfg.googleClientId ?? null, demo: cfg.allowDemoData, ai: !!cfg.anthropicApiKey, apkUrl: cfg.apkUrl ?? null }));
 }

@@ -15,7 +15,7 @@ export const useMonthTransactions = (month: string) =>
 export const useAdvice = () => useQuery({ queryKey: ['advice'], queryFn: () => api<AdviceResponse>('/advice') });
 
 export const useAppConfig = () =>
-  useQuery({ queryKey: ['config'], queryFn: () => api<{ googleClientId: string | null; demo: boolean; ai: boolean }>('/config'), staleTime: Infinity });
+  useQuery({ queryKey: ['config'], queryFn: () => api<{ googleClientId: string | null; demo: boolean; ai: boolean; apkUrl: string | null }>('/config'), staleTime: Infinity });
 
 export function useInvalidateData() {
   const qc = useQueryClient();

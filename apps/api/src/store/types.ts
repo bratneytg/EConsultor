@@ -55,6 +55,22 @@ export interface AuditEvent {
   detail?: string;
 }
 
+/** Reporte de fallo o idea enviado por una persona desde la app. */
+export interface ReportRecord {
+  id: string;
+  userId?: string;
+  at: string;
+  kind: 'bug' | 'idea' | 'other';
+  message: string;
+  /** Ruta de la app donde estaba (por ejemplo /ajustes). */
+  page?: string;
+  /** web, android… */
+  platform?: string;
+  appVersion?: string;
+  userAgent?: string;
+  ip?: string;
+}
+
 export interface TxFilter {
   from?: string;
   to?: string;
@@ -102,6 +118,13 @@ export interface Store {
   audit: {
     append(e: AuditEvent): Promise<void>;
     recent(userId: string, n: number): Promise<AuditEvent[]>;
+  };
+  reports: {
+    create(r: ReportRecord): Promise<void>;
+    /** Los más recientes primero. */
+    recent(n: number): Promise<ReportRecord[]>;
+    countSince(userId: string, sinceMs: number): Promise<number>;
+    deleteForUser(userId: string): Promise<void>;
   };
   flush(): Promise<void>;
 }

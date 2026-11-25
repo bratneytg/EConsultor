@@ -21,7 +21,10 @@ Los datos financieros son sensibles. Esta es la superficie de ataque y cómo se 
 | Fichero de datos robado | AES-256-GCM en reposo (obligatorio en producción), permisos 0600, escritura atómica | `store/file-store.ts` |
 | Cuenta de Google que «toma» una cuenta local | No se enlaza automáticamente por email (evita pre-registro); se valida firma, `iss`, `aud`, expiración y `email_verified` | `/auth/google` |
 | Privacidad frente a la IA | Solo se envían **agregados anónimos** (porcentajes, medias); jamás notas, fechas exactas ni movimientos individuales | `advice/claude.ts` |
-| Perfil financiero expuesto | Se calcula en servidor y nunca se serializa; test que busca sus campos en todas las respuestas | `test/api.test.ts` |
+| Perfil financiero expuesto | Se calcula en servidor y ninguna ruta de la API lo serializa; test que busca sus campos en todas las respuestas | `test/api.test.ts` |
+| Perfiles en el panel del administrador | **Única excepción, deliberada y apagada por defecto**: el panel (servicio aparte, solo red privada Tailscale, contraseña propia) puede mostrarlos con `PANEL_VER_PERFILES=true` (`servidor.sh perfiles on`, pide confirmación). Es dato personal: debe constar en el aviso de privacidad; sin 5 movimientos no se calcula perfil; no incluye notas ni movimientos sueltos | `panel/perfiles.ts`, `test/panel-perfiles.test.ts` |
+| Reportes de fallos | Requiere sesión, límite por IP y 10/día por persona, mensaje ≤ 2000 caracteres; guarda pantalla y dispositivo, no importes; se borran al eliminar la cuenta; el panel los escapa | `POST /api/feedback` |
+| Premium para todos | `PREMIUM_FOR_ALL` solo cambia el plan efectivo; no abre ninguna ruta de pruebas (`ALLOW_DEMO_DATA` sigue en `false`) | `lib/plan.ts` |
 | Derechos RGPD | Exportar (art. 20) y eliminar la cuenta (art. 17) con confirmación | `/me/export`, `DELETE /me` |
 
 ## Cuenta de pruebas `admin/admin`

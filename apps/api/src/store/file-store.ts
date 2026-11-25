@@ -6,6 +6,7 @@ import { open, seal } from '../security/crypto.js';
 import type {
   AuditEvent,
   PushSubscriptionRecord,
+  ReportRecord,
   SessionRecord,
   Store,
   TxFilter,
@@ -21,6 +22,7 @@ interface Snapshot {
   transactions: StoredTx[];
   push: PushSubscriptionRecord[];
   audit: AuditEvent[];
+  reports?: ReportRecord[];
 }
 
 export interface FileStoreOptions {
@@ -41,6 +43,7 @@ export class FileStore implements Store {
   private tx_ = new Map<string, StoredTx>();
   private push_ = new Map<string, PushSubscriptionRecord>();
   private audit_: AuditEvent[] = [];
+  private reports_: ReportRecord[] = [];
 
   private timer: NodeJS.Timeout | null = null;
   private writing: Promise<void> = Promise.resolve();
@@ -62,6 +65,7 @@ export class FileStore implements Store {
     for (const t of snap.transactions) this.tx_.set(t.id, t);
     for (const p of snap.push) this.push_.set(p.endpoint, p);
     this.audit_ = snap.audit;
+    this.reports_ = snap.reports ?? [];
   }
 
   private dirty(): void {
@@ -85,6 +89,7 @@ export class FileStore implements Store {
       transactions: [...this.tx_.values()],
       push: [...this.push_.values()],
       audit: this.audit_.slice(-5000),
+      reports: this.reports_.slice(-500),
     };
     const json = JSON.stringify(snap);
     const out = this.opts.encryptionKey ? seal(this.opts.encryptionKey, json) : json;
@@ -210,6 +215,20 @@ export class FileStore implements Store {
       this.dirty();
     },
     recent: async (userId: string, n: number) => this.audit_.filter((e) => e.userId === userId).slice(-n).reverse(),
+  };
+
+  reports = {
+    create: async (r: ReportRecord) => {
+      this.reports_.push(r);
+      this.dirty();
+    },
+    recent: async (n: number) => this.reports_.slice(-n).reverse(),
+    countSince: async (userId: string, sinceMs: number) =>
+      this.reports_.filter((r) => r.userId === userId && Date.parse(r.at) >= sinceMs).length,
+    deleteForUser: async (userId: string) => {
+      this.reports_ = this.reports_.filter((r) => r.userId !== userId);
+      this.dirty();
+    },
   };
 }
 

@@ -5,6 +5,8 @@ import { useUser } from '../lib/auth';
 import { isoToday } from '../lib/format';
 import { AddSheet } from './AddSheet';
 import { ImportSheet } from './ImportSheet';
+import { ReportSheet } from './ReportSheet';
+import { syncNativeReminder } from '../lib/native';
 import { Icon, type IconName } from './Icon';
 import { Toast } from './ui';
 
@@ -14,6 +16,7 @@ interface ShellCtx {
   today: string;
   openAdd: (editing?: Transaction) => void;
   openImport: () => void;
+  openReport: () => void;
   toast: (t: string) => void;
 }
 const Ctx = createContext<ShellCtx | null>(null);
@@ -36,6 +39,7 @@ export function Shell() {
   const [month, setMonthState] = useState(today.slice(0, 7));
   const [sheet, setSheet] = useState<{ open: boolean; editing: Transaction | null }>({ open: false, editing: null });
   const [importing, setImporting] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const [toastText, setToastText] = useState<string | null>(null);
   const [params, setParams] = useSearchParams();
 
@@ -43,6 +47,7 @@ export function Shell() {
   const setMonth = useCallback((m: string) => setMonthState(m > today.slice(0, 7) ? today.slice(0, 7) : m), [today]);
   const openAdd = useCallback((editing?: Transaction) => setSheet({ open: true, editing: editing ?? null }), []);
   const openImport = useCallback(() => setImporting(true), []);
+  const openReport = useCallback(() => setReporting(true), []);
   const toast = useCallback((t: string) => {
     setToastText(t);
     setTimeout(() => setToastText(null), 2200);
@@ -57,7 +62,10 @@ export function Shell() {
     }
   }, [params, setParams, openAdd]);
 
-  const value = useMemo(() => ({ month, setMonth, today, openAdd, openImport, toast }), [month, setMonth, today, openAdd, openImport, toast]);
+  // En la app de Android el aviso diario lo programa el propio teléfono: se mantiene al día con los ajustes.
+  useEffect(() => { syncNativeReminder(user.reminderEnabled, user.reminderTime); }, [user.reminderEnabled, user.reminderTime]);
+
+  const value = useMemo(() => ({ month, setMonth, today, openAdd, openImport, openReport, toast }), [month, setMonth, today, openAdd, openImport, openReport, toast]);
 
   const tab = (n: (typeof NAV)[number]) => (
     <NavLink key={n.to} to={n.to} end={n.to === '/'} className="tab">
@@ -76,12 +84,14 @@ export function Shell() {
           ))}
           <button className="btn btn-primary" onClick={() => openAdd()}><Icon name="plus" size={18} />Anotar</button>
           <div className="spacer" />
+          <NavLink to="/ayuda" className="rail-help"><Icon name="help" />Ayuda</NavLink>
           <span className="muted" style={{ fontSize: 13, padding: '0 14px' }}>{user.displayName}</span>
         </nav>
 
         <main id="main">
           <Outlet />
         </main>
+        <button className="report-dot" aria-label="Reportar un fallo" title="Reportar un fallo" onClick={openReport}><Icon name="bug" size={16} /></button>
 
         <nav className="tabbar" aria-label="Principal">
           {tab(NAV[0]!)}
@@ -93,6 +103,7 @@ export function Shell() {
       </div>
       <AddSheet open={sheet.open} editing={sheet.editing} onClose={() => setSheet((s) => ({ ...s, open: false }))} onDone={toast} />
       <ImportSheet open={importing} onClose={() => setImporting(false)} onDone={toast} />
+      <ReportSheet open={reporting} onClose={() => setReporting(false)} onDone={toast} />
       <Toast text={toastText} />
     </Ctx.Provider>
   );

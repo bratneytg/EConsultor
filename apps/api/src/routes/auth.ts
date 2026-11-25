@@ -16,12 +16,12 @@ const REUSE_GRACE_MS = 10_000;
 const MAX_FAILS = 5;
 const LOCK_MS = 15 * 60_000;
 
-export function toPublicUser(u: UserRecord): PublicUser {
+export function toPublicUser(u: UserRecord, premiumForAll = false): PublicUser {
   return {
     id: u.id,
     email: u.email,
     displayName: u.displayName,
-    plan: u.plan,
+    plan: premiumForAll ? 'premium' : u.plan,
     currency: u.currency,
     timezone: u.timezone,
     reminderEnabled: u.reminderEnabled,
@@ -89,7 +89,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     await store.users.update(user);
     const accessToken = await startSession(req, reply, user);
     await audit(req, 'login', user.id, method);
-    return { mfaRequired: false, accessToken, user: toPublicUser(user) };
+    return { mfaRequired: false, accessToken, user: toPublicUser(user, cfg.premiumForAll) };
   }
 
   // ───────── Registro ─────────
@@ -293,7 +293,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     session.usedAt = Date.now();
     await store.sessions.update(session);
     const accessToken = await startSession(req, reply, user, session.familyId);
-    return reply.send({ accessToken, expiresIn: ACCESS_TTL_S, user: toPublicUser(user) } as const);
+    return reply.send({ accessToken, expiresIn: ACCESS_TTL_S, user: toPublicUser(user, cfg.premiumForAll) } as const);
   });
 
   app.post('/logout', async (req, reply) => {

@@ -35,7 +35,7 @@ flowchart LR
 | **Gráficas SVG propias** (d3-scale/shape/sankey) | Librería de gráficos «de catálogo» | Control total del aspecto, accesibilidad (vista en tabla, teclado) y animación; el diseño era prioridad. |
 | **Puerto `Store`** asíncrono con `FileStore` | Elegir BD ya | La BD se decide después. Toda la app habla con la interfaz; cambiar a Postgres = una clase nueva + migraciones. |
 | **Analítica como funciones puras** | Consultas SQL a medida | Testeables sin infraestructura; se pueden mover a SQL/materializadas cuando el volumen lo pida. |
-| **Perfil financiero solo en servidor** | Calcularlo en el cliente | Es la base de los consejos y no debe ser visible ni manipulable. Un test garantiza que ninguna ruta lo serializa. |
+| **Perfil financiero solo en servidor** | Calcularlo en el cliente | Es la base de los consejos y no debe ser visible ni manipulable. Un test garantiza que ninguna ruta de la API lo serializa. Excepción opt-in: el panel del administrador (proceso aparte, red privada) puede mostrarlo con `PANEL_VER_PERFILES`. |
 | **IA detrás de un asesor de reglas** | Solo IA | Funciona sin conexión, sin coste y sin enviar datos; la IA solo enriquece (Premium) y, si falla, se cae a reglas. |
 
 ## Well-Architected: los seis pilares
