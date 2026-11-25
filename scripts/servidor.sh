@@ -4,6 +4,9 @@
 #
 #   bash scripts/servidor.sh informe          Informe claro del servidor y de la base de datos
 #   bash scripts/servidor.sh actividad [días] Qué ha pasado en la base de datos (usuarios nuevos, entradas, avisos)
+#   bash scripts/servidor.sh copias           Configura las copias de seguridad cifradas (restic) y hace la primera
+#   bash scripts/servidor.sh copiar           Hace una copia ahora (la tarea nocturna usa este comando)
+#   bash scripts/servidor.sh restaurar [ID]   Lista las copias o restaura una (pide confirmación)
 #   bash scripts/servidor.sh estado           Resumen técnico corto, para pegarlo en el chat
 #   bash scripts/servidor.sh actualizar       Descarga cambios de GitHub y reconstruye si los hay
 #   bash scripts/servidor.sh actualizaciones  Programa `actualizar` cada 10 minutos (cron)
@@ -14,6 +17,8 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$DIR"
 PUERTO=8787
+REPO="${HOME}/backups"                                  # repositorio de copias (cifrado con restic)
+CLAVE_RESTIC="${HOME}/.config/econsultor/restic-pass"   # contraseña del repositorio (solo tu usuario la lee)
 
 # ───────── ayudas de presentación ─────────
 titulo() { printf '\n%s\n%s\n' "$1" "$(printf '─%.0s' $(seq 1 ${#1}))"; }
@@ -25,11 +30,11 @@ app_encendida() { docker compose ps --format '{{.Service}} {{.State}}' 2>/dev/nu
 
 # ───────── informe del servidor + base de datos ─────────
 informe() {
-  echo "INFORME DE EConsultor · $(date '+%Y-%m-%d %H:%M') (hora del servidor)"
+  echo "INFORME DE EConsultor · $(TZ=Europe/Berlin date '+%Y-%m-%d %H:%M') (hora de Berlín)"
 
   titulo "SERVIDOR"
   echo "Sistema: $(lsb_release -ds 2>/dev/null || echo 'desconocido')"
-  echo "Encendido desde hace: $(uptime -p | sed -e 's/^up //' -e 's/weeks\?/semanas/' -e 's/days\?/días/' -e 's/hours\?/horas/' -e 's/minutes\?/min/')"
+  echo "Encendido desde hace: $(uptime -p | sed -e 's/^up //' -e 's/\b1 week\b/1 semana/' -e 's/\b1 day\b/1 día/' -e 's/\b1 hour\b/1 hora/' -e 's/\b1 minute\b/1 min/' -e 's/weeks\?/semanas/' -e 's/days\?/días/' -e 's/hours\?/horas/' -e 's/minutes\?/min/')"
 
   local mem disco
   mem="$(free -m | awk '/^Mem:/ {printf "%d", ($2-$7)*100/$2}')"
@@ -49,7 +54,10 @@ informe() {
 
   titulo "LA APP"
   if app_encendida; then
-    ok "El contenedor de la app está encendido ($(docker compose ps --format '{{.Health}}' app 2>/dev/null | head -1))."
+    local salud
+    salud="$(docker compose ps --format '{{.Health}}' app 2>/dev/null | head -1)"
+    if [ "$salud" = "healthy" ]; then ok "El contenedor de la app está encendido y sano."
+    else aviso "El contenedor de la app está encendido pero su comprobación de salud dice «${salud:-desconocido}». Si acaba de arrancar, espera un minuto y repite."; fi
   else
     alerta "El contenedor de la app NO está encendido. Prueba: docker compose up -d"
   fi
@@ -83,20 +91,23 @@ informe() {
   echo "$serve" | grep -oE 'https://[^ ]+' | head -1 | sed 's/^/Dirección: /' || true
 
   titulo "COPIAS DE SEGURIDAD"
-  local copias="${HOME}/backups"
-  if [ -d "$copias" ]; then
-    local ultima
-    ultima="$(find "$copias" -type f -printf '%T@\n' 2>/dev/null | sort -n | tail -1 | cut -d. -f1)"
+  if [ -f "$REPO/config" ]; then
+    local ultima n horas
+    n="$(find "$REPO/snapshots" -type f 2>/dev/null | wc -l)"
+    ultima="$(find "$REPO/snapshots" -type f -printf '%T@\n' 2>/dev/null | sort -n | tail -1 | cut -d. -f1)"
     if [ -n "$ultima" ]; then
-      local horas=$(( ( $(date +%s) - ultima ) / 3600 ))
-      if [ "$horas" -le 36 ]; then ok "La carpeta de copias se actualizó hace ${horas} h."
-      else aviso "La última copia tiene ${horas} horas. Revisa que la tarea nocturna de restic esté funcionando."; fi
+      horas=$(( ( $(date +%s) - ultima ) / 3600 ))
+      if [ "$horas" -le 36 ]; then ok "La última copia es de hace ${horas} h (hay ${n} guardadas)."
+      else aviso "La última copia tiene ${horas} horas. Mira el registro: tail ~/econsultor-copias.log"; fi
     else
-      aviso "La carpeta de copias existe pero está vacía."
+      aviso "El repositorio de copias existe pero aún no tiene ninguna copia (bash scripts/servidor.sh copiar)."
     fi
-    echo "Recuerda: una copia solo en este mismo disco no te salva si el disco se estropea. Guarda otra fuera del servidor."
+    if crontab -l 2>/dev/null | grep -q 'servidor.sh copiar'; then ok "Copia automática cada noche: activada."
+    else aviso "La copia automática no está programada (se programa con 'bash scripts/servidor.sh copias')."; fi
+    echo "Recuerda: una copia solo en este mismo disco no te salva si el disco se estropea. Guarda otra fuera del servidor,"
+    echo "y guarda DATA_ENCRYPTION_KEY y la contraseña de las copias en un sitio aparte (sin ellas, las copias no sirven)."
   else
-    aviso "No encuentro la carpeta ${copias}. Si ya hiciste las copias con restic en otra ruta, ignora este aviso; si no, están pendientes."
+    aviso "Las copias de seguridad no están configuradas. Se activan con: bash scripts/servidor.sh copias"
   fi
 
   if app_encendida; then
@@ -145,6 +156,94 @@ estado() {
   docker compose logs --tail 15 app 2>&1 | sed -E 's/((secret|key|token|password|authorization)[A-Za-z_]*\"? *[=:] *\"?)[^ ,\"]+/\1***/Ig' || true
 }
 
+# ───────── copias de seguridad (restic) ─────────
+restic_env() { export RESTIC_REPOSITORY="$REPO" RESTIC_PASSWORD_FILE="$CLAVE_RESTIC"; }
+
+copias() {
+  if ! app_encendida; then alerta "La app debe estar encendida para copiarla (docker compose up -d)."; exit 1; fi
+  command -v restic >/dev/null 2>&1 || { echo "Instalando restic..."; sudo apt-get install -y restic; }
+
+  local nueva=0
+  if [ ! -f "$CLAVE_RESTIC" ]; then
+    if [ -e "$REPO/config" ]; then
+      alerta "Ya existe un repositorio de copias en ${REPO} pero falta su contraseña (${CLAVE_RESTIC}). No genero otra: sin la original no se puede leer."
+      exit 1
+    fi
+    mkdir -p "$(dirname "$CLAVE_RESTIC")"
+    ( umask 077; openssl rand -hex 24 > "$CLAVE_RESTIC" )
+    nueva=1
+  fi
+  chmod 600 "$CLAVE_RESTIC"
+  restic_env
+  if ! restic cat config >/dev/null 2>&1; then restic init; fi
+
+  if [ "$nueva" = 1 ]; then
+    titulo "CONTRASEÑA DE LAS COPIAS: GUÁRDALA AHORA"
+    cat "$CLAVE_RESTIC"
+    echo
+    echo "Sin esta contraseña no se puede recuperar ninguna copia, y este archivo se pierde con el servidor si se estropea."
+    echo "Guárdala en tu gestor de contraseñas. Si la pierdes de la pantalla, está en: ${CLAVE_RESTIC}"
+    if [ -t 0 ]; then read -r -p "Pulsa Enter cuando la hayas guardado... " _; fi
+  fi
+
+  copiar || aviso "La primera copia no se ha podido hacer todavía (por ejemplo, si aún no hay datos). La tarea nocturna lo reintentará."
+
+  local tarea="30 3 * * * ${DIR}/scripts/servidor.sh copiar >> ${HOME}/econsultor-copias.log 2>&1"
+  ( crontab -l 2>/dev/null | grep -v 'servidor.sh copiar' || true; echo "$tarea" ) | crontab -
+
+  titulo "LISTO"
+  ok "Copia automática programada cada noche a las 03:30. Se conservan 7 diarias, 4 semanales y 6 mensuales."
+  echo "Registro: ${HOME}/econsultor-copias.log · Copias: ${REPO}"
+  echo
+  echo "Falta lo más importante: una copia FUERA de este ordenador. Desde PowerShell en tu PC, de vez en cuando:"
+  echo "  scp -r $(id -un)@$(hostname -I | awk '{print $1}'):backups C:\\Copias\\econsultor"
+  echo "Y guarda DATA_ENCRYPTION_KEY (está en el archivo .env) en un sitio aparte: sin ella, ninguna copia de los datos se puede leer."
+}
+
+copiar() {
+  restic_env
+  [ -f "$CLAVE_RESTIC" ] || { alerta "Las copias no están configuradas. Ejecuta: bash scripts/servidor.sh copias"; exit 1; }
+  app_encendida || { alerta "La app no está encendida: no se puede copiar."; exit 1; }
+  docker compose exec -T app test -s /data/store.json || { alerta "Todavía no hay datos que copiar (/data/store.json no existe o está vacío)."; exit 1; }
+  echo "$(date -Is) Copiando la base de datos..."
+  docker compose exec -T app cat /data/store.json | restic backup --stdin --stdin-filename store.json --tag econsultor --quiet
+  restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune --quiet
+  echo "$(date -Is) Copia hecha."
+}
+
+restaurar() {
+  restic_env
+  [ -f "$CLAVE_RESTIC" ] || { alerta "Las copias no están configuradas. Ejecuta: bash scripts/servidor.sh copias"; exit 1; }
+  local id="${1:-}"
+  if [ -z "$id" ]; then
+    echo "Copias disponibles:"
+    restic snapshots --compact
+    echo
+    echo "Para restaurar una: bash scripts/servidor.sh restaurar <ID>   (o 'latest' para la más reciente)"
+    return 0
+  fi
+
+  # Variable global: la limpieza (trap) se ejecuta al salir del script, cuando las locales ya no existen.
+  tmp="$(mktemp -d)"
+  chmod 755 "$tmp"
+  trap 'rm -rf "${tmp:-}"' EXIT
+  restic dump "$id" /store.json > "$tmp/store.json" || { alerta "No he podido leer esa copia. ¿Es correcto el ID?"; exit 1; }
+  [ -s "$tmp/store.json" ] || { alerta "La copia está vacía: no restauro nada."; exit 1; }
+  chmod 644 "$tmp/store.json"
+
+  echo "Esto SUSTITUIRÁ los datos actuales por los de la copia «${id}» ($(wc -c < "$tmp/store.json") bytes)."
+  echo "Antes se guardará un respaldo de los datos actuales dentro del volumen (store.json.antes-de-restaurar)."
+  local r
+  read -r -p "Escribe SI para continuar: " r
+  [ "$r" = "SI" ] || { echo "Cancelado: no he cambiado nada."; exit 0; }
+
+  docker compose stop app
+  docker compose run --rm --no-deps -v "$tmp:/restore:ro" --entrypoint sh app -c \
+    'if [ -f /data/store.json ]; then cp /data/store.json /data/store.json.antes-de-restaurar; fi; cp /restore/store.json /data/store.json'
+  docker compose up -d app
+  echo "Restaurado. Comprueba que todo está bien con: bash scripts/servidor.sh informe"
+}
+
 actualizar() {
   # Evita que dos ejecuciones se pisen (por ejemplo, una a mano y otra de cron).
   exec 9>/tmp/econsultor-actualizar.lock
@@ -182,10 +281,13 @@ privado() {
 case "${1:-ayuda}" in
   informe) informe ;;
   actividad) actividad "${2:-7}" ;;
+  copias) copias ;;
+  copiar) copiar ;;
+  restaurar) restaurar "${2:-}" ;;
   estado) estado ;;
   actualizar) actualizar ;;
   actualizaciones) actualizaciones ;;
   publico) publico ;;
   privado) privado ;;
-  *) sed -n '2,11p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
+  *) sed -n '2,14p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
 esac

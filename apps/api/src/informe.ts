@@ -129,7 +129,7 @@ function base(): void {
   titulo('USUARIOS');
   const gratis = users.filter((u) => u.plan === 'free').length;
   const premium = users.length - gratis;
-  console.log(`Cuentas en total: ${users.length} (${gratis} gratuitas, ${premium} de pago)`);
+  console.log(`Cuentas en total: ${users.length} (${plural(gratis, 'gratuita', 'gratuitas')}, ${premium} de pago)`);
   const nuevos7 = users.filter((u) => ahora - Date.parse(u.createdAt) < 7 * DAY).length;
   console.log(`Creadas en los últimos 7 días: ${nuevos7}`);
   const con2fa = users.filter((u) => u.mfa?.enabled).length;

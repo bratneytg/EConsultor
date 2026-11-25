@@ -59,7 +59,7 @@ describe('informes de administración (solo lectura)', () => {
   it('«base» cuenta usuarios y movimientos sin mostrar datos privados', () => {
     const r = informe(['base']);
     expect(r.status).toBe(0);
-    expect(r.stdout).toContain('Cuentas en total: 2 (1 gratuitas, 1 de pago)');
+    expect(r.stdout).toContain('Cuentas en total: 2 (1 gratuita, 1 de pago)');
     expect(r.stdout).toContain('Total guardados: 1');
     expect(r.stdout).toContain('[OK] Está cifrado');
     expect(r.stdout).not.toContain('NOTA-PRIVADA');

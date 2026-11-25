@@ -117,6 +117,9 @@ Limitaciones del plan gratuito: el servicio se duerme tras ~15 min sin uso (la p
 | --- | --- |
 | `bash scripts/servidor.sh informe` | Informe en lenguaje claro del servidor (memoria, disco, app, acceso, copias) y de la base de datos |
 | `bash scripts/servidor.sh actividad [días]` | Usuarios nuevos, entradas, importaciones y avisos de seguridad del periodo |
+| `bash scripts/servidor.sh copias` | Configura las copias cifradas con restic (contraseña generada, copia nocturna a las 03:30) y hace la primera |
+| `bash scripts/servidor.sh copiar` | Hace una copia ahora |
+| `bash scripts/servidor.sh restaurar [ID]` | Lista las copias o restaura una (con confirmación y respaldo previo) |
 | `bash scripts/servidor.sh estado` | Resumen técnico corto para pegar en un chat |
 | `bash scripts/servidor.sh actualizar` | Descarga cambios de GitHub y reconstruye si los hay |
 | `bash scripts/servidor.sh actualizaciones` | Programa `actualizar` cada 10 minutos |
