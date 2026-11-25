@@ -6,7 +6,8 @@
 interface AndroidBridge {
   setReminder(enabled: boolean, hhmm: string): void;
   appVersion(): string;
-  openExternal?(url: string): void;
+  setBars?(dark: boolean): void;
+  saveTextFile?(name: string, mime: string, content: string): void;
 }
 declare global {
   interface Window { EConsultorAndroid?: AndroidBridge }
@@ -23,4 +24,22 @@ function isIOSWeb(): boolean {
 
 export function syncNativeReminder(enabled: boolean, time: string): void {
   try { native()?.setReminder(enabled, time); } catch { /* sin puente: nada que hacer */ }
+}
+
+/** Guarda un archivo de texto: en la app de Android va a Descargas; en el navegador, descarga normal. */
+export function saveTextFile(name: string, mime: string, content: string): void {
+  const n = native();
+  if (n?.saveTextFile) { n.saveTextFile(name, mime, content); return; }
+  const url = URL.createObjectURL(new Blob([content], { type: mime }));
+  Object.assign(document.createElement('a'), { href: url, download: name }).click();
+  URL.revokeObjectURL(url);
+}
+
+/** Mantiene las barras del sistema de Android a juego con el tema claro/oscuro de la web. */
+export function watchNativeBars(): void {
+  const n = native();
+  if (!n?.setBars) return;
+  const push = () => { try { n.setBars?.(document.documentElement.dataset.theme !== 'light'); } catch { /* sin puente */ } };
+  push();
+  new MutationObserver(push).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 }

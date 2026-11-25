@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">EConsultor</string>
+    <string name="shortcut_add">Anotar gasto</string>
+    <string name="channel_name">Recordatorio diario</string>
+    <string name="channel_desc">Un aviso a la hora que elijas para anotar tus gastos del día.</string>
+    <string name="offline_title">No se puede abrir EConsultor</string>
+    <string name="offline_text">Comprueba tu conexión. Si usas Tailscale, asegúrate de que esté activo en este teléfono, o de que la dirección del servidor sea pública.</string>
+    <string name="retry">Reintentar</string>
+    <string name="change_server">Cambiar dirección del servidor</string>
+    <string name="server_dialog_title">Dirección del servidor</string>
+    <string name="server_dialog_hint">https://tu-servidor.ts.net</string>
+    <string name="save">Guardar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="server_invalid">La dirección debe empezar por https://</string>
+    <string name="saved_download">Guardado en Descargas: %1$s</string>
+    <string name="save_failed">No se pudo guardar el archivo</string>
+</resources>

@@ -4,6 +4,10 @@ Planificador de economía personal: anota gastos e ingresos en segundos, entiend
 
 Funciona como **PWA** (aplicación web instalable): en iPhone se añade a la pantalla de inicio y se comporta como una app nativa, con recordatorio diario por notificación push. Más adelante puede empaquetarse con Capacitor para la App Store sin reescribir nada.
 
+## App de Android
+
+Hay una app para Android en `apps/android/` (abre tu EConsultor y añade el aviso diario del teléfono). Se compila en GitHub Actions; ver [apps/android/README.md](apps/android/README.md).
+
 ## Dos interfaces
 
 - **Sencilla** (por defecto): el mes en un vistazo —balance, estado en una frase, ingresos/gastos/ahorro—, dos gráficos (saldo del mes y en qué gastas) y tres consejos en tarjetas.

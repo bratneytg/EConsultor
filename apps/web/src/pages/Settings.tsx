@@ -7,7 +7,7 @@ import { ModeSwitch } from '../components/ModeSwitch';
 import { useShell } from '../components/Shell';
 import { Card, Switch } from '../components/ui';
 import { Link } from 'react-router-dom';
-import { isAndroidApp } from '../lib/native';
+import { isAndroidApp, saveTextFile } from '../lib/native';
 import { api, ApiError } from '../lib/api';
 import { useAuth, useUser } from '../lib/auth';
 import { useAppConfig, useInvalidateData } from '../lib/queries';
@@ -49,10 +49,7 @@ export function Settings() {
 
   const exportData = async () => {
     const data = await api<unknown>('/me/export');
-    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-    const a = Object.assign(document.createElement('a'), { href: url, download: 'econsultor-export.json' });
-    a.click();
-    URL.revokeObjectURL(url);
+    saveTextFile('econsultor-export.json', 'application/json', JSON.stringify(data, null, 2));
   };
 
   return (
