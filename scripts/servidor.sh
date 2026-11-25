@@ -12,6 +12,9 @@
 #   bash scripts/servidor.sh actualizaciones  Programa `actualizar` cada 10 minutos (cron)
 #   bash scripts/servidor.sh publico          Abre la app a internet con Tailscale Funnel
 #   bash scripts/servidor.sh privado          Vuelve a dejarla solo dentro de tu red de Tailscale
+#   bash scripts/servidor.sh panel            Instala/actualiza el panel personal (web con gráficos, solo para ti)
+#   bash scripts/servidor.sh panel-clave      Genera una contraseña nueva para el panel
+#   bash scripts/servidor.sh panel-parar      Apaga el panel y lo quita de Tailscale
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -25,6 +28,11 @@ titulo() { printf '\n%s\n%s\n' "$1" "$(printf '─%.0s' $(seq 1 ${#1}))"; }
 ok() { echo "[OK] $*"; }
 aviso() { echo "[AVISO] $*"; }
 alerta() { echo "[ALERTA] $*"; }
+
+# `docker compose` con el panel incluido si ya se instaló (existe .env.panel).
+compose() {
+  if [ -f "${DIR}/.env.panel" ]; then docker compose --profile panel "$@"; else docker compose "$@"; fi
+}
 
 app_encendida() { docker compose ps --format '{{.Service}} {{.State}}' 2>/dev/null | grep -q '^app running'; }
 
@@ -254,7 +262,7 @@ actualizar() {
   if [ "$(git rev-parse HEAD)" != "$(git rev-parse "origin/${rama}")" ]; then
     echo "$(date -Is) Hay cambios en origin/${rama}: actualizando"
     git pull -q --ff-only origin "${rama}"
-    docker compose up -d --build
+    compose up -d --build
     docker image prune -f >/dev/null
     echo "$(date -Is) Listo: $(git log -1 --format='%h %s')"
   fi
@@ -266,16 +274,134 @@ actualizaciones() {
   echo "Programado: cada 10 minutos se comprobará GitHub. Registro en ${HOME}/econsultor-actualizar.log"
 }
 
+# Comprueba que el panel NO está en Funnel. Devuelve 0 = a salvo, 1 = expuesto, 2 = no se pudo comprobar.
+panel_expuesto() {
+  tailscale serve status --json 2>/dev/null | python3 -c '
+import json, sys
+try:
+    c = json.load(sys.stdin)
+except Exception:
+    sys.exit(2)
+publico = c.get("AllowFunnel") or {}
+for hp, web in (c.get("Web") or {}).items():
+    for h in (web.get("Handlers") or {}).values():
+        if ":8788" in str(h.get("Proxy", "")) and publico.get(hp):
+            sys.exit(1)
+sys.exit(0)'
+}
+
+avisar_si_panel_expuesto() {
+  [ -f "${DIR}/.env.panel" ] || return 0
+  local r=0
+  panel_expuesto || r=$?
+  if [ "$r" -eq 1 ]; then
+    alerta "El PANEL está abierto a internet. Ciérralo ya con: sudo tailscale serve --https=8443 off && bash scripts/servidor.sh panel"
+  elif [ "$r" -eq 0 ]; then
+    ok "El panel sigue siendo privado (solo tu red de Tailscale)."
+  fi
+}
+
 publico() {
   echo "Abriendo la app a internet con Tailscale Funnel..."
   echo "Si es la primera vez, te mostrará un enlace para activar Funnel: ábrelo en el navegador y vuelve a ejecutar este comando."
   sudo tailscale funnel --bg "${PUERTO}"
+  avisar_si_panel_expuesto
 }
 
 privado() {
-  sudo tailscale funnel reset
-  sudo tailscale serve --bg "${PUERTO}"
-  echo "La app vuelve a ser accesible solo desde tu red de Tailscale."
+  # Solo se cierra el puerto 443 (la app). El panel, en el 8443, no se toca.
+  sudo tailscale funnel --https=443 off || true
+  sudo tailscale serve --bg --https=443 "http://127.0.0.1:${PUERTO}"
+  if tailscale serve status 2>/dev/null | grep -q 'Funnel on'; then
+    aviso "Algo sigue abierto a internet. Revisa: tailscale serve status"
+  else
+    echo "La app vuelve a ser accesible solo desde tu red de Tailscale."
+  fi
+  avisar_si_panel_expuesto
+}
+
+# ───────── panel personal ─────────
+CRON_PANEL="* * * * * python3 ${DIR}/scripts/panel-recolector.py >/dev/null 2>>${DIR}/estado/recolector.log"
+
+panel_url() {
+  tailscale status --json 2>/dev/null | python3 -c '
+import json, sys
+try:
+    print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))
+except Exception:
+    pass' || true
+}
+
+panel_clave_nueva() {
+  local nueva ver="${1:-false}"
+  nueva="$(openssl rand -hex 16)"
+  ( umask 077; printf 'PANEL_PASSWORD=%s\nPANEL_VER_IMPORTES=%s\n' "$nueva" "$ver" > "${DIR}/.env.panel" )
+  chmod 600 "${DIR}/.env.panel"
+  echo "$nueva"
+}
+
+panel() {
+  command -v python3 >/dev/null || { alerta "Falta python3 (sudo apt install python3)."; exit 1; }
+  command -v openssl >/dev/null || { alerta "Falta openssl (sudo apt install openssl)."; exit 1; }
+  mkdir -p "${DIR}/estado"; chmod 755 "${DIR}/estado"
+
+  local clave=""
+  if ! grep -q '^PANEL_PASSWORD=' "${DIR}/.env.panel" 2>/dev/null; then
+    clave="$(panel_clave_nueva)"
+  fi
+
+  # El recolector usa Tailscale sin sudo si tu usuario es el «operador».
+  sudo tailscale set --operator="$(id -un)" >/dev/null 2>&1 || aviso "No pude dar permiso a tu usuario sobre Tailscale; el panel no podrá mostrar esa parte."
+
+  ( crontab -l 2>/dev/null | grep -v 'panel-recolector.py' || true; echo "$CRON_PANEL" ) | crontab -
+  python3 "${DIR}/scripts/panel-recolector.py" || aviso "El recolector falló; mira ${DIR}/estado/recolector.log"
+
+  echo "Construyendo y arrancando el panel (la primera vez tarda un par de minutos)..."
+  compose up -d --build panel
+
+  local i
+  for i in $(seq 1 30); do
+    if curl -fsS http://127.0.0.1:8788/healthz >/dev/null 2>&1; then break; fi
+    sleep 2
+  done
+  curl -fsS http://127.0.0.1:8788/healthz >/dev/null 2>&1 || { alerta "El panel no arrancó. Mira: docker compose --profile panel logs panel"; exit 1; }
+
+  # Solo dentro de tu red privada (Serve), en el puerto 8443. La app sigue en el 443.
+  sudo tailscale serve --bg --https=8443 "http://127.0.0.1:8788"
+
+  titulo "PANEL LISTO"
+  local dominio
+  dominio="$(panel_url)"
+  [ -n "$dominio" ] && echo "Ábrelo desde cualquier dispositivo con Tailscale:  https://${dominio}:8443"
+  if [ -n "$clave" ]; then
+    echo
+    echo "Contraseña del panel (guárdala en tu gestor de contraseñas; no se vuelve a mostrar sola):"
+    echo "    ${clave}"
+    echo "Si la pierdes: bash scripts/servidor.sh panel-clave"
+  else
+    echo "La contraseña es la que ya tenías. Para cambiarla: bash scripts/servidor.sh panel-clave"
+  fi
+  echo
+  avisar_si_panel_expuesto
+}
+
+panel_clave() {
+  [ -f "${DIR}/.env.panel" ] || { alerta "El panel aún no está instalado: bash scripts/servidor.sh panel"; exit 1; }
+  local ver
+  ver="$(grep '^PANEL_VER_IMPORTES=' "${DIR}/.env.panel" | cut -d= -f2 || true)"
+  local nueva
+  nueva="$(panel_clave_nueva "${ver:-false}")"
+  compose up -d --force-recreate panel
+  echo "Contraseña nueva del panel (las sesiones abiertas se cierran):"
+  echo "    ${nueva}"
+}
+
+panel_parar() {
+  ( crontab -l 2>/dev/null | grep -v 'panel-recolector.py' || true ) | crontab -
+  compose rm -sf panel >/dev/null 2>&1 || true
+  sudo tailscale serve --https=8443 off >/dev/null 2>&1 || true
+  echo "Panel apagado y fuera de Tailscale. Tu contraseña y los datos recogidos siguen en ${DIR} (.env.panel y estado/)."
+  echo "Para volver a encenderlo: bash scripts/servidor.sh panel"
 }
 
 case "${1:-ayuda}" in
@@ -289,5 +415,8 @@ case "${1:-ayuda}" in
   actualizaciones) actualizaciones ;;
   publico) publico ;;
   privado) privado ;;
-  *) sed -n '2,14p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
+  panel) panel ;;
+  panel-clave) panel_clave ;;
+  panel-parar) panel_parar ;;
+  *) sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
 esac

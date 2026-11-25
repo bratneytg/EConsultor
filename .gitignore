@@ -18,3 +18,6 @@ data/
 caddy_data/
 caddy_config/
 .shots/
+
+# Datos del servidor que recoge el panel (contienen registros y direcciones)
+estado/

@@ -19,6 +19,37 @@ services:
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
 
+  # Panel personal de administración (solo lectura). Se activa con: bash scripts/servidor.sh panel
+  # Escucha solo en 127.0.0.1 y se publica ÚNICAMENTE con `tailscale serve` (nunca con Funnel).
+  panel:
+    profiles: ["panel"]
+    build: .
+    command: ["node", "dist/panel.js"]
+    restart: unless-stopped
+    # Solo recibe lo que necesita: la clave para leer la base de datos y su propia contraseña.
+    env_file:
+      - path: .env.panel
+        required: false
+    environment:
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:-}
+      DATA_FILE: /data/store.json
+      HOST_STATE: /estado/host.json
+      HOST_HISTORY: /estado/historial.jsonl
+    ports:
+      - "127.0.0.1:8788:8788"
+    volumes:
+      - econ-data:/data:ro
+      - ./estado:/estado:ro
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8788/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
   caddy:
     profiles: ["caddy"]
     image: caddy:2-alpine

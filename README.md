@@ -124,6 +124,23 @@ Limitaciones del plan gratuito: el servicio se duerme tras ~15 min sin uso (la p
 | `bash scripts/servidor.sh actualizar` | Descarga cambios de GitHub y reconstruye si los hay |
 | `bash scripts/servidor.sh actualizaciones` | Programa `actualizar` cada 10 minutos |
 | `bash scripts/servidor.sh publico` / `privado` | Abre la app a internet con Tailscale Funnel / la deja solo en tu red privada |
+| `bash scripts/servidor.sh panel` | Instala o actualiza el panel personal (ver abajo) y muestra su contraseña la primera vez |
+| `bash scripts/servidor.sh panel-clave` / `panel-parar` | Cambia la contraseña del panel / lo apaga y lo quita de Tailscale |
 
 Los informes los genera `apps/api/src/informe.ts` (dentro del contenedor, como `node dist/informe.js`): leen la base de datos
 en modo solo lectura y no muestran importes, notas, contraseñas ni correos completos.
+
+
+### Panel personal de administración
+
+Una web de solo lectura, **solo para el dueño del servidor**, que junta en una pantalla el estado del equipo (CPU, memoria, disco,
+temperatura, red), los contenedores y sus registros, la base de datos (tamaño, cuentas, movimientos), los usuarios, la actividad y los
+avisos de seguridad, las copias de seguridad y Tailscale. Con gráficos, historial de 24 h / 7 días y un botón **Actualizar**.
+
+- `scripts/panel-recolector.py` (cron, cada minuto) deja la foto del servidor en `estado/host.json` y `estado/historial.jsonl`.
+- `apps/api/src/panel.ts` (servicio `panel` de docker-compose, perfil `panel`) sirve la página y la API. Lee la base de datos cifrada
+  en solo lectura y no tiene ninguna ruta que modifique nada.
+- Se publica **solo** con `tailscale serve` en el puerto 8443 (red privada). Nunca con Funnel: el recolector lo vigila y el panel
+  muestra una alerta roja si ocurriera. Acceso con contraseña propia (`.env.panel`), bloqueo tras 5 fallos y sesión de 12 h.
+- Por defecto **no** muestra importes ni notas de los movimientos de otras personas (sí correos, IPs y eventos). Para verlos:
+  `PANEL_VER_IMPORTES=true` en `.env.panel` y `docker compose --profile panel up -d panel`.
