@@ -108,3 +108,19 @@ Limitaciones del plan gratuito: el servicio se duerme tras ~15 min sin uso (la p
 - [`docs/SECURITY.md`](docs/SECURITY.md) — modelo de amenazas y controles
 - [`docs/DESIGN.md`](docs/DESIGN.md) — sistema de diseño y reglas de las gráficas
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — qué falta y en qué orden
+
+## Servidor casero: scripts de mantenimiento
+
+`scripts/servidor.sh` se ejecuta dentro del servidor (Ubuntu + Docker + Tailscale), en la carpeta del proyecto:
+
+| Comando | Qué hace |
+| --- | --- |
+| `bash scripts/servidor.sh informe` | Informe en lenguaje claro del servidor (memoria, disco, app, acceso, copias) y de la base de datos |
+| `bash scripts/servidor.sh actividad [días]` | Usuarios nuevos, entradas, importaciones y avisos de seguridad del periodo |
+| `bash scripts/servidor.sh estado` | Resumen técnico corto para pegar en un chat |
+| `bash scripts/servidor.sh actualizar` | Descarga cambios de GitHub y reconstruye si los hay |
+| `bash scripts/servidor.sh actualizaciones` | Programa `actualizar` cada 10 minutos |
+| `bash scripts/servidor.sh publico` / `privado` | Abre la app a internet con Tailscale Funnel / la deja solo en tu red privada |
+
+Los informes los genera `apps/api/src/informe.ts` (dentro del contenedor, como `node dist/informe.js`): leen la base de datos
+en modo solo lectura y no muestran importes, notas, contraseñas ni correos completos.
