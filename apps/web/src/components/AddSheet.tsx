@@ -120,8 +120,8 @@ export function AddSheet({ open, editing, onClose, onDone }: Props) {
               <input id="note" className="input" maxLength={200} placeholder="Ej.: compra semanal" value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
 
-            {error && <p className="error" role="alert">{error}</p>}
-            <div style={{ display: 'grid', gap: 10 }}>
+            <div className="sheet-actions">
+              {error && <p className="error" role="alert">{error}</p>}
               <button className="btn btn-primary btn-block" disabled={save.isPending} onClick={() => submit(false)}>{editing ? 'Guardar cambios' : 'Guardar'}</button>
               {!editing && <button className="btn btn-block" disabled={save.isPending} onClick={() => submit(true)}>Guardar y añadir otro</button>}
               {editing && <button className="btn btn-danger btn-block" onClick={remove}><Icon name="trash" size={18} />Eliminar movimiento</button>}

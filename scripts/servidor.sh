@@ -19,6 +19,7 @@
 #   bash scripts/servidor.sh activar          Activa Premium para todos, la IA y los avisos push (genera las claves VAPID)
 #   bash scripts/servidor.sh perfiles on|off  Muestra u oculta la pestaña «Perfiles» del panel (apagado por defecto)
 #   bash scripts/servidor.sh apk URL          Pone el enlace de descarga de la app de Android en la web
+#   bash scripts/servidor.sh tapa [arreglar]  Comprueba (o arregla) que cerrar la tapa del portátil NO suspenda el servidor
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -481,6 +482,41 @@ panel_parar() {
   echo "Para volver a encenderlo: bash scripts/servidor.sh panel"
 }
 
+# Qué hace el portátil al cerrar la tapa. Sin configurar, Ubuntu lo SUSPENDE y el servidor deja de responder.
+tapa() {
+  local dir="${LOGIND_DIR:-/etc/systemd/logind.conf.d}" fichero
+  fichero="${dir}/econsultor-tapa.conf"
+  local conf="${LOGIND_CONF:-/etc/systemd/logind.conf}"
+  local claves="HandleLidSwitch HandleLidSwitchExternalPower HandleLidSwitchDocked"
+  titulo "TAPA DEL PORTÁTIL"
+  local k valor efectivo malo=0
+  for k in $claves; do
+    # El último valor gana: logind.conf y luego los .conf.d en orden alfabético.
+    efectivo="$(cat "$conf" "$dir"/*.conf /usr/lib/systemd/logind.conf.d/*.conf 2>/dev/null | grep -E "^${k}=" | tail -1 | cut -d= -f2 || true)"
+    valor="${efectivo:-(por defecto)}"
+    case "$efectivo" in
+      ignore|lock) echo "  ${k}: ${valor}  [OK]" ;;
+      *) echo "  ${k}: ${valor}  [SUSPENDE]"; malo=1 ;;
+    esac
+  done
+  if [ "$malo" -eq 0 ]; then
+    ok "Cerrar la tapa no suspende el servidor."
+    return 0
+  fi
+  aviso "Si cierras la tapa, el portátil se suspenderá y la app dejará de responder."
+  if [ "${1:-}" != "arreglar" ]; then
+    echo "Para arreglarlo:  bash scripts/servidor.sh tapa arreglar"
+    return 0
+  fi
+  sudo mkdir -p "$dir"
+  printf '[Login]\nHandleLidSwitch=ignore\nHandleLidSwitchExternalPower=ignore\nHandleLidSwitchDocked=ignore\n' | sudo tee "$fichero" >/dev/null
+  # HUP recarga la configuración sin reiniciar logind (reiniciarlo puede cerrarte la sesión SSH).
+  sudo systemctl kill -s HUP systemd-logind 2>/dev/null || aviso "No pude recargar logind: reinicia el portátil una vez (sudo reboot)."
+  ok "Hecho: con la tapa cerrada el servidor sigue funcionando (${fichero})."
+  echo "Comprobación recomendada: cierra la tapa, espera 1 minuto y abre https://TU-DIRECCIÓN desde el móvil con datos."
+  echo "Consejo: con la tapa cerrada el portátil se calienta más; déjalo ventilado y sobre una superficie dura."
+}
+
 # base64url sin relleno, como pide Web Push.
 b64url() { base64 -w0 | tr '+/' '-_' | tr -d '='; }
 
@@ -590,5 +626,6 @@ case "${1:-ayuda}" in
   activar) activar ;;
   perfiles) perfiles "${2:-estado}" ;;
   apk) apk "${2:-}" ;;
-  *) sed -n '2,21p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
+  tapa) tapa "${2:-}" ;;
+  *) sed -n '2,22p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
 esac

@@ -193,6 +193,7 @@ h1, h2, h3, p { margin: 0; }
 /* ───────── Hoja inferior (añadir movimiento) ───────── */
 .scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 40; }
 .sheet { position: fixed; z-index: 41; left: 0; right: 0; bottom: 0; max-height: 94dvh; overflow: auto; background: var(--surface); border: 1px solid var(--hair); border-bottom: 0; border-radius: 28px 28px 0 0; padding: 12px 20px calc(env(safe-area-inset-bottom) + 20px); max-width: 560px; margin: 0 auto; }
+.sheet-actions { position: sticky; bottom: calc(-1 * (env(safe-area-inset-bottom) + 20px)); display: grid; gap: 10px; margin: 0 -20px calc(-1 * (env(safe-area-inset-bottom) + 20px)); padding: 12px 20px calc(env(safe-area-inset-bottom) + 20px); background: linear-gradient(to bottom, transparent, var(--surface) 14px); }
 .sheet .grabber { width: 40px; height: 4px; border-radius: 4px; background: var(--surface-3); margin: 0 auto 14px; }
 .amount-wrap { display: flex; align-items: baseline; justify-content: center; gap: 2px; margin: 16px 0 18px; }
 .amount-input { width: 4em; max-width: 100%; min-width: 2.4em; background: none; border: 0; outline: none; text-align: center; font-family: var(--font-display); font-weight: 700; font-size: 58px; letter-spacing: -0.04em; color: var(--ink); }
@@ -202,7 +203,8 @@ h1, h2, h3, p { margin: 0; }
 .cat { display: grid; justify-items: center; gap: 6px; padding: 10px 4px; border-radius: 16px; border: 1px solid var(--hair); background: var(--plane); font-size: 12px; color: var(--ink-2); text-align: center; }
 .cat[aria-pressed='true'] { border-color: var(--tile-c); background: color-mix(in srgb, var(--tile-c) 14%, var(--plane)); color: var(--ink); }
 @media (min-width: 960px) {
-  .sheet { bottom: auto; top: 50%; left: 50%; right: auto; transform: translate(-50%, -50%); width: 520px; border-radius: 28px; border-bottom: 1px solid var(--hair); }
+  /* Centrada sin `transform`: framer-motion anima el transform en línea y lo pisaría. */
+  .sheet { inset: 0; margin: auto; height: fit-content; width: 520px; max-height: 90dvh; border-radius: 28px; border-bottom: 1px solid var(--hair); }
 }
 
 /* ───────── Consejos ───────── */
