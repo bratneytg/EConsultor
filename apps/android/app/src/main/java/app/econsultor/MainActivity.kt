@@ -171,6 +171,12 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Avisos de pago que no pudieron enviarse (sin conexión): se reintentan al abrir la app.
+        Capture.flush(this)
+    }
+
     /** Lo que la web puede pedirle a la app. Solo se expone a la página de tu servidor. */
     inner class Bridge {
         @JavascriptInterface
@@ -206,6 +212,38 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 if (on) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
+        }
+
+        // ── Captura de pagos desde las notificaciones ──
+        /** Guarda el token personal (el servidor es siempre el de la app) y activa el envío de avisos. */
+        @JavascriptInterface
+        fun captureSetup(baseUrl: String, token: String) {
+            if (!token.startsWith("ecp_") || token.length > 80) return
+            Capture.setup(this@MainActivity, token)
+        }
+
+        @JavascriptInterface
+        fun captureApps(): String = Capture.apps(this@MainActivity)
+
+        @JavascriptInterface
+        fun captureSetApps(pkgsJson: String) {
+            val a = try { org.json.JSONArray(pkgsJson) } catch (_: Exception) { return }
+            Capture.setApps(this@MainActivity, (0 until minOf(a.length(), 100)).map { a.optString(it) })
+        }
+
+        @JavascriptInterface
+        fun captureStatus(): String = Capture.status(this@MainActivity)
+
+        @JavascriptInterface
+        fun captureDisable() = Capture.disable(this@MainActivity)
+
+        /** Abre la pantalla de Android donde se da (o quita) el acceso a las notificaciones. */
+        @JavascriptInterface
+        fun openNotificationAccess() {
+            runOnUiThread {
+                try { startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                catch (_: Exception) { Toast.makeText(this@MainActivity, "Ajustes → Notificaciones → Acceso a notificaciones", Toast.LENGTH_LONG).show() }
             }
         }
 

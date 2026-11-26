@@ -282,4 +282,11 @@ export const de: Record<string, string> = {
   "La IA no está disponible en este servidor.": "Die KI ist auf diesem Server nicht verfügbar.",
   "Este análisis ya no está disponible. Vuelve a subir el archivo.": "Diese Analyse ist nicht mehr verfügbar. Lade die Datei erneut hoch.",
   "No se pudo analizar el archivo. Inténtalo de nuevo.": "Die Datei konnte nicht analysiert werden. Versuche es noch einmal.",
+  "Este pago ya no está pendiente.": "Diese Zahlung ist nicht mehr offen.",
+  "Este pago está en otra moneda: escribe el importe en tu moneda para añadirlo.": "Diese Zahlung ist in einer anderen Währung: Gib den Betrag in deiner Währung ein, um sie hinzuzufügen.",
+  "1 movimiento ya lo habías capturado desde el móvil: está desmarcado para no duplicarlo.": "1 Umsatz wurde schon vom Handy erfasst: Er ist abgewählt, damit er nicht doppelt erscheint.",
+  "{n} movimientos ya los habías capturado desde el móvil: están desmarcados para no duplicarlos.": "{n} Umsätze wurden schon vom Handy erfasst: Sie sind abgewählt, damit sie nicht doppelt erscheinen.",
+  "Token de captura no válido": "Ungültiges Erfassungs-Token",
+  "Ingreso": "Einnahme",
+  "Pago con tarjeta": "Kartenzahlung",
 };

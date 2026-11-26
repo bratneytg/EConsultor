@@ -282,4 +282,11 @@ export const it: Record<string, string> = {
   "La IA no está disponible en este servidor.": "L'IA non è disponibile su questo server.",
   "Este análisis ya no está disponible. Vuelve a subir el archivo.": "Questa analisi non è più disponibile. Carica di nuovo il file.",
   "No se pudo analizar el archivo. Inténtalo de nuevo.": "Non è stato possibile analizzare il file. Riprova.",
+  "Este pago ya no está pendiente.": "Questo pagamento non è più in sospeso.",
+  "Este pago está en otra moneda: escribe el importe en tu moneda para añadirlo.": "Questo pagamento è in un'altra valuta: scrivi l'importo nella tua valuta per aggiungerlo.",
+  "1 movimiento ya lo habías capturado desde el móvil: está desmarcado para no duplicarlo.": "1 movimento era già stato catturato dal telefono: è deselezionato per non duplicarlo.",
+  "{n} movimientos ya los habías capturado desde el móvil: están desmarcados para no duplicarlos.": "{n} movimenti erano già stati catturati dal telefono: sono deselezionati per non duplicarli.",
+  "Token de captura no válido": "Token di cattura non valido",
+  "Ingreso": "Entrata",
+  "Pago con tarjeta": "Pagamento con carta",
 };

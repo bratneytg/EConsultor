@@ -1,4 +1,4 @@
-import type { AdviceResponse, BillingInfo, IanStatus, Overview, Recurring, RecurringInput, Transaction, TransactionInput } from '@econsultor/shared';
+import type { AdviceResponse, BillingInfo, CaptureInfo, IanStatus, Overview, Recurring, RecurringInput, Transaction, TransactionInput } from '@econsultor/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 
@@ -61,3 +61,7 @@ export function useDeleteRecurring() {
   const invalidate = useInvalidateData();
   return useMutation({ mutationFn: (id: string) => api<void>(`/recurring/${id}`, { method: 'DELETE' }), onSuccess: invalidate });
 }
+
+/** Pagos capturados desde el móvil: pendientes de revisar, avisos no reconocidos y ajustes. */
+export const useCapture = (enabled = true) =>
+  useQuery({ queryKey: ['capture'], queryFn: () => api<CaptureInfo>('/capture'), enabled, staleTime: 20_000, refetchOnWindowFocus: true });

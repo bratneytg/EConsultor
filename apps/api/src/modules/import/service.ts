@@ -179,6 +179,9 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
     overlap = { account: acc, matched: dupOther.size, total: items.length };
   }
   const crossDuplicates = overlap && !input.assumeDifferentAccount;
+  // Pagos que ya entraron solos desde el móvil (Atajo / notificación): el extracto llega días después con la fecha de
+  // contabilización del banco, así que se admite algo de margen y no se exige el mismo nombre.
+  const dupCaptured = matchAgainst(items, allTxs.filter((t) => t.source === 'capture'), { tolDays: 4, names: false, skip: new Set([...dupSame.keys(), ...dupOther.keys()]) });
   // Traspasos entre cuentas propias: mismo importe y signo contrario en otra cuenta, y el texto lo dice.
   const transfers = matchAgainst(items, others, { tolDays: 3, names: false, opposite: true, skip: new Set([...dupSame.keys(), ...dupOther.keys()]) });
 
@@ -186,7 +189,7 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
     const c = cats[i]!;
     const it = items[i]!;
     const row: ImportRow = { id: randomUUID(), date: r.date, type: it.type, categoryId: c.categoryId, amountMinor: it.amountMinor, note: it.note, confidence: c.confidence, via: c.via, ...(c.hint ? { hint: c.hint } : {}), ...(c.web ? { web: true } : {}) };
-    if (dupSame.has(i)) row.skip = 'duplicate';
+    if (dupSame.has(i) || dupCaptured.has(i)) row.skip = 'duplicate';
     else if (crossDuplicates && dupOther.has(i)) row.skip = 'other_account';
     else if (c.internal) row.skip = 'internal';
     else if (transfers.has(i) && TRANSFER_CUE.test(norm(`${r.name ?? ''} ${r.reference ?? ''}`))) row.skip = 'internal';
@@ -198,6 +201,7 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
   const sum = (t: 'income' | 'expense') => kept.filter((r) => r.type === t).reduce((s, r) => s + r.amountMinor, 0);
   const skipped = rows.length - kept.length;
   if (skipped) warnings.push(skipped === 1 ? tr('Hay 1 movimiento desmarcado: duplicado de lo que ya tienes o traspaso entre tus propias cuentas. Márcalo si lo quieres importar.') : tr('Hay {n} movimientos desmarcados: duplicados de lo que ya tienes o traspasos entre tus propias cuentas. Márcalos si los quieres importar.', { n: skipped }));
+  if (dupCaptured.size) warnings.push(dupCaptured.size === 1 ? tr('1 movimiento ya lo habías capturado desde el móvil: está desmarcado para no duplicarlo.') : tr('{n} movimientos ya los habías capturado desde el móvil: están desmarcados para no duplicarlos.', { n: dupCaptured.size }));
   const lowCount = kept.filter((r) => r.confidence === 'low').length;
   if (lowCount) warnings.push(lowCount === 1 ? tr('No he sabido clasificar con seguridad 1 movimiento: está como «Otros» y resaltado. Cambia su categoría antes de importar.') : tr('No he sabido clasificar con seguridad {n} movimientos: están como «Otros» y resaltados. Cambia su categoría antes de importar.', { n: lowCount }));
 

@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { LanguagePicker } from '../components/LanguagePicker';
 import { Icon, type IconName } from '../components/Icon';
 import { ModeSwitch } from '../components/ModeSwitch';
+import { CaptureCard } from '../components/CaptureCard';
 import { CategoriesCard } from '../components/CategoriesCard';
 import { RecurringCard } from '../components/RecurringCard';
 import { ReportCard } from '../components/ReportCard';
@@ -100,6 +101,7 @@ export function Settings() {
       </>
     ) },
     { id: 'suscripcion', icon: 'spark', title: tk('Suscripción'), hint: tk('Tu plan, el pago y cómo cancelar'), body: <SubscriptionCard /> },
+    { id: 'captura', icon: 'bolt', title: tk('Captura de pagos'), hint: tk('Apple Pay y avisos del banco entran solos, sin conectar nada'), body: <CaptureCard /> },
     { id: 'periodicos', icon: 'repeat', title: tk('Gastos periódicos'), hint: tk('Alquiler, transporte, suscripciones, nómina…'), body: <RecurringCard /> },
     { id: 'categorias', icon: 'list', title: tk('Categorías'), hint: tk('Crea las tuyas, cambia nombres u oculta las que no uses'), body: <CategoriesCard /> },
     { id: 'informe', icon: 'chart', title: tk('Informe mensual'), hint: tk('Descarga un PDF con el análisis de cada mes'), body: <ReportCard /> },

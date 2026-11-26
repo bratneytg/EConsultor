@@ -7,6 +7,8 @@ import { markSeen, pendingReleases, RELEASES, type Release } from '../content/no
 import { AddSheet } from './AddSheet';
 import { ErrorBoundary } from './ErrorBoundary';
 import { ImportSheet } from './ImportSheet';
+import { PendingBanner } from './PendingBanner';
+import { PendingSheet } from './PendingSheet';
 import { ReportSheet } from './ReportSheet';
 import { t, tk } from '../lib/i18n';
 import { syncNativeReminder } from '../lib/native';
@@ -21,6 +23,7 @@ interface ShellCtx {
   openAdd: (editing?: Transaction) => void;
   openImport: () => void;
   openReport: () => void;
+  openPending: () => void;
   openWhatsNew: () => void;
   toast: (t: string) => void;
 }
@@ -45,6 +48,7 @@ export function Shell() {
   const [sheet, setSheet] = useState<{ open: boolean; editing: Transaction | null }>({ open: false, editing: null });
   const [importing, setImporting] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [pendingOpen, setPendingOpen] = useState(false);
   const [toastText, setToastText] = useState<string | null>(null);
   const [params, setParams] = useSearchParams();
   const loc = useLocation();
@@ -77,6 +81,7 @@ export function Shell() {
   const openAdd = useCallback((editing?: Transaction) => setSheet({ open: true, editing: editing ?? null }), []);
   const openImport = useCallback(() => setImporting(true), []);
   const openReport = useCallback(() => setReporting(true), []);
+  const openPending = useCallback(() => setPendingOpen(true), []);
   const toast = useCallback((t: string) => {
     setToastText(t);
     setTimeout(() => setToastText(null), 2200);
@@ -94,7 +99,7 @@ export function Shell() {
   // En la app de Android el aviso diario lo programa el propio teléfono: se mantiene al día con los ajustes.
   useEffect(() => { syncNativeReminder(user.reminderEnabled, user.reminderTime); }, [user.reminderEnabled, user.reminderTime]);
 
-  const value = useMemo(() => ({ month, setMonth, today, openAdd, openImport, openReport, openWhatsNew, toast }), [month, setMonth, today, openAdd, openImport, openReport, openWhatsNew, toast]);
+  const value = useMemo(() => ({ month, setMonth, today, openAdd, openImport, openReport, openPending, openWhatsNew, toast }), [month, setMonth, today, openAdd, openImport, openReport, openPending, openWhatsNew, toast]);
 
   const tab = (n: (typeof NAV)[number]) => (
     <NavLink key={n.to} to={n.to} end={n.to === '/'} className="tab">
@@ -120,6 +125,7 @@ export function Shell() {
         </nav>
 
         <main id="main">
+          {(loc.pathname === '/' || loc.pathname === '/movimientos') && <PendingBanner />}
           <ErrorBoundary resetKey={loc.pathname}><Outlet /></ErrorBoundary>
         </main>
         <button className="report-dot" aria-label={t('Reportar un fallo')} title={t('Reportar un fallo')} onClick={openReport}><Icon name="bug" size={16} /></button>
@@ -134,6 +140,7 @@ export function Shell() {
       </div>
       <AddSheet open={sheet.open} editing={sheet.editing} onClose={() => setSheet((s) => ({ ...s, open: false }))} onDone={toast} />
       <ImportSheet open={importing} onClose={() => setImporting(false)} onDone={toast} />
+      <PendingSheet open={pendingOpen} onClose={() => setPendingOpen(false)} onDone={toast} />
       <ReportSheet open={reporting} onClose={() => setReporting(false)} onDone={toast} />
       <WhatsNew open={news.open} releases={news.releases} version={__APP_VERSION__} onClose={closeNews} />
       {updateReady && !news.open && <UpdateBanner onReload={() => window.location.reload()} />}

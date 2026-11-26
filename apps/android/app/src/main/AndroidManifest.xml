@@ -6,6 +6,40 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Para saber qué apps de banco hay instaladas (visibilidad de paquetes de Android 11+). -->
+    <queries>
+        <package android:name="com.google.android.apps.walletnfcrel" />
+        <package android:name="com.samsung.android.spay" />
+        <package android:name="de.number26.android" />
+        <package android:name="com.paypal.android.p2pmobile" />
+        <package android:name="com.revolut.revolut" />
+        <package android:name="com.transferwise.android" />
+        <package android:name="com.bunq.android" />
+        <package android:name="com.dkb.banking" />
+        <package android:name="de.dkb.portalapp" />
+        <package android:name="com.starfinanz.smob.android.sfinanzstatus" />
+        <package android:name="de.ing.banking" />
+        <package android:name="com.ing.mobile" />
+        <package android:name="de.commerzbanking.mobil" />
+        <package android:name="de.postbank.finanzassistent" />
+        <package android:name="com.db.pbc.mibanco" />
+        <package android:name="de.santander.presentation" />
+        <package android:name="es.bancosantander.apps" />
+        <package android:name="com.bbva.bbvacontigo" />
+        <package android:name="com.bbva.nxt_spain" />
+        <package android:name="es.lacaixa.mobile.imaginBank" />
+        <package android:name="es.caixabank.caixabanknow" />
+        <package android:name="com.intesasanpaolo.inbank" />
+        <package android:name="it.nogood.container" />
+        <package android:name="com.unicredit" />
+        <package android:name="it.bnl.apps.banking" />
+        <package android:name="it.nexi.nexipay" />
+        <package android:name="com.satispay.customer" />
+        <package android:name="com.mooneyapp.android" />
+        <package android:name="com.mediolanum.android.fullbanca" />
+        <package android:name="com.n26" />
+    </queries>
+
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
@@ -28,6 +62,17 @@
             <!-- Atajo de la pantalla de inicio: «Anotar gasto» -->
             <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity>
+
+        <!-- Lee avisos de las apps de banco elegidas (la persona da el permiso en los ajustes de Android). -->
+        <service
+            android:name=".NotificationCaptureService"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
 
         <receiver android:name=".ReminderReceiver" android:exported="false" />
 

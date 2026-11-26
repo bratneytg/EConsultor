@@ -157,6 +157,8 @@ export interface Transaction extends TransactionInput {
   updatedAt: string;
   /** Si lo generó un gasto o ingreso periódico, el id de este. */
   recurringId?: string;
+  /** De dónde viene si no lo escribió la persona a mano: «capture» (pago capturado en el móvil) o «ian». */
+  source?: 'capture' | 'ian';
 }
 
 // ───────────────────────────── Periódicos ─────────────────────────────
@@ -448,4 +450,48 @@ export interface IanReply {
   remaining: number;
   /** Ian ha cambiado la categoría de algún movimiento: hay que recargar los datos. */
   changed?: boolean;
+}
+
+// ───────────────────────────── Captura de pagos desde el móvil ─────────────────────────────
+
+/** «smart»: añade solo lo que reconoce con seguridad; «review»: todo a revisar; «auto»: lo añade todo. */
+export type CaptureMode = 'smart' | 'review' | 'auto';
+
+/** Un pago capturado (Wallet, notificación del banco…) que espera a que la persona lo revise. */
+export interface CaptureItem {
+  id: string;
+  /** Momento del pago (ISO). */
+  at: string;
+  type: 'income' | 'expense';
+  amountMinor: number;
+  currency: string;
+  merchant: string;
+  categoryId: string;
+  /** Alta = reglas o su historial; baja = hay que revisarla. */
+  confidence: 'high' | 'medium' | 'low';
+  source: string;
+  /** App o tarjeta de origen, si se conoce. */
+  from?: string;
+  /** Qué es el comercio según la IA. */
+  hint?: string;
+  /** Moneda distinta a la tuya: revisa el importe. */
+  foreign?: boolean;
+  /** Es el aviso de prueba. */
+  test?: boolean;
+}
+
+/** Una notificación que llegó pero no se pudo interpretar como pago (para entender qué falta). */
+export interface CaptureIgnored { id: string; at: string; from?: string; text: string; reason: 'no_amount' | 'no_cue' | 'duplicate' }
+
+export interface CaptureInfo {
+  enabled: boolean;
+  /** Últimos caracteres del token, para reconocerlo. */
+  tokenHint?: string;
+  tokenCreatedAt?: string;
+  lastUsedAt?: string;
+  mode: CaptureMode;
+  /** Dirección a la que el móvil envía los pagos. */
+  endpoint: string;
+  items: CaptureItem[];
+  ignored: CaptureIgnored[];
 }

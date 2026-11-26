@@ -282,4 +282,11 @@ export const en: Record<string, string> = {
   "La IA no está disponible en este servidor.": "The AI isn't available on this server.",
   "Este análisis ya no está disponible. Vuelve a subir el archivo.": "This analysis is no longer available. Upload the file again.",
   "No se pudo analizar el archivo. Inténtalo de nuevo.": "The file could not be analysed. Try again.",
+  "Este pago ya no está pendiente.": "This payment is no longer pending.",
+  "Este pago está en otra moneda: escribe el importe en tu moneda para añadirlo.": "This payment is in another currency: enter the amount in your currency to add it.",
+  "1 movimiento ya lo habías capturado desde el móvil: está desmarcado para no duplicarlo.": "1 transaction was already captured from your phone: it is unticked so it is not duplicated.",
+  "{n} movimientos ya los habías capturado desde el móvil: están desmarcados para no duplicarlos.": "{n} transactions were already captured from your phone: they are unticked so they are not duplicated.",
+  "Token de captura no válido": "Invalid capture token",
+  "Ingreso": "Income",
+  "Pago con tarjeta": "Card payment",
 };

@@ -18,6 +18,16 @@ interface AndroidBridge {
   biometricEnroll?(cb: string, userId: string, id: string, secret: string, title: string, subtitle: string, cancel: string): void;
   biometricLogin?(cb: string, title: string, subtitle: string, cancel: string): void;
   biometricForget?(): void;
+  // Captura de pagos desde las notificaciones del teléfono (solo en versiones nuevas de la app).
+  /** Guarda el servidor y el token personal y empieza a enviar los avisos de las apps elegidas. */
+  captureSetup?(baseUrl: string, token: string): void;
+  /** JSON `[{pkg,label,on,known}]`: apps con notificaciones que pueden ser de un banco o cartera. */
+  captureApps?(): string;
+  captureSetApps?(pkgsJson: string): void;
+  /** JSON `{access:boolean, configured:boolean, queued:number, sent:number}`. */
+  captureStatus?(): string;
+  openNotificationAccess?(): void;
+  captureDisable?(): void;
 }
 declare global {
   interface Window { EConsultorAndroid?: AndroidBridge; __ecBio?: (cb: string, ok: boolean, data: string) => void }
@@ -115,3 +125,20 @@ export const nativeBiometricEnroll = (userId: string, id: string, secret: string
   call((cb) => native()!.biometricEnroll!(cb, userId, id, secret, tx.title, tx.subtitle, tx.cancel));
 /** Pide la huella y devuelve `{ userId, id, secret }` en JSON. */
 export const nativeBiometricLogin = (tx: BioText): Promise<string> => call((cb) => native()!.biometricLogin!(cb, tx.title, tx.subtitle, tx.cancel));
+
+// ───────── Captura de pagos (notificaciones) ─────────
+export interface CaptureApp { pkg: string; label: string; on: boolean; known: boolean }
+export interface NativeCaptureStatus { access: boolean; configured: boolean; queued: number; sent: number }
+
+/** ¿Esta versión de la app puede leer notificaciones de pago? */
+export const captureSupported = (): boolean => typeof native()?.captureSetup === 'function';
+export function captureSetup(baseUrl: string, token: string): void { try { native()?.captureSetup?.(baseUrl, token); } catch { /* sin puente */ } }
+export function captureApps(): CaptureApp[] {
+  try { const v = JSON.parse(native()?.captureApps?.() ?? '[]') as CaptureApp[]; return Array.isArray(v) ? v : []; } catch { return []; }
+}
+export function captureSetApps(pkgs: string[]): void { try { native()?.captureSetApps?.(JSON.stringify(pkgs)); } catch { /* sin puente */ } }
+export function captureStatus(): NativeCaptureStatus | null {
+  try { const raw = native()?.captureStatus?.(); return raw ? (JSON.parse(raw) as NativeCaptureStatus) : null; } catch { return null; }
+}
+export function openNotificationAccess(): void { try { native()?.openNotificationAccess?.(); } catch { /* sin puente */ } }
+export function captureDisable(): void { try { native()?.captureDisable?.(); } catch { /* sin puente */ } }

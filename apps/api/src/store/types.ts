@@ -1,4 +1,4 @@
-import type { CategoryPrefs, Lang, Plan, Recurring, Transaction, UiMode } from '@econsultor/shared';
+import type { CaptureIgnored, CaptureItem, CaptureMode, CategoryPrefs, Lang, Plan, Recurring, Transaction, UiMode } from '@econsultor/shared';
 
 /** Llave de acceso (huella, cara o PIN del dispositivo). Solo guardamos la clave PÚBLICA. */
 export interface PasskeyRecord {
@@ -60,12 +60,29 @@ export interface UserRecord {
   /** Gastos e ingresos que se repiten cada mes. */
   recurring?: Recurring[];
   passkeys?: PasskeyRecord[];
+  /** Captura de pagos desde el móvil: token (solo su hash), modo, pendientes y no reconocidos. */
+  capture?: CaptureState;
   /** Dispositivos de la app de Android con huella nativa (el WebView no admite WebAuthn). Solo se guarda un hash del secreto. */
   appBiometrics?: AppBiometricRecord[];
   failedLogins: number;
   lockedUntil?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CaptureState {
+  /** SHA-256 del token personal. El token solo permite AÑADIR pagos pendientes: no lee nada. */
+  tokenHash?: string;
+  tokenHint?: string;
+  tokenCreatedAt?: string;
+  lastUsedAt?: string;
+  mode: CaptureMode;
+  items: CaptureItem[];
+  ignored: CaptureIgnored[];
+  /** Huellas recientes (importe + comercio) e ids de cliente, para no duplicar el mismo pago. */
+  recent: { fp: string; at: number; id?: string }[];
+  /** Capturas recibidas hoy (tope diario). */
+  day?: { date: string; n: number };
 }
 
 export interface AppBiometricRecord {
