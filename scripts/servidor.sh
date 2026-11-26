@@ -273,11 +273,16 @@ actualizar() {
   exec 9>/tmp/econsultor-actualizar.lock
   flock -n 9 || exit 0
   git fetch -q origin
-  local rama
+  local rama hay=0
   rama="$(git rev-parse --abbrev-ref HEAD)"
   if [ "$(git rev-parse HEAD)" != "$(git rev-parse "origin/${rama}")" ]; then
     echo "$(date -Is) Hay cambios en origin/${rama}: actualizando"
     git pull -q --ff-only origin "${rama}"
+    hay=1
+  fi
+  # Si el panel está instalado, se asegura su enlace con la app (cambiar el plan desde el panel).
+  if enlazar_panel_app; then echo "$(date -Is) Enlazando el panel con la app"; hay=1; fi
+  if [ "$hay" = 1 ]; then
     compose up -d --build
     docker image prune -f >/dev/null
     echo "$(date -Is) Listo: $(git log -1 --format='%h %s')"
@@ -421,6 +426,20 @@ env_poner() {
 }
 env_leer() { grep "^$2=" "$1" 2>/dev/null | head -1 | cut -d= -f2- || true; }
 
+# Enlace panel ↔ app (ADMIN_TOKEN): permite cambiar el plan de una cuenta desde el panel. La clave vive solo en .env y
+# .env.panel (permisos 600). Devuelve 0 si ha cambiado algo (hay que recrear los contenedores) y 1 si ya estaba al día
+# o el panel no está instalado.
+enlazar_panel_app() {
+  [ -f "${DIR}/.env.panel" ] || return 1
+  command -v openssl >/dev/null || return 1
+  local t tp
+  t="$(env_leer "${DIR}/.env" ADMIN_TOKEN)"; tp="$(env_leer "${DIR}/.env.panel" ADMIN_TOKEN)"
+  if [ -n "$t" ] && [ "$t" = "$tp" ]; then return 1; fi
+  [ -n "$t" ] || { t="$(openssl rand -hex 32)"; env_poner "${DIR}/.env" ADMIN_TOKEN "$t"; }
+  env_poner "${DIR}/.env.panel" ADMIN_TOKEN "$t"; chmod 600 "${DIR}/.env.panel"
+  return 0
+}
+
 panel_clave_nueva() {
   local nueva ver="${1:-false}" perfiles psico admin
   perfiles="$(env_leer "${DIR}/.env.panel" PANEL_VER_PERFILES)"
@@ -449,20 +468,10 @@ panel() {
   ( crontab -l 2>/dev/null | grep -v 'panel-recolector.py' || true; echo "$CRON_PANEL" ) | crontab -
   python3 "${DIR}/scripts/panel-recolector.py" || aviso "El recolector falló; mira ${DIR}/estado/recolector.log"
 
-  # Enlace seguro panel ↔ app: permite cambiar el plan (Premium/Gratis) de una cuenta desde el panel.
-  # La clave vive solo en .env (app) y .env.panel (panel), ambos con permisos 600.
-  local token; token="$(env_leer "${DIR}/.env" ADMIN_TOKEN)"
-  if [ -z "$token" ]; then
-    token="$(openssl rand -hex 32)"
-    env_poner "${DIR}/.env" ADMIN_TOKEN "$token"
-    echo "Actualizando la app para activar el enlace con el panel (puede tardar un par de minutos)..."
-    compose up -d --build app
-    local j; for j in $(seq 1 30); do curl -fsS "http://127.0.0.1:${PUERTO}/healthz" >/dev/null 2>&1 && break; sleep 2; done
-  fi
-  env_poner "${DIR}/.env.panel" ADMIN_TOKEN "$token"; chmod 600 "${DIR}/.env.panel"
+  enlazar_panel_app && ok "Panel enlazado con la app: podrás cambiar el plan de una cuenta desde «Usuarios»."
 
   echo "Construyendo y arrancando el panel (la primera vez tarda un par de minutos)..."
-  compose up -d --build panel
+  compose up -d --build app panel
 
   local i
   for i in $(seq 1 30); do
