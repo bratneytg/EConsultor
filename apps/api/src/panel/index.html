@@ -176,6 +176,9 @@ dl.datos dd { margin: 0; overflow-wrap: anywhere; }
 .perfil .prevision { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
 .perfil .prevision p { margin: 4px 0 0; color: var(--ink-2); }
 .perfil .neg { color: var(--bad-ink); }
+.psico { border-top: 1px dashed var(--line); padding-top: 14px; }
+.psico h4 { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.aviso-psico { margin: 8px 0; padding: 8px 12px; border: 1px solid var(--warn); border-radius: 10px; color: var(--warn-ink); }
 .lecturas { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 4px; color: var(--ink-2); }
 .aviso-privacidad { border-color: var(--warn); }
 .aviso-privacidad p { margin: 6px 0; }
@@ -740,6 +743,23 @@ function vReportes(d) {
 const dinero = (minor, moneda = 'EUR') => { try { return new Intl.NumberFormat('es-ES', { style: 'currency', currency: moneda, maximumFractionDigits: 0 }).format((minor || 0) / 100); } catch { return `${nf.format(Math.round((minor || 0) / 100))} ${moneda}`; } };
 const NIVEL_ARQ = { saver: 'bien', balanced: 'bien', tight: 'med', overspender: 'mal', irregular: 'med' };
 
+function tarjetaPsico(ps) {
+  if (!ps.disponible) return html`<div class="psico mt14"><h4>Evaluación psico-económica</h4><p class="muted">${ps.motivo}</p></div>`;
+  const nivelCls = { bajo: 'bien', medio: 'med', alto: 'mal' };
+  const lista = (t, xs) => xs.length ? html`<h4 class="mt10">${t}</h4><ul class="lecturas">${xs.map((x) => html`<li>${x}</li>`)}</ul>` : '';
+  return html`<div class="psico mt14"><h4>Evaluación psico-económica <span class="etiqueta med">${ps.guion.nombre}</span></h4>
+    <p class="muted">${ps.base.movimientos} movimientos · ${plural(ps.base.meses, 'mes', 'meses')} de datos. Es una lectura de conducta, no un diagnóstico.</p>
+    ${ps.restriccion ? html`<p class="aviso-psico"><b>Cuidado:</b> casi todo su gasto es obligado. Lo que se ve es sobre todo restricción, no carácter.</p>` : ''}
+    ${lista('Retrato', ps.retrato)}
+    ${lista('Qué revela su dinero', ps.revela)}
+    ${lista('Puntos ciegos', ps.puntosCiegos)}
+    ${lista('Sin filtro', ps.sinFiltro)}
+    <h4 class="mt10">Rasgos</h4>
+    <div class="tabla"><table><thead><tr><th>Rasgo</th><th>Nivel</th><th class="r">Puntos</th><th>Confianza</th><th>Evidencia</th></tr></thead><tbody>${ps.rasgos.map((r) => html`<tr><td><b>${r.nombre}</b><br><span class="muted">${r.marco}</span><br><span class="muted">${r.lectura}</span></td><td><span class="etiqueta ${nivelCls[r.nivel]}">${r.nivel}</span></td><td class="r num">${r.puntos}</td><td>${r.confianza}</td><td class="muted">${r.evidencia.join(' · ')}</td></tr>`)}</tbody></table></div>
+    <h4 class="mt10">En qué nivel se gasta el dinero (Maslow)</h4>${hbarras(ps.necesidades.reparto.map((x) => ({ l: x.nivel, v: x.pct })), (v) => `${v} %`)}
+    <details class="mt10"><summary>Límites de esta lectura</summary><ul class="lecturas">${ps.limites.map((x) => html`<li>${x}</li>`)}</ul></details></div>`;
+}
+
 function tarjetaPerfil(p, i) {
   const pv = p.prevision; const quedan = pv.diasMes - pv.diasTranscurridos;
   return html`<article class="perfil"><header><div><h3>${p.nombre} <span class="etiqueta ${NIVEL_ARQ[p.arquetipo]}">${p.arquetipoNombre}</span></h3><p class="muted">${p.email} · ${p.moneda} · ${plural(p.meses, 'mes con datos', 'meses con datos')} · fiabilidad ${p.fiabilidad}</p></div>
@@ -751,7 +771,7 @@ function tarjetaPerfil(p, i) {
         <dl class="datos"><dt>Tendencia del gasto</dt><dd>${p.tendenciaGasto}</dd><dt>Volatilidad de ingresos</dt><dd class="num">${nf1.format(p.volatilidadIngresos)}${p.volatilidadIngresos > 0.35 ? ' (alta)' : ''}</dd><dt>Fuentes de ingreso</dt><dd class="num">${p.fuentesIngreso}</dd><dt>Suscripciones</dt><dd class="num">${dinero(p.suscripciones, p.moneda)} / mes</dd><dt>Gasto fin de semana</dt><dd class="num">×${nf1.format(p.sesgoFinDeSemana)} vs. laborables</dd></dl></div>
       <div>${grafico(`perfil-${i}`, { tipo: 'barras', titulo: 'Gasto de los últimos meses', col: 'Mes', fmt: (v) => dinero(v * 100, p.moneda), series: [{ n: 'Gasto', vals: p.meses12.map((m) => Math.round(m.gastos / 100)) }], cats: p.meses12.map((m) => m.mes) })}
         <div class="prevision"><b>Previsión de este mes</b><p>Lleva ${dinero(p.mesActual.ingresos, p.moneda)} ingresados y ${dinero(p.mesActual.gastos, p.moneda)} gastados. ${quedan > 0 && pv.diasTranscurridos > 0 ? html`Al ritmo de ${dinero(pv.ritmoDiario, p.moneda)} al día, cerraría con <b class="${pv.cierreProyectado < 0 ? 'neg' : ''}">${dinero(pv.cierreProyectado, p.moneda)}</b>.` : 'El mes ya ha terminado.'}</p></div></div></div>
-    ${p.lecturas.length ? html`<h4 class="mt14">Cómo leerlo</h4><ul class="lecturas">${p.lecturas.map((l) => html`<li>${l}</li>`)}</ul>` : ''}</article>`;
+    ${p.lecturas.length ? html`<h4 class="mt14">Cómo leerlo</h4><ul class="lecturas">${p.lecturas.map((l) => html`<li>${l}</li>`)}</ul>` : ''}${p.psico ? tarjetaPsico(p.psico) : ''}</article>`;
 }
 
 function vPerfiles(d) {
@@ -760,7 +780,8 @@ function vPerfiles(d) {
     <div class="panel aviso-privacidad"><h3>Esta sección está apagada a propósito</h3>
       <p>Muestra, por cada persona, su perfil financiero: nivel de ahorro, tendencia de gasto, categorías principales, riesgo y previsión del mes, <b>con importes</b>. Es información personal, así que solo se enciende cuando tú lo decides.</p>
       <p>Para activarla, en el servidor:</p><pre class="registro">bash scripts/servidor.sh perfiles on</pre>
-      <p class="muted">Antes de hacerlo, avisa a quien use la app (aviso de privacidad). La ayuda de la app ya lo explica. Para apagarla: <span class="mono">bash scripts/servidor.sh perfiles off</span>.</p></div></section>`;
+      <p class="muted">Antes de hacerlo, avisa a quien use la app (aviso de privacidad). La ayuda de la app ya lo explica. Para apagarla: <span class="mono">bash scripts/servidor.sh perfiles off</span>.</p>
+      <p class="muted">Dentro de los perfiles hay además una <b>evaluación psico-económica</b> (opcional, con otro interruptor): <span class="mono">bash scripts/servidor.sh psico on</span>.</p></div></section>`;
   const c = pf.conjunto;
   return html`<section class="bloque">${cabecera('Perfiles financieros', 'Calculado con los mismos datos y el mismo motor que los consejos de la app. Es una estimación a partir de lo que cada persona ha anotado: cuantos más meses, más fiable.')}
     <div class="panel aviso-privacidad"><p><b>Datos personales.</b> Úsalos solo para administrar y mejorar el servicio, no los compartas y recuerda que cada persona puede pedir que se borren. Se apaga con <span class="mono">perfiles off</span>.</p></div>

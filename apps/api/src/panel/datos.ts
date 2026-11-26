@@ -59,6 +59,8 @@ export interface OpcionesPanel {
   verImportes: boolean;
   /** Opt-in: muestra el perfil financiero de cada persona (ver docs/SECURITY.md). */
   verPerfiles?: boolean;
+  /** Evaluación psico-económica dentro de «Perfiles» (necesita también verPerfiles). */
+  verPsico?: boolean;
   puertoPanel: number;
   ahora?: number;
 }
@@ -424,7 +426,7 @@ export function construirDatos(o: OpcionesPanel): DatosPanel {
     const fallos72 = reps.filter((r) => r.kind === 'bug' && ahora - Date.parse(r.at) < 3 * DIA).length;
     if (fallos72 > 0) avisar('aviso', 'Reportes', fallos72 === 1 ? '1 fallo reportado en los últimos 3 días' : `${fallos72} fallos reportados en los últimos 3 días`, 'Míralos en la pestaña Reportes.');
 
-    perfiles = o.verPerfiles ? construirPerfiles(snap.users, snap.transactions, ahora) : { activo: false };
+    perfiles = o.verPerfiles ? construirPerfiles(snap.users, snap.transactions, ahora, !!o.verPsico) : { activo: false };
 
     actividad = {
       porDia: dias30.map((d) => ({ dia: d, ...porDia.get(d)! })),

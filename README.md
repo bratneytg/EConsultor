@@ -24,7 +24,7 @@ Con `ALLOW_DEMO_DATA` activo (por defecto en desarrollo y en el despliegue de pr
 El botón **«Importar extractos bancarios»** (en *Movimientos* y en *Ajustes → Tus datos*) acepta el CSV o el PDF de tu banco. Funciona **sin IA y sin conexión a terceros**: el servidor lee el archivo, detecta fechas e importes (formatos ISO, `dd.mm.aaaa`, `1.234,56` o `1,234.56`), clasifica por reglas (comercios alemanes, españoles e ingleses, categorías de N26, traspasos entre tus cuentas) y te enseña el resultado para corregirlo antes de guardar. Lo que ya existe no se duplica. Al importar, el perfil financiero oculto se recalcula solo, porque se deriva de los movimientos.
 
 - **CSV** (recomendado): N26 → web app → descargar extracto en CSV. También vale cualquier CSV con columnas de fecha e importe.
-- **PDF**: se lee su texto con `unpdf`. Es una lectura heurística: va bien con tablas simples; un PDF escaneado (imagen) no tiene texto y no se puede leer sin OCR.
+- **PDF**: se lee su texto con `unpdf`. Es una lectura heurística: va bien con tablas simples. Si el PDF es solo una imagen (extracto escaneado o capturas), el servidor lo lee con **OCR** (Tesseract + poppler, ya incluidos en la imagen de Docker; sin ellos esa lectura se omite y se pide el CSV) y avisa de que hay que revisarlo.
 - **IA opcional**: con `ANTHROPIC_API_KEY` aparece la casilla «Mejorar con IA», que envía a Claude solo las descripciones de lo que las reglas no reconocen (sin IBAN ni emails) y ayuda con PDFs de formato raro.
 
 ## Idiomas
@@ -154,6 +154,7 @@ Limitaciones del plan gratuito: el servicio se duerme tras ~15 min sin uso (la p
 | `bash scripts/servidor.sh direccion` | Tras renombrar el equipo o la red en Tailscale: rehace las asignaciones, actualiza `PUBLIC_ORIGIN` y reinicia la app |
 | `bash scripts/servidor.sh activar` | Activa Premium para todos (`PREMIUM_FOR_ALL`), genera las claves de avisos push (VAPID) y avisa de lo que aún falta (clave de IA, Google) |
 | `bash scripts/servidor.sh perfiles on\|off` | Muestra u oculta la pestaña «Perfiles financieros» del panel (apagada por defecto; pide confirmar) |
+| `bash scripts/servidor.sh psico on\|off` | Añade a «Perfiles» la evaluación psico-económica (apagada por defecto; pide confirmar; solo en el panel, nunca en la app) |
 | `bash scripts/servidor.sh apk URL` | Pone el enlace de descarga de la app de Android en Ajustes y Ayuda |
 | `bash scripts/servidor.sh panel-clave` / `panel-parar` | Cambia la contraseña del panel / lo apaga y lo quita de Tailscale |
 

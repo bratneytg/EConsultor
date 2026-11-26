@@ -32,6 +32,7 @@ export const CATEGORIES: readonly Category[] = [
   { id: 'leisure', label: 'Ocio', type: 'expense', discretionary: true },
   { id: 'shopping', label: 'Compras', type: 'expense', discretionary: true },
   { id: 'travel', label: 'Viajes', type: 'expense', discretionary: true },
+  { id: 'investing', label: 'Inversión y ahorro', type: 'expense' },
   { id: 'other_expense', label: 'Otros gastos', type: 'expense' },
   { id: 'salary', label: 'Nómina', type: 'income' },
   { id: 'freelance', label: 'Trabajo extra', type: 'income' },

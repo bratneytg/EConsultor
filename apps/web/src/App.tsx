@@ -2,14 +2,15 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Shell } from './components/Shell';
 import { useAuth } from './lib/auth';
 import { lazy, Suspense } from 'react';
+import { importWithRetry } from './lib/recover';
 import { Auth } from './pages/Auth';
 import { HomePro } from './pages/Home';
 import { HomeSimple } from './pages/HomeSimple';
 import { Transactions } from './pages/Transactions';
 
-const Advice = lazy(() => import('./pages/Advice').then((m) => ({ default: m.Advice })));
-const Help = lazy(() => import('./pages/Help').then((m) => ({ default: m.Help })));
-const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })));
+const Advice = lazy(() => importWithRetry(() => import('./pages/Advice')).then((m) => ({ default: m.Advice })));
+const Help = lazy(() => importWithRetry(() => import('./pages/Help')).then((m) => ({ default: m.Help })));
+const Settings = lazy(() => importWithRetry(() => import('./pages/Settings')).then((m) => ({ default: m.Settings })));
 const fallback = <div className="loading-screen" style={{ minHeight: 240 }}><div className="pulse-dot" /></div>;
 
 function HomeRoute() {

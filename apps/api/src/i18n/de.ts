@@ -191,4 +191,6 @@ export const de: Record<string, string> = {
   "Regalos": "Geschenke",
   "Devoluciones": "Erstattungen",
   "Otros ingresos": "Sonstige Einnahmen",
+  "Este PDF era una imagen: lo he leído con OCR. Revisa fechas, importes y signos antes de importar.": "Dieses PDF war ein Bild: Ich habe es per OCR gelesen. Prüfe Datum, Beträge und Vorzeichen vor dem Import.",
+  "Inversión y ahorro": "Investieren & Sparen",
 };

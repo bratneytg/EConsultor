@@ -75,3 +75,22 @@ describe('categorización al importar', () => {
     expect(categorize(row('REWE Markt'), mala).categoryId).toBe('groceries');
   });
 });
+
+describe('inversiones y préstamos', () => {
+  it.each([
+    ['TRADE REPUBLIC Wertpapierkauf ETF', 'investing'],
+    ['Scalable Capital Sparplan', 'investing'],
+    ['COMPRA ACCIONES BOLSA MADRID', 'investing'],
+    ['Binance Bitcoin', 'investing'],
+    ['PRES.32305541197', 'debt'],
+    ['PRESTAMOS B.DIGITAL', 'debt'],
+    ['TELEKOM DEUTSCHL.', 'utilities'],
+    ['DB VERTRIEB GMBH', 'transport'],
+  ])('%s → %s', (name, cat) => {
+    expect(categorize({ date: '2026-06-01', amountMinor: -5000, name }).categoryId).toBe(cat);
+  });
+
+  it('lo que entra desde un bróker sigue siendo ingreso por inversiones', () => {
+    expect(categorize({ date: '2026-06-01', amountMinor: 1200, name: 'Trade Republic Dividende' }).categoryId).toBe('investments');
+  });
+});

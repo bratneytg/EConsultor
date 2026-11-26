@@ -87,6 +87,7 @@ export const ARTICULOS: Articulo[] = [
       'Después abre Ajustes › Importar (o el botón de importar en Movimientos) y elige el archivo. Verás una lista con lo que se ha entendido: fecha, concepto, importe y categoría propuesta.',
       '- Revisa lo que esté en gris o sin categoría y corrígelo.',
       '- Si el servidor tiene la IA activada, puedes dejar que ayude a categorizar y a leer PDF difíciles. Antes de enviarla se eliminan IBAN, correos y números largos.',
+      '- PDF que son una imagen (extractos escaneados o capturas): se leen con OCR. Es menos exacto que un PDF con texto o un CSV, así que revisa fechas, importes y signos antes de guardar.',
       '- Extractos de tarjeta (Nexi, Visa, Mastercard…): muchos bancos ponen ahí los gastos en positivo. EConsultor lo detecta y cuenta esas líneas como gastos; las devoluciones y el pago de la tarjeta se tratan aparte. Si aun así sale todo al revés, pulsa «Invertir gastos e ingresos» sobre la lista.',
       '- Entiende fechas y números de España, Alemania e Italia (05/11/2026, 5 nov 2026, 1.234,56).',
       '- Aprende de ti: si ya categorizaste un comercio, lo repite con los siguientes. Lo que no se puede saber (una persona, una referencia numérica) queda en «Otros» para que lo revises.',

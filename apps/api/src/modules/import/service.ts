@@ -8,6 +8,7 @@ import { aiCategorize, aiExtractStatement } from './ai.js';
 import { buildHistory, categorize, haystack } from './categorize.js';
 import { rowsFromCsv } from './csv.js';
 import { pdfLines, rowsFromPdfLines } from './pdf.js';
+import { ocrPdfLines } from './ocr.js';
 import { readSpreadsheet, SheetError } from './sheet.js';
 import { resolveSigns } from './signs.js';
 import { rowsFromTable } from './table.js';
@@ -83,13 +84,25 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
     } catch {
       throw unprocessable(tr('No he podido abrir el PDF (¿está protegido con contraseña o dañado?). Prueba con el CSV.'));
     }
-    if (lines.length === 0) {
+    const year = Number(today.slice(0, 4));
+    let ocr = false;
+    let r = rowsFromPdfLines(lines, year);
+    if (r.rows.length === 0) {
+      // Sin movimientos en el texto (PDF de imágenes: extracto escaneado o capturas, a veces con un «1/5» por página):
+      // se lee con OCR si el servidor lo tiene.
+      const o = await ocrPdfLines(new Uint8Array(data));
+      if (o && o.length) {
+        const ro = rowsFromPdfLines(o, year);
+        if (ro.rows.length) { lines = o; r = ro; ocr = true; }
+      }
+    }
+    if (lines.length === 0 || (r.rows.length === 0 && lines.every((l) => l.length < 10))) {
       throw unprocessable('Este PDF no tiene texto (parece una imagen escaneada). Descarga el CSV desde la web del banco; con N26: web app → descargar → CSV.', 'scanned_pdf');
     }
-    const r = rowsFromPdfLines(lines, Number(today.slice(0, 4)));
     raw = r.rows;
     docText = r.docText;
     warnings.push(...r.warnings);
+    if (ocr) warnings.push(tr('Este PDF era una imagen: lo he leído con OCR. Revisa fechas, importes y signos antes de importar.'));
     if (raw.length < 3 && input.useAi && cfg.anthropicApiKey) {
       const ai = await aiExtractStatement(cfg, lines.join('\n'));
       if (ai && ai.length > raw.length) { raw = ai; engine = 'ai'; warnings.length = 0; docText = lines.slice(0, 60).join(' '); }

@@ -191,4 +191,6 @@ export const it: Record<string, string> = {
   "Regalos": "Regali",
   "Devoluciones": "Rimborsi",
   "Otros ingresos": "Altre entrate",
+  "Este PDF era una imagen: lo he leído con OCR. Revisa fechas, importes y signos antes de importar.": "Questo PDF era un'immagine: l'ho letto con l'OCR. Controlla date, importi e segni prima di importare.",
+  "Inversión y ahorro": "Investimenti e risparmio",
 };

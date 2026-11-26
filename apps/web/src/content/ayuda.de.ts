@@ -57,6 +57,7 @@ export const AYUDA_DE: Record<string, Traduccion> = {
       "Öffne dann Einstellungen › Importieren (oder die Import-Taste bei Buchungen) und wähle die Datei. Du siehst eine Liste dessen, was erkannt wurde: Datum, Verwendungszweck, Betrag und vorgeschlagene Kategorie.",
       "- Prüfe, was ausgegraut oder ohne Kategorie ist, und korrigiere es.",
       "- Wenn der Server die KI aktiviert hat, kannst du sie beim Kategorisieren und beim Lesen schwieriger PDFs helfen lassen. Vor dem Senden werden IBAN, E-Mail-Adressen und lange Zahlen entfernt.",
+      "- PDFs, die nur ein Bild sind (gescannte Auszüge oder Screenshots), werden per OCR gelesen. Das ist ungenauer als ein PDF mit Text oder eine CSV-Datei – prüfe Datum, Beträge und Vorzeichen vor dem Speichern.",
       "- Kartenabrechnungen (Nexi, Visa, Mastercard…): Viele Banken führen dort Ausgaben mit positivem Vorzeichen. EConsultor erkennt das und zählt diese Zeilen als Ausgaben; Erstattungen und die Kartenzahlung werden gesondert behandelt. Wenn trotzdem alles umgekehrt erscheint, tippe über der Liste auf „Ausgaben und Einnahmen vertauschen“.",
       "- Es versteht Datums- und Zahlenformate aus Spanien, Deutschland und Italien (05/11/2026, 5. Nov. 2026, 1.234,56).",
       "- Es lernt von dir: Wenn du einen Händler schon kategorisiert hast, wird das bei den nächsten wiederholt. Was nicht erkennbar ist (eine Person, eine Referenznummer), bleibt unter „Sonstiges“, damit du es prüfst.",

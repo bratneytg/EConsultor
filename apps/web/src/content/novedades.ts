@@ -11,6 +11,17 @@ export interface Release { version: string; title: string; changes: Change[] }
  */
 export const RELEASES: Release[] = [
   {
+    version: '1.3.0',
+    title: tk('Filtros por categoría y PDF escaneados'),
+    changes: [
+      { kind: 'new', text: tk('Filtra tus movimientos por categoría, igual que al añadir un gasto o un ingreso. También puedes tocar una categoría en «En qué se va» para ver sus movimientos.') },
+      { kind: 'feature', text: tk('Importa extractos en PDF que son solo una imagen (escaneados o capturas): la app los lee con OCR.') },
+      { kind: 'feature', text: tk('Nueva categoría «Inversión y ahorro»: la importación reconoce compras en bolsa, ETF y cripto.') },
+      { kind: 'improvement', text: tk('La importación reconoce mejor préstamos, operadoras de móvil e internet y transferencias.') },
+      { kind: 'fix', text: tk('Ajustes ya no se queda en blanco tras una actualización: si una pantalla falla, la app se recupera o te ofrece recargar.') },
+    ],
+  },
+  {
     version: '1.2.0',
     title: tk('Idiomas, varias cuentas y más bancos'),
     changes: [

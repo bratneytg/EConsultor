@@ -1,5 +1,6 @@
 import type { Overview } from '@econsultor/shared';
 import { useRef, useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { CatTile, Tip, pointerIn, type TipState } from '../components/ui';
 import { FAMILIES, categoryLabel, familyOf } from '../lib/categories';
 import { money, monthShort, pct, shiftMonth } from '../lib/format';
@@ -9,6 +10,7 @@ import { t } from '../lib/i18n';
 export function Breakdown({ o, compact = false }: { o: Overview; compact?: boolean }) {
   const wrap = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<TipState | null>(null);
+  const nav = useNavigate();
   const total = o.totals.expenseMinor;
   if (!total) return <p className="muted">{t('Aún no hay gastos este mes.')}</p>;
 
@@ -45,6 +47,7 @@ export function Breakdown({ o, compact = false }: { o: Overview; compact?: boole
             aria-label={`${x.f.label}: ${money(x.amount, o.currency, 0)}, ${pct(x.amount / total)}`}
             onPointerMove={(e) => showTip(e, x)}
             onPointerLeave={() => setTip(null)}
+            onClick={() => nav(`/movimientos?cat=${x.cats.map((c) => c.categoryId).join(',')}`)}
             onFocus={(e) => {
               const r = e.currentTarget.getBoundingClientRect();
               showTip({ clientX: r.left + r.width / 2, clientY: r.top }, x);
@@ -56,7 +59,7 @@ export function Breakdown({ o, compact = false }: { o: Overview; compact?: boole
         ))}
       </div>
       <div className="legend" style={{ marginBottom: 12 }}>
-        {fam.map((x) => <span key={x.f.id}><i className="sw" style={{ background: x.f.color }} />{x.f.label}</span>)}
+        {fam.map((x) => <Link key={x.f.id} className="seg-link" to={`/movimientos?cat=${x.cats.map((c) => c.categoryId).join(',')}`}><i className="sw" style={{ background: x.f.color }} />{x.f.label}</Link>)}
       </div>
       <Tip tip={tip} />
 
@@ -65,7 +68,8 @@ export function Breakdown({ o, compact = false }: { o: Overview; compact?: boole
           const ch = c.prevAmountMinor > 0 ? (c.amountMinor - c.prevAmountMinor) / c.prevAmountMinor : null;
           const color = familyOf(c.categoryId).color;
           return (
-            <div className="rank-row" key={c.categoryId}>
+            <Link className="rank-link" key={c.categoryId} to={`/movimientos?cat=${c.categoryId}`} aria-label={t('Ver los movimientos de {name}', { name: categoryLabel(c.categoryId) })}>
+            <div className="rank-row">
               <CatTile id={c.categoryId} />
               <div>
                 <div className="name"><span>{categoryLabel(c.categoryId)}</span></div>
@@ -80,6 +84,7 @@ export function Breakdown({ o, compact = false }: { o: Overview; compact?: boole
                 )}
               </div>
             </div>
+            </Link>
           );
         })}
       </div>

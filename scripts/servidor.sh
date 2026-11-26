@@ -18,6 +18,7 @@
 #   bash scripts/servidor.sh direccion        Tras cambiar el nombre del equipo o de la red en Tailscale: actualiza todo
 #   bash scripts/servidor.sh activar          Activa Premium para todos, la IA y los avisos push (genera las claves VAPID)
 #   bash scripts/servidor.sh perfiles on|off  Muestra u oculta la pestaña «Perfiles» del panel (apagado por defecto)
+#   bash scripts/servidor.sh psico on|off     Añade a «Perfiles» la evaluación psico-económica (apagado por defecto)
 #   bash scripts/servidor.sh apk URL          Pone el enlace de descarga de la app de Android en la web
 #   bash scripts/servidor.sh bareglass …      Aloja BareGlass (API) en este servidor: instalar | estado | parar | publico | privado | actualizar
 #   bash scripts/servidor.sh tapa [arreglar]  Comprueba (o arregla) que cerrar la tapa del portátil NO suspenda el servidor
@@ -418,10 +419,11 @@ env_poner() {
 env_leer() { grep "^$2=" "$1" 2>/dev/null | head -1 | cut -d= -f2- || true; }
 
 panel_clave_nueva() {
-  local nueva ver="${1:-false}" perfiles
+  local nueva ver="${1:-false}" perfiles psico
   perfiles="$(env_leer "${DIR}/.env.panel" PANEL_VER_PERFILES)"
+  psico="$(env_leer "${DIR}/.env.panel" PANEL_VER_PSICO)"
   nueva="$(openssl rand -hex 16)"
-  ( umask 077; printf 'PANEL_PASSWORD=%s\nPANEL_VER_IMPORTES=%s\nPANEL_VER_PERFILES=%s\n' "$nueva" "$ver" "${perfiles:-false}" > "${DIR}/.env.panel" )
+  ( umask 077; printf 'PANEL_PASSWORD=%s\nPANEL_VER_IMPORTES=%s\nPANEL_VER_PERFILES=%s\nPANEL_VER_PSICO=%s\n' "$nueva" "$ver" "${perfiles:-false}" "${psico:-false}" > "${DIR}/.env.panel" )
   chmod 600 "${DIR}/.env.panel"
   echo "$nueva"
 }
@@ -714,6 +716,29 @@ perfiles() {
   esac
 }
 
+psico() {
+  [ -f "${DIR}/.env.panel" ] || { alerta "El panel aún no está instalado: bash scripts/servidor.sh panel"; exit 1; }
+  case "${1:-estado}" in
+    on)
+      echo "Vas a activar la EVALUACIÓN PSICO-ECONÓMICA en el panel (dentro de «Perfiles»): una lectura de conducta de"
+      echo "cada persona a partir de lo que ingresa y gasta. Es una hipótesis, no un diagnóstico, y es información muy personal."
+      echo "Solo se ve en el panel (nunca en la app ni por la API) y no se envía a ningún tercero."
+      echo "Avisa a las personas afectadas (RGPD: transparencia) y úsala solo con quien te haya dado su confianza."
+      read -r -p "Escribe SI para activarla: " r
+      [ "$r" = "SI" ] || { echo "Cancelado. No he cambiado nada."; exit 0; }
+      env_poner "${DIR}/.env.panel" PANEL_VER_PERFILES true
+      env_poner "${DIR}/.env.panel" PANEL_VER_PSICO true
+      compose up -d --force-recreate panel
+      ok "Evaluación psico-económica activada (pestaña «Perfiles»)." ;;
+    off)
+      env_poner "${DIR}/.env.panel" PANEL_VER_PSICO false
+      compose up -d --force-recreate panel
+      ok "Evaluación psico-económica desactivada." ;;
+    *)
+      if [ "$(env_leer "${DIR}/.env.panel" PANEL_VER_PSICO)" = "true" ]; then echo "Psico: ACTIVADA"; else echo "Psico: desactivada (bash scripts/servidor.sh psico on)"; fi ;;
+  esac
+}
+
 apk() {
   local url="${1:-}"
   [ -n "$url" ] || { echo "Uso: bash scripts/servidor.sh apk https://…/econsultor.apk"; exit 1; }
@@ -740,6 +765,7 @@ case "${1:-ayuda}" in
   panel-parar) panel_parar ;;
   activar) activar ;;
   perfiles) perfiles "${2:-estado}" ;;
+  psico) psico "${2:-estado}" ;;
   apk) apk "${2:-}" ;;
   tapa) tapa "${2:-}" ;;
   bareglass) bareglass "${2:-estado}" ;;

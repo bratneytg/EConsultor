@@ -57,6 +57,7 @@ export const AYUDA_IT: Record<string, Traduccion> = {
       "Poi apri Impostazioni › Importa (o il pulsante di importazione in Movimenti) e scegli il file. Vedrai un elenco di ciò che è stato capito: data, descrizione, importo e categoria proposta.",
       "- Controlla ciò che è in grigio o senza categoria e correggilo.",
       "- Se il server ha l'IA attiva, puoi lasciare che aiuti a categorizzare e a leggere i PDF difficili. Prima dell'invio vengono rimossi IBAN, e-mail e numeri lunghi.",
+      "- I PDF che sono solo un'immagine (estratti scansionati o screenshot) vengono letti con l'OCR. È meno preciso di un PDF con testo o di un CSV: controlla date, importi e segni prima di salvare.",
       "- Estratti di carte (Nexi, Visa, Mastercard…): molte banche riportano le spese con segno positivo. EConsultor lo rileva e conta quelle righe come spese; i rimborsi e il pagamento della carta vengono trattati a parte. Se comunque tutto risulta al contrario, tocca «Inverti spese ed entrate» sopra l'elenco.",
       "- Comprende date e numeri di Spagna, Germania e Italia (05/11/2026, 5 nov 2026, 1.234,56).",
       "- Impara da te: se hai già categorizzato un esercente, lo ripete con i successivi. Ciò che non si può sapere (una persona, un riferimento numerico) resta in «Altro» perché tu lo controlli.",

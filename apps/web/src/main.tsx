@@ -8,6 +8,7 @@ import { App } from './App';
 import { AuthProvider } from './lib/auth';
 import { I18nProvider, LangBoundary } from './lib/i18n';
 import { watchNativeBars } from './lib/native';
+import { watchPreloadErrors } from './lib/recover';
 import { getThemePref, watchSystemTheme, applyTheme } from './lib/theme';
 import './styles/tokens.css';
 import './styles/app.css';
@@ -15,6 +16,7 @@ import './styles/app.css';
 applyTheme(getThemePref());
 watchSystemTheme();
 watchNativeBars();
+watchPreloadErrors();
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: true } },

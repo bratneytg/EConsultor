@@ -11,6 +11,7 @@ import { monthOf, todayIn } from '../lib/dates.js';
 import { buildOverview, streakDays } from '../modules/analytics/analytics.js';
 import { buildFinancialProfile, type FinancialProfile } from '../modules/profile/engine.js';
 import type { UserRecord } from '../store/types.js';
+import { construirPsico } from './psico.js';
 
 type Libre = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -50,7 +51,7 @@ function lecturas(p: FinancialProfile, racha: number): string[] {
   return out;
 }
 
-export function construirPerfiles(users: UserRecord[], txs: TxPanel[], ahora: number): Libre {
+export function construirPerfiles(users: UserRecord[], txs: TxPanel[], ahora: number, conPsico = false): Libre {
   const porUsuario = new Map<string, Transaction[]>();
   for (const { userId, ...t } of txs) (porUsuario.get(userId) ?? porUsuario.set(userId, []).get(userId)!).push(t as Transaction);
 
@@ -103,6 +104,8 @@ export function construirPerfiles(users: UserRecord[], txs: TxPanel[], ahora: nu
       },
       meses12: ov.monthly.map((m) => ({ mes: m.month, ingresos: m.incomeMinor, gastos: m.expenseMinor })),
       lecturas: lecturas(p, racha),
+      // Evaluación psico-económica: sólo si se pidió expresamente (PANEL_VER_PSICO) y nunca por la API de la app.
+      ...(conPsico ? { psico: construirPsico(lista, p, hoy) } : {}),
     });
   }
 

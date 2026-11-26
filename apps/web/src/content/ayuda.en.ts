@@ -57,6 +57,7 @@ export const AYUDA_EN: Record<string, Traduccion> = {
       "Then open Settings › Import (or the import button in Transactions) and choose the file. You'll see a list of what was understood: date, description, amount and suggested category.",
       "- Check anything greyed out or without a category and fix it.",
       "- If the server has AI enabled, you can let it help categorise and read difficult PDFs. IBANs, emails and long numbers are removed before anything is sent.",
+      "- PDFs that are just an image (scanned statements or screenshots) are read with OCR. It is less accurate than a text PDF or a CSV, so check dates, amounts and signs before saving.",
       "- Card statements (Nexi, Visa, Mastercard…): many banks list expenses as positive amounts there. EConsultor detects it and counts those lines as expenses; refunds and card payments are handled separately. If everything still comes out reversed, tap “Swap expenses and income” above the list.",
       "- It understands dates and numbers from Spain, Germany and Italy (05/11/2026, 5 Nov 2026, 1.234,56).",
       "- It learns from you: if you already categorised a merchant, it repeats that for the next ones. Whatever can't be known (a person, a reference number) stays in “Other” for you to review.",

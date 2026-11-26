@@ -202,6 +202,7 @@ export function configDesdeEntorno(env: NodeJS.ProcessEnv = process.env): Config
       archivoHistorial: env.HOST_HISTORY ?? '/estado/historial.jsonl',
       verImportes: env.PANEL_VER_IMPORTES === 'true',
       verPerfiles: env.PANEL_VER_PERFILES === 'true',
+      verPsico: env.PANEL_VER_PSICO === 'true',
       puertoPanel: Number(env.PANEL_PORT ?? 8788),
     },
   };
@@ -210,6 +211,6 @@ export function configDesdeEntorno(env: NodeJS.ProcessEnv = process.env): Config
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
   const cfg = configDesdeEntorno();
   crearPanel(cfg).listen(cfg.puerto, cfg.host, () => {
-    console.log(`[panel] escuchando en ${cfg.host}:${cfg.puerto} · importes ${cfg.datos.verImportes ? 'VISIBLES' : 'ocultos'} · perfiles ${cfg.datos.verPerfiles ? 'ACTIVOS' : 'desactivados'}`);
+    console.log(`[panel] escuchando en ${cfg.host}:${cfg.puerto} · importes ${cfg.datos.verImportes ? 'VISIBLES' : 'ocultos'} · perfiles ${cfg.datos.verPerfiles ? 'ACTIVOS' : 'desactivados'} · psico ${cfg.datos.verPerfiles && cfg.datos.verPsico ? 'ACTIVA' : 'desactivada'}`);
   });
 }

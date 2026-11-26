@@ -287,7 +287,7 @@ function Security() {
           </div>
           {pkStatus?.ok && <button className="btn btn-primary" disabled={pkBusy} onClick={addPasskey}><Icon name="fingerprint" size={18} />{t('Activar aquí')}</button>}
         </div>
-        {user.passkeys.map((k) => (
+        {(user.passkeys ?? []).map((k) => (
           <div className="event" key={k.id}>
             <span><Icon name="fingerprint" size={16} /> {k.name}{hereId === k.id && <> · <b>{t('este dispositivo')}</b></>} <span className="muted">· {t('desde {date}', { date: new Date(k.createdAt).toLocaleDateString(locale(), { dateStyle: 'medium' }) })}</span></span>
             <button className="chip-btn" onClick={() => removePasskey(k.id, k.kind)}>{t('Quitar')}</button>

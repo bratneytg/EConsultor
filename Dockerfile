@@ -12,6 +12,8 @@ RUN npm run build && npm prune --omit=dev
 FROM node:22-alpine AS run
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=8787 STATIC_DIR=/app/web DATA_FILE=/data/store.json
 WORKDIR /app
+# OCR para extractos en PDF de imágenes (Tesseract + poppler); si faltara, la importación sigue funcionando sin OCR.
+RUN apk add --no-cache tesseract-ocr tesseract-ocr-data-spa tesseract-ocr-data-eng tesseract-ocr-data-deu tesseract-ocr-data-ita poppler-utils
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/api/dist ./dist
 COPY --from=build /app/apps/web/dist ./web

@@ -1,10 +1,11 @@
 import type { Transaction } from '@econsultor/shared';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { NavLink, Outlet, useSearchParams } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useSearchParams } from 'react-router-dom';
 import { useUser } from '../lib/auth';
 import { isoToday } from '../lib/format';
 import { markSeen, pendingReleases, RELEASES, type Release } from '../content/novedades';
 import { AddSheet } from './AddSheet';
+import { ErrorBoundary } from './ErrorBoundary';
 import { ImportSheet } from './ImportSheet';
 import { ReportSheet } from './ReportSheet';
 import { t, tk } from '../lib/i18n';
@@ -46,6 +47,7 @@ export function Shell() {
   const [reporting, setReporting] = useState(false);
   const [toastText, setToastText] = useState<string | null>(null);
   const [params, setParams] = useSearchParams();
+  const loc = useLocation();
   const [news, setNews] = useState<{ open: boolean; releases: Release[] }>({ open: false, releases: [] });
   const [updateReady, setUpdateReady] = useState(false);
 
@@ -116,7 +118,7 @@ export function Shell() {
         </nav>
 
         <main id="main">
-          <Outlet />
+          <ErrorBoundary resetKey={loc.pathname}><Outlet /></ErrorBoundary>
         </main>
         <button className="report-dot" aria-label={t('Reportar un fallo')} title={t('Reportar un fallo')} onClick={openReport}><Icon name="bug" size={16} /></button>
 

@@ -142,6 +142,23 @@ describe('importación de extractos (API)', () => {
     expect(rows.find((r) => r.note.includes('Unbekannte'))).toMatchObject({ categoryId: 'other_expense', confidence: 'low' });
   });
 
+  it('lee con OCR un PDF que sólo tiene imágenes y reconoce inversiones, préstamos y operadoras', async () => {
+    const { ocrAvailable } = await import('../src/modules/import/ocr.js');
+    if (!(await ocrAvailable())) return; // sin Tesseract en esta máquina no hay nada que probar
+    const h = await login();
+    const pdf = readFileSync(new URL('./fixtures/extracto-imagen.pdf', import.meta.url)).toString('base64');
+    const p = await preview(h, 'pdf', pdf);
+    expect(p.statusCode).toBe(200);
+    const body = json(p);
+    const rows = body.rows as any[];
+    expect(rows).toHaveLength(5);
+    expect(rows.find((r) => r.note.includes('VODAFONE'))).toMatchObject({ categoryId: 'utilities', amountMinor: 703, date: '2026-06-13' });
+    expect(rows.find((r) => r.note.includes('TRADE REPUBLIC'))).toMatchObject({ categoryId: 'investing', amountMinor: 5000 });
+    expect(rows.find((r) => r.note.includes('PRES.'))).toMatchObject({ categoryId: 'debt', amountMinor: 3821 });
+    expect(rows.find((r) => r.note.includes('TRANSFER'))).toMatchObject({ type: 'income', amountMinor: 30000 });
+    expect(body.warnings.join(' ')).toMatch(/OCR/);
+  });
+
   it('rechaza archivos que no son lo que dicen y datos inválidos', async () => {
     const h = await login();
     expect((await preview(h, 'pdf', Buffer.from('esto no es un pdf, ni de lejos'.repeat(10)).toString('base64'))).statusCode).toBe(400);

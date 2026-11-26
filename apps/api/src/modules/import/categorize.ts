@@ -27,6 +27,9 @@ const EXPENSE_RULES: Rule[] = [
 
 /** Casos que otra regla confundiría: se evalúan antes que nada. */
 const PRIORITY_EXPENSE: Rule[] = [
+  // Compra de valores, ETF, fondos o cripto: dinero que se invierte, no que se consume.
+  [/(trade ?republic|scalable ?(capital|gmbh|broker)?|\bdegiro|flatex|interactive ?brokers|\bibkr\b|\betoro\b|\bxtb\b|\brobinhood|\bfreetrade|\btrading ?212|\bbux\b|justtrade|smartbroker|onvista|\bcomdirect.*(wertpapier|depot)|\bing.*(depot|wertpapier)|wertpapier|\bsparplan|\betf\b|\betfs\b|\bfondos? (de inversion|indexado)|\bindexa capital|myinvestor|renta ?4|selfbank|openbank.*(bolsa|fondos)|\bbroker|\bborsa\b|\bbolsa\b|compra (de )?(acciones|valores|etf|fondos?)|acquisto (titoli|azioni|etf)|\bazioni\b|\btitoli\b|\bfineco ?(invest|trading)|directa sim|\bbitpanda|\bcoinbase|\bkraken\b|\bbinance|bitvavo|crypto\.com|\bbitcoin|\bkryptow|\bcripto|\bsecurities|stock ?(purchase|order)|wertpapierkauf|wertpapierabrechnung|plan de pensiones|pensionsfonds|riester|ruerup|vermoegenswirksam|\bbausparen|bausparkasse|\bfondo pensione)/, 'investing'],
+  [/\bpres\.? ?\d{6,}/, 'debt'],
   [/viajes el corte ingles/, 'travel'],
   [/\b(tk ?maxx|tkmaxx)\b/, 'shopping'],
   [/\bmd (spa|discount|supermercati|s\.?p\.?a)\b/, 'groceries'],

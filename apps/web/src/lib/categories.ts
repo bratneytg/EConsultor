@@ -27,6 +27,7 @@ const FAMILY_OF: Record<string, string> = {
   leisure: 'fun', travel: 'fun',
   shopping: 'shop',
   health: 'care', education: 'care',
+  investing: 'other',
   other_expense: 'other',
 };
 
