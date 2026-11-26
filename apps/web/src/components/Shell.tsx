@@ -3,12 +3,14 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { NavLink, Outlet, useSearchParams } from 'react-router-dom';
 import { useUser } from '../lib/auth';
 import { isoToday } from '../lib/format';
+import { markSeen, pendingReleases, RELEASES, type Release } from '../content/novedades';
 import { AddSheet } from './AddSheet';
 import { ImportSheet } from './ImportSheet';
 import { ReportSheet } from './ReportSheet';
 import { syncNativeReminder } from '../lib/native';
 import { Icon, type IconName } from './Icon';
 import { Toast } from './ui';
+import { UpdateBanner, WhatsNew } from './WhatsNew';
 
 interface ShellCtx {
   month: string;
@@ -17,6 +19,7 @@ interface ShellCtx {
   openAdd: (editing?: Transaction) => void;
   openImport: () => void;
   openReport: () => void;
+  openWhatsNew: () => void;
   toast: (t: string) => void;
 }
 const Ctx = createContext<ShellCtx | null>(null);
@@ -42,6 +45,29 @@ export function Shell() {
   const [reporting, setReporting] = useState(false);
   const [toastText, setToastText] = useState<string | null>(null);
   const [params, setParams] = useSearchParams();
+  const [news, setNews] = useState<{ open: boolean; releases: Release[] }>({ open: false, releases: [] });
+  const [updateReady, setUpdateReady] = useState(false);
+
+  // Al abrir la app tras una actualización, se enseña qué ha cambiado (una sola vez por versión).
+  useEffect(() => {
+    const releases = pendingReleases(user.id, user.createdAt, __APP_VERSION__);
+    if (releases.length) setNews({ open: true, releases });
+  }, [user.id, user.createdAt]);
+  const closeNews = useCallback(() => { markSeen(user.id, __APP_VERSION__); setNews((n) => ({ ...n, open: false })); }, [user.id]);
+  const openWhatsNew = useCallback(() => setNews({ open: true, releases: RELEASES.slice(0, 3) }), []);
+
+  // La app instalada se queda abierta días: se busca una versión nueva al volver a ella y cada media hora.
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    let controlled = !!navigator.serviceWorker.controller;
+    const onChange = () => { if (controlled) setUpdateReady(true); controlled = true; };
+    const check = () => { void navigator.serviceWorker.getRegistration().then((r) => r?.update()).catch(() => undefined); };
+    const onVisible = () => { if (document.visibilityState === 'visible') check(); };
+    navigator.serviceWorker.addEventListener('controllerchange', onChange);
+    document.addEventListener('visibilitychange', onVisible);
+    const timer = setInterval(check, 30 * 60 * 1000);
+    return () => { navigator.serviceWorker.removeEventListener('controllerchange', onChange); document.removeEventListener('visibilitychange', onVisible); clearInterval(timer); };
+  }, []);
 
   // Nunca se navega al futuro.
   const setMonth = useCallback((m: string) => setMonthState(m > today.slice(0, 7) ? today.slice(0, 7) : m), [today]);
@@ -65,7 +91,7 @@ export function Shell() {
   // En la app de Android el aviso diario lo programa el propio teléfono: se mantiene al día con los ajustes.
   useEffect(() => { syncNativeReminder(user.reminderEnabled, user.reminderTime); }, [user.reminderEnabled, user.reminderTime]);
 
-  const value = useMemo(() => ({ month, setMonth, today, openAdd, openImport, openReport, toast }), [month, setMonth, today, openAdd, openImport, openReport, toast]);
+  const value = useMemo(() => ({ month, setMonth, today, openAdd, openImport, openReport, openWhatsNew, toast }), [month, setMonth, today, openAdd, openImport, openReport, openWhatsNew, toast]);
 
   const tab = (n: (typeof NAV)[number]) => (
     <NavLink key={n.to} to={n.to} end={n.to === '/'} className="tab">
@@ -104,6 +130,8 @@ export function Shell() {
       <AddSheet open={sheet.open} editing={sheet.editing} onClose={() => setSheet((s) => ({ ...s, open: false }))} onDone={toast} />
       <ImportSheet open={importing} onClose={() => setImporting(false)} onDone={toast} />
       <ReportSheet open={reporting} onClose={() => setReporting(false)} onDone={toast} />
+      <WhatsNew open={news.open} releases={news.releases} version={__APP_VERSION__} onClose={closeNews} />
+      {updateReady && !news.open && <UpdateBanner onReload={() => window.location.reload()} />}
       <Toast text={toastText} />
     </Ctx.Provider>
   );

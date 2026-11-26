@@ -27,7 +27,7 @@ const EVENT_LABEL: Record<string, string> = {
 export function Settings() {
   const user = useUser();
   const { setUser, logout } = useAuth();
-  const { toast, openImport, openReport } = useShell();
+  const { toast, openImport, openReport, openWhatsNew } = useShell();
   const { data: cfg } = useAppConfig();
   const invalidate = useInvalidateData();
   const [theme, setTheme] = useState<ThemePref>(getThemePref());
@@ -113,6 +113,7 @@ export function Settings() {
 
         <Card title="Ayuda" subtitle="Guías, trucos y respuestas. Búscalas cuando las necesites.">
           <div className="setting"><div><b>Ayuda y tutorial</b><p>Cómo usar la app a diario o con un extracto mensual, qué significa cada gráfica…</p></div><Link className="btn" to="/ayuda"><Icon name="help" size={18} />Abrir</Link></div>
+          <div className="setting"><div><b>Novedades</b><p>Qué ha cambiado en la app. Versión {__APP_VERSION__}.</p></div><button className="btn" onClick={openWhatsNew}><Icon name="spark" size={18} />Ver</button></div>
           <div className="setting"><div><b>Reportar un fallo o una idea</b><p>También tienes un icono discreto arriba a la derecha en cualquier pantalla.</p></div><button className="btn" onClick={openReport}><Icon name="bug" size={18} />Reportar</button></div>
           {!isAndroidApp() && cfg?.apkUrl && (
             <div className="setting"><div><b>App para Android</b><p>Con el aviso diario nativo.</p></div><a className="btn" href={cfg.apkUrl}><Icon name="phone" size={18} />Descargar</a></div>

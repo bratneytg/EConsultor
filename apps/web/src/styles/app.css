@@ -365,3 +365,15 @@ textarea.input { resize: vertical; min-height: 110px; font: inherit; }
 .imp-dup { background: color-mix(in srgb, var(--accent) 9%, var(--surface-2)); }
 .imp-dup p { margin: 0 0 8px; }
 .imp-dup-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.whatsnew-body { display: grid; gap: 18px; max-height: 52dvh; overflow: auto; margin-bottom: 8px; }
+.whatsnew-body h3 { font-family: var(--font-display); font-size: 17px; font-weight: 650; letter-spacing: -0.015em; margin-bottom: 8px; }
+.whatsnew-body h3 small { margin-left: 8px; font-family: var(--font-body, inherit); font-size: 12.5px; font-weight: 500; color: var(--ink-3); }
+.whatsnew-body ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.whatsnew-body li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: baseline; font-size: 14.5px; }
+.wn-kind { font-style: normal; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--surface-3); color: var(--ink-2); white-space: nowrap; }
+.wn-new { background: var(--accent); color: var(--on-accent, #fff); }
+.wn-fix { background: color-mix(in srgb, var(--good-text) 16%, var(--surface-2)); color: var(--good-text); }
+.whatsnew-ver { margin: 4px 2px 12px; }
+.update-banner { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom) + 92px); z-index: 70; width: max-content; max-width: calc(100vw - 24px); display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 16px; border-radius: 999px; background: var(--ink); color: var(--plane); box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.5); font-weight: 600; font-size: 14px; }
+.update-banner .btn { padding: 7px 14px; }
+@media (min-width: 960px) { .update-banner { bottom: 28px; } }

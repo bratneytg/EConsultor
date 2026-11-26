@@ -40,6 +40,9 @@ export function t(key: string, params?: Record<string, string | number>): string
   return params ? s.replace(/\{(\w+)\}/g, (m, k: string) => (k in params ? String(params[k]) : m)) : s;
 }
 
+/** Marca un texto para traducir más tarde (datos estáticos): devuelve el mismo texto y `t()` lo traduce al mostrarlo. */
+export const tk = (key: string): string => key;
+
 /** Plural sencillo: `plural(n, 'un día', '{n} días')`; cada forma se traduce como clave aparte. */
 export function plural(n: number, one: string, many: string): string {
   return t(n === 1 ? one : many, { n });
