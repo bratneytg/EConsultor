@@ -511,7 +511,6 @@ export const it: Record<string, string> = {
   "Ej.: Mascotas": "Es. Animali",
   "Ej.: Alquiler de una habitación": "Es. Affitto di una stanza",
   "Color": "Colore",
-  "Elige la familia de color con la que aparece en las gráficas.": "Scegli la famiglia di colore con cui appare nei grafici.",
   "Tipo de gasto": "Tipo di spesa",
   "Variable: cambia de un mes a otro": "Variabile: cambia di mese in mese",
   "Fijo: lo pagas todos los meses": "Fissa: la paghi ogni mese",
@@ -589,4 +588,7 @@ export const it: Record<string, string> = {
   "La IA respondió algo que no he podido leer. Pulsa «Actualizar» para intentarlo otra vez.": "L'IA ha risposto con qualcosa che non sono riuscito a leggere. Tocca «Aggiorna» per riprovare.",
   "Mostrando consejos sin IA": "Consigli mostrati senza IA",
   "Plan cambiado por el administrador": "Piano cambiato dall'amministratore",
+  "Es el color con el que aparece en las gráficas.": "È il colore con cui compare nei grafici.",
+  "Elegir el color de una categoría": "Scegliere il colore di una categoria",
+  "Al crear o editar una categoría ahora eliges el color tocando una muestra de color, en lugar de una lista de nombres.": "Quando crei o modifichi una categoria ora scegli il colore toccando un campione di colore, invece di un elenco di nomi.",
 };

@@ -2,13 +2,13 @@ import { CATEGORY_LABEL_MAX, MAX_CUSTOM_CATEGORIES, type CategoryPrefs, type Cus
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth, useUser } from '../lib/auth';
-import { FAMILIES, categoryColor, categoryLabel, categoryPrefs, expenseCategories, incomeCategories } from '../lib/categories';
+import { categoryColor, categoryLabel, categoryPrefs, expenseCategories, incomeCategories } from '../lib/categories';
 import { api, ApiError } from '../lib/api';
 import { addDays, isoToday, parseAmount, shiftMonth, symbol } from '../lib/format';
 import { useBackClose } from '../lib/backClose';
 import { t } from '../lib/i18n';
 import { useAccounts, useDeleteTransaction, useSaveRecurring, useSaveTransaction } from '../lib/queries';
-import { Switch } from './ui';
+import { ColorPicker, Switch } from './ui';
 import { Icon, CATEGORY_ICON } from './Icon';
 
 interface Props {
@@ -166,12 +166,10 @@ export function AddSheet({ open, editing, onClose, onDone }: Props) {
                   <input id="new-cat" className="input" autoFocus maxLength={CATEGORY_LABEL_MAX} placeholder={type === 'expense' ? t('Ej.: Mascotas') : t('Ej.: Alquiler de una habitación')} value={newCat.label} onChange={(e) => setNewCat({ ...newCat, label: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && createCategory()} />
                 </div>
                 {type === 'expense' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <>
                     <div className="field" style={{ marginBottom: 0 }}>
-                      <label htmlFor="new-cat-family">{t('Color')}</label>
-                      <select id="new-cat-family" className="input" value={newCat.family} onChange={(e) => setNewCat({ ...newCat, family: e.target.value })}>
-                        {FAMILIES.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
-                      </select>
+                      <span className="lbl">{t('Color')}</span>
+                      <ColorPicker label={t('Color')} value={newCat.family} onChange={(family) => setNewCat({ ...newCat, family })} />
                     </div>
                     <div className="field" style={{ marginBottom: 0 }}>
                       <label htmlFor="new-cat-nature">{t('Tipo de gasto')}</label>
@@ -181,7 +179,7 @@ export function AddSheet({ open, editing, onClose, onDone }: Props) {
                         <option value="discretionary">{t('Discrecional')}</option>
                       </select>
                     </div>
-                  </div>
+                  </>
                 )}
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button className="btn btn-primary" disabled={creating} onClick={createCategory}>{t('Crear')}</button>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { categoryColor } from '../lib/categories';
+import { FAMILIES, categoryColor } from '../lib/categories';
 import { moneyParts } from '../lib/format';
 import { t } from '../lib/i18n';
 import { CATEGORY_ICON, Icon } from './Icon';
@@ -75,6 +75,22 @@ export function HeroMoney({ minor, currency }: { minor: number; currency: string
 
 export function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return <button type="button" role="switch" aria-checked={checked} aria-label={label} className="switch" onClick={() => onChange(!checked)} />;
+}
+
+/** Elegir el color de una categoría: muestras de color (el nombre va en la etiqueta accesible y al pasar el ratón). */
+export function ColorPicker({ value, onChange, label }: { value: string; onChange: (family: string) => void; label: string }) {
+  return (
+    <div className="swatches" role="radiogroup" aria-label={label}>
+      {FAMILIES.map((f) => (
+        <button
+          key={f.id} type="button" role="radio" aria-checked={value === f.id} aria-label={f.label} title={f.label}
+          className="swatch" style={{ ['--sw' as string]: f.color, color: f.darkText ? '#1a1a1a' : '#fff' }} onClick={() => onChange(f.id)}
+        >
+          {value === f.id && <Icon name="check" size={16} />}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 export function Toast({ text }: { text: string | null }) {

@@ -2,10 +2,10 @@ import { CATEGORIES, CATEGORY_LABEL_MAX, MAX_CUSTOM_CATEGORIES, categoryById, ty
 import { useState } from 'react';
 import { api, ApiError } from '../lib/api';
 import { useAuth, useUser } from '../lib/auth';
-import { FAMILIES, categoryLabel, categoryPrefs } from '../lib/categories';
+import { categoryLabel, categoryPrefs } from '../lib/categories';
 import { t } from '../lib/i18n';
 import { useInvalidateData } from '../lib/queries';
-import { CatTile, Card } from './ui';
+import { CatTile, Card, ColorPicker } from './ui';
 import { Icon } from './Icon';
 import { useShell } from './Shell';
 
@@ -137,11 +137,9 @@ export function CategoriesCard() {
           {kind === 'expense' && (!edit.id || edit.id.startsWith('c_')) && (
             <>
               <div className="field" style={{ marginBottom: 0 }}>
-                <label htmlFor="cat-family">{t('Color')}</label>
-                <select id="cat-family" className="input" value={edit.family} onChange={(e) => setEdit({ ...edit, family: e.target.value })}>
-                  {FAMILIES.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
-                </select>
-                <span className="hint">{t('Elige la familia de color con la que aparece en las gráficas.')}</span>
+                <span className="lbl" id="cat-color-lbl">{t('Color')}</span>
+                <ColorPicker label={t('Color')} value={edit.family} onChange={(family) => setEdit({ ...edit, family })} />
+                <span className="hint">{t('Es el color con el que aparece en las gráficas.')}</span>
               </div>
               <div className="field" style={{ marginBottom: 0 }}>
                 <label htmlFor="cat-nature">{t('Tipo de gasto')}</label>

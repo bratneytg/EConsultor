@@ -11,6 +11,13 @@ export interface Release { version: string; title: string; changes: Change[] }
  */
 export const RELEASES: Release[] = [
   {
+    version: '1.4.2',
+    title: tk('Elegir el color de una categoría'),
+    changes: [
+      { kind: 'fix', text: tk('Al crear o editar una categoría ahora eliges el color tocando una muestra de color, en lugar de una lista de nombres.') },
+    ],
+  },
+  {
     version: '1.4.1',
     title: tk('Ajustes más fáciles de recorrer'),
     changes: [

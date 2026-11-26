@@ -511,7 +511,6 @@ export const en: Record<string, string> = {
   "Ej.: Mascotas": "E.g. Pets",
   "Ej.: Alquiler de una habitación": "E.g. Room rental",
   "Color": "Colour",
-  "Elige la familia de color con la que aparece en las gráficas.": "Pick the colour family it uses in the charts.",
   "Tipo de gasto": "Type of expense",
   "Variable: cambia de un mes a otro": "Variable: changes from month to month",
   "Fijo: lo pagas todos los meses": "Fixed: you pay it every month",
@@ -589,4 +588,7 @@ export const en: Record<string, string> = {
   "La IA respondió algo que no he podido leer. Pulsa «Actualizar» para intentarlo otra vez.": "The AI replied with something I couldn't read. Tap “Update” to try again.",
   "Mostrando consejos sin IA": "Showing tips without AI",
   "Plan cambiado por el administrador": "Plan changed by the administrator",
+  "Es el color con el que aparece en las gráficas.": "It's the colour it shows in the charts.",
+  "Elegir el color de una categoría": "Choosing a category's colour",
+  "Al crear o editar una categoría ahora eliges el color tocando una muestra de color, en lugar de una lista de nombres.": "When you create or edit a category you now pick the colour by tapping a colour swatch, instead of a list of names.",
 };
