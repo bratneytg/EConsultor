@@ -31,11 +31,15 @@ services:
       # Dirección de la app a la que lleva «Log-in» (obligatoria; el build falla si falta).
       - key: APP_URL
         sync: false
-      # Descarga del APK de Android (opcional; sin ella el botón sale desactivado).
+      # Descarga del APK de Android: la release que publica .github/workflows/android.yml (repositorio público).
       - key: APK_URL
-        sync: false
+        value: https://github.com/bratneytg/EConsultor/releases/download/android-latest/econsultor.apk
+      # Precio mensual de Premium en euros, solo el número; cada idioma lo escribe a su manera (€4.99 / 4,99 €).
       - key: PRICE
-        value: "4,99 €"
+        value: "4.99"
+      # Dirección pública de esta web (opcional): activa canonical, hreflang y sitemap.
+      - key: SITE_URL
+        sync: false
       # Datos del Impressum (obligatorios para publicar: sin ellos la web se ve con avisos y no se indexa).
       - key: OWNER_NAME
         sync: false
