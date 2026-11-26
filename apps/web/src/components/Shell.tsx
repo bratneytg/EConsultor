@@ -108,9 +108,11 @@ export function Shell() {
       <div className="shell">
         <nav className="nav-rail" aria-label={t('Principal')}>
           <div className="brand"><img src="/icons/icon-192.png" alt="" />{t('EConsultor')}</div>
-          {NAV.map((n) => (
+          {NAV.slice(0, 3).map((n) => (
             <NavLink key={n.to} to={n.to} end={n.to === '/'}><Icon name={n.icon} />{t(n.label)}</NavLink>
           ))}
+          <NavLink to="/ian"><Icon name="chat" />{t('Ian')}</NavLink>
+          <NavLink to={NAV[3]!.to}><Icon name={NAV[3]!.icon} />{t(NAV[3]!.label)}</NavLink>
           <button className="btn btn-primary" onClick={() => openAdd()}><Icon name="plus" size={18} />{t('Anotar')}</button>
           <div className="spacer" />
           <NavLink to="/ayuda" className="rail-help"><Icon name="help" />{t('Ayuda')}</NavLink>

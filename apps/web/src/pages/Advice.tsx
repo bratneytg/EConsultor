@@ -101,6 +101,15 @@ export function Advice() {
         </div>
       </header>
 
+      <aside className="ian-banner" aria-label={t('Ian')}>
+        <span className="ian-avatar" style={{ width: 42, height: 42, fontSize: 21 }} aria-hidden="true">I</span>
+        <div>
+          <h2>{user.plan === 'premium' ? t('Pregunta a Ian') : t('Conoce a Ian')}</h2>
+          <p>{user.plan === 'premium' ? t('Hazle preguntas sobre tus gastos y te contesta con tus propios datos.') : t('Un asistente con IA que contesta tus preguntas con tus propios números. Incluido en Premium.')}</p>
+        </div>
+        <Link className="btn btn-primary" to="/ian">{user.plan === 'premium' ? t('Hablar con Ian') : t('Ver Ian')}</Link>
+      </aside>
+
       <div className="segmented" role="group" aria-label={t('Tipo de consejos')} style={{ marginBottom: 16 }}>
         <button aria-pressed={tab === 'general'} onClick={() => setTab('general')}>{t('Generales')}</button>
         <button aria-pressed={tab === 'detailed'} onClick={() => setTab('detailed')}>{t('A fondo')}</button>
@@ -113,7 +122,7 @@ export function Advice() {
             <div className="advice-grid">
               {data.items.map((a) => <AdviceCard key={a.id} a={a} currency={user.currency} />)}
               {user.plan !== 'premium' && (
-                <PremiumNudge title={t('Consejos escritos por IA')} text={t('Con Premium, la IA lee tus movimientos y te dice cómo ahorrar más y aumentar tus ingresos, con tus comercios y tus hábitos.')}>{demoButton}</PremiumNudge>
+                <PremiumNudge title={t('Consejos escritos por IA')} text={t('Con Premium, la IA lee tus movimientos y te dice cómo ahorrar más y aumentar tus ingresos, con tus comercios y tus hábitos. Y puedes preguntarle a Ian.')}>{demoButton}</PremiumNudge>
               )}
             </div>
           </>

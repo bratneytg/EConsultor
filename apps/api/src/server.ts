@@ -16,6 +16,7 @@ import { importRoutes } from './routes/import.js';
 import { recurringRoutes } from './routes/recurring.js';
 import { adminRoutes } from './routes/admin.js';
 import { billingRoutes } from './routes/billing.js';
+import { ianRoutes } from './routes/ian.js';
 import { reportRoutes } from './routes/report.js';
 import { registerUserCategories } from './lib/categories.js';
 import { notificationRoutes } from './routes/notifications.js';
@@ -139,6 +140,7 @@ export async function buildApp(cfg: Config, store: Store): Promise<FastifyInstan
   await app.register(recurringRoutes, { prefix: '/api/recurring' });
   await app.register(reportRoutes, { prefix: '/api/report' });
   await app.register(billingRoutes, { prefix: '/api/billing' });
+  await app.register(ianRoutes, { prefix: '/api/ian' });
   if (cfg.adminToken) await app.register(adminRoutes, { prefix: '/api/admin' });
   // Las categorías propias de todas las cuentas, para que los consejos y el panel las entiendan.
   for (const u of await store.users.all()) registerUserCategories(u);

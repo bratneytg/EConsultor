@@ -410,3 +410,38 @@ export interface AdviceResponse {
   /** Solo en el análisis detallado: sobre qué datos se ha hecho. */
   basis?: { periodDays: number; txCount: number; merchants: number; aiAvailable: boolean };
 }
+
+// ───────────────────────────── Ian (agente con IA, solo Premium) ─────────────────────────────
+
+export const IAN_MAX_MESSAGES = 16;
+export const IAN_MAX_CHARS = 2000;
+
+/** Las respuestas de Ian pueden ser más largas que una pregunta: se aceptan hasta este tamaño al reenviar la conversación. */
+export const IAN_MAX_REPLY_CHARS = 4000;
+
+export const ianChatInput = z.object({
+  messages: z
+    .array(
+      z.union([
+        z.object({ role: z.literal('user'), content: z.string().trim().min(1).max(IAN_MAX_CHARS) }),
+        z.object({ role: z.literal('assistant'), content: z.string().trim().min(1).max(IAN_MAX_REPLY_CHARS) }),
+      ]),
+    )
+    .min(1)
+    .max(IAN_MAX_MESSAGES),
+});
+export type IanChatInput = z.infer<typeof ianChatInput>;
+
+export interface IanStatus {
+  /** El servidor tiene la clave de la IA y la cuenta es Premium. */
+  available: boolean;
+  premium: boolean;
+  /** Mensajes que se pueden enviar al día y los que quedan hoy. */
+  limit: number;
+  remaining: number;
+}
+
+export interface IanReply {
+  reply: string;
+  remaining: number;
+}

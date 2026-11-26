@@ -1,4 +1,4 @@
-import type { AdviceResponse, BillingInfo, Overview, Recurring, RecurringInput, Transaction, TransactionInput } from '@econsultor/shared';
+import type { AdviceResponse, BillingInfo, IanStatus, Overview, Recurring, RecurringInput, Transaction, TransactionInput } from '@econsultor/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 
@@ -17,6 +17,8 @@ export const useAccounts = (enabled = true) =>
 
 export const useAdvice = () => useQuery({ queryKey: ['advice'], queryFn: () => api<AdviceResponse>('/advice') });
 export const useDetailedAdvice = (enabled: boolean) => useQuery({ queryKey: ['advice', 'detailed'], queryFn: () => api<AdviceResponse>('/advice/detailed'), enabled });
+
+export const useIanStatus = () => useQuery({ queryKey: ['ian'], queryFn: () => api<IanStatus>('/ian'), staleTime: 30_000 });
 
 export const useBilling = () => useQuery({ queryKey: ['billing'], queryFn: () => api<BillingInfo>('/billing'), staleTime: 30_000 });
 

@@ -25,6 +25,8 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().default('claude-sonnet-5-5'),
+  /** Mensajes por día y cuenta que se pueden enviar a Ian (acota el gasto de IA). */
+  IAN_DAILY_LIMIT: z.coerce.number().int().min(1).max(1000).default(40),
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().default('mailto:admin@localhost'),
@@ -66,6 +68,7 @@ export interface Config {
   googleClientId?: string;
   anthropicApiKey?: string;
   anthropicModel: string;
+  ianDailyLimit: number;
   vapid?: { publicKey: string; privateKey: string; subject: string };
   premiumForAll: boolean;
   adminToken?: string;
@@ -128,6 +131,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): Config {
     googleClientId: e.GOOGLE_CLIENT_ID,
     anthropicApiKey: e.ANTHROPIC_API_KEY,
     anthropicModel: e.ANTHROPIC_MODEL,
+    ianDailyLimit: e.IAN_DAILY_LIMIT,
     premiumForAll: e.PREMIUM_FOR_ALL,
     adminToken: e.ADMIN_TOKEN,
     billing:

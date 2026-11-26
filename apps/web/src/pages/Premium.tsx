@@ -19,6 +19,7 @@ const ROWS: { label: string; free: boolean }[] = [
   { label: tk('Consejos escritos por IA con tus comercios y tus hábitos'), free: false },
   { label: tk('Análisis a fondo mejorado con IA'), free: false },
   { label: tk('Actualizar los consejos cuando quieras'), free: false },
+  { label: tk('Hablar con Ian, el asistente que responde a tus preguntas con tus datos'), free: false },
 ];
 
 export function Premium() {
@@ -45,7 +46,7 @@ export function Premium() {
       </header>
 
       <section className="plan-hero card" aria-labelledby="plan-lead">
-        <p id="plan-lead" className="plan-lead">{t('La IA lee tus movimientos y te escribe consejos con tus comercios y tus hábitos. Todo lo demás sigue siendo gratis.')}</p>
+        <p id="plan-lead" className="plan-lead">{t('La IA lee tus movimientos, te escribe consejos con tus comercios y tus hábitos, y Ian contesta lo que le preguntes. Todo lo demás sigue siendo gratis.')}</p>
 
         {premium ? (
           <div className="plan-state">
@@ -78,7 +79,7 @@ export function Premium() {
             )}
             <ul className="plan-facts">
               <li><Icon name="shield" size={16} />{t('El pago lo gestiona Stripe: EConsultor no guarda los datos de tu tarjeta.')}</li>
-              <li><Icon name="lock" size={16} />{t('A la IA solo le llega un resumen (totales por categoría y comercios), nunca tu IBAN ni tus datos de acceso.')}</li>
+              <li><Icon name="lock" size={16} />{t('A la IA solo le llega lo necesario: un resumen para los consejos y, con Ian, los datos de cada pregunta. Nunca tu IBAN, tu correo ni tus datos de acceso.')}</li>
             </ul>
           </div>
         )}
@@ -115,6 +116,15 @@ export function Premium() {
             <h3>{t('Comes fuera casi todos los viernes')}</h3>
             <p>{t('Gastas unos 18 € cada vez en los mismos dos sitios. Llevarte la comida dos viernes al mes te ahorraría unos 36 €.')}</p>
           </div>
+        </div>
+      </section>
+
+      <section className="card ian-intro" aria-labelledby="ian-h">
+        <span className="ian-avatar" style={{ width: 48, height: 48, fontSize: 24 }} aria-hidden="true">I</span>
+        <div>
+          <h2 id="ian-h">{t('Conoce a Ian')}</h2>
+          <p className="sub">{t('Pregúntale «¿en qué he gastado más este mes?» o «¿qué cargos se repiten?» y te contesta con tus números. No guarda la conversación.')}</p>
+          <Link className="chip-btn" to="/ian" style={{ display: 'inline-block', marginTop: 10, textDecoration: 'none' }}>{premium ? t('Hablar con Ian') : t('Ver cómo contesta')}</Link>
         </div>
       </section>
     </div>

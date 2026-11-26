@@ -78,6 +78,15 @@ Es una credencial pública a propósito, para probar la interfaz. Se limita así
 - Al **borrar la cuenta** se cancela antes la suscripción en Stripe; si Stripe no responde, la cuenta no se borra (así nunca se cobra a quien ya no tiene cuenta).
 - Cada alta o baja de Premium queda en el registro de la cuenta (`subscription_changed`).
 
+## Ian (asistente con IA, solo Premium)
+
+- `POST /api/ian/chat` exige sesión **y plan Premium** (si no, 403 `premium_required` sin llamar a la IA), clave `ANTHROPIC_API_KEY` en el servidor, límite de 12 peticiones por minuto y un tope diario por cuenta (`IAN_DAILY_LIMIT`, 40 por defecto; si la IA falla, el mensaje no se descuenta).
+- Ian **no recibe los datos de golpe**: usa herramientas de solo lectura (resumen mensual, totales por categoría, búsqueda de movimientos, evolución, periódicos, comercios) que el propio servidor ejecuta **siempre sobre las cuentas de quien pregunta**; ninguna acepta un identificador de usuario. Hay un test que comprueba que una cuenta no ve los movimientos de otra.
+- Lo que sale hacia la API de Anthropic en cada pregunta es el resultado de esas consultas: importes, fechas, categorías y notas **saneadas** (sin IBAN, correos ni números de 9 o más cifras, notas recortadas). No se envía nombre, correo ni datos de acceso. Las notas y comercios llegan como datos y las instrucciones de Ian dicen que nunca se obedecen (defensa frente a texto malicioso guardado en una nota).
+- La conversación **no se guarda** en el servidor ni en la base de datos: llega en cada petición (máx. 16 mensajes) y se olvida al responder. En la web solo vive en memoria de la pestaña.
+- Las herramientas no pueden escribir ni borrar nada. Máximo 6 rondas de herramientas y 900 tokens por respuesta para acotar el coste.
+- Los fallos de la IA se registran con el motivo (nunca la clave) y la persona ve un mensaje genérico.
+
 ## Cambiar el plan desde el panel
 
 El panel es de solo lectura sobre la base de datos (el volumen se monta `:ro`). Lo único que puede cambiar es el plan (Premium/Gratuita/Automático) de una cuenta, y lo hace **pidiéndoselo a la app**, que es quien gestiona los datos:

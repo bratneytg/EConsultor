@@ -473,3 +473,50 @@ textarea.input { resize: vertical; min-height: 110px; font: inherit; }
 .sub-status { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0 12px; font-size: 14.5px; line-height: 1.4; color: var(--ink); }
 .sub-status svg { flex: none; margin-top: 2px; color: var(--ink-3); }
 .sub-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 4px; }
+
+/* ───────── Ian: asistente con IA ───────── */
+.ian-page { display: grid; gap: 14px; align-content: start; }
+.ian-avatar { flex: none; display: inline-grid; place-items: center; border-radius: 50%; font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; background: var(--accent); color: var(--accent-ink); box-shadow: 0 0 0 3px var(--accent-wash); }
+.ian-title { min-width: 0; flex: 1; }
+.ian-title h1 { line-height: 1.05; }
+.ian-title p { font-size: 13px; }
+.ian-page .subpage-head { gap: 10px; }
+.ian-intro { display: flex; gap: 16px; align-items: center; background: linear-gradient(135deg, var(--accent-wash), transparent 62%), var(--surface); }
+.ian-intro h2 { font-family: var(--font-display); font-weight: 650; font-size: 20px; letter-spacing: -0.02em; margin-bottom: 4px; }
+
+.ian-thread { display: grid; gap: 12px; align-content: start; min-height: 220px; }
+.ian-empty { display: grid; gap: 12px; padding: 6px 2px; }
+.ian-suggestions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ian-suggestions .chip-btn { padding: 8px 13px; font-size: 13.5px; white-space: normal; text-align: left; }
+.ian-msg { display: flex; gap: 8px; align-items: flex-end; max-width: 100%; }
+.ian-msg p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+.ian-msg.me { justify-content: flex-end; }
+.ian-msg.me p { background: var(--accent); color: var(--accent-ink); padding: 10px 14px; border-radius: 18px 18px 6px 18px; max-width: min(88%, 520px); }
+.ian-msg.ian > div, .ian-msg.ian > p { max-width: min(92%, 600px); }
+.ian-msg.ian p { background: var(--surface); border: 1px solid var(--hair); padding: 10px 14px; border-radius: 18px 18px 18px 6px; }
+.ian-msg.err { align-items: flex-start; }
+.ian-msg.err p { background: var(--surface-2); border-style: dashed; color: var(--ink-2); }
+.ian-msg.err .chip-btn { margin-top: 8px; display: inline-flex; gap: 6px; align-items: center; }
+.ian-typing { display: inline-flex; gap: 5px; align-items: center; min-height: 22px; }
+.ian-typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); animation: ian-dot 1.2s infinite ease-in-out; }
+.ian-typing span:nth-child(2) { animation-delay: .15s; }
+.ian-typing span:nth-child(3) { animation-delay: .3s; }
+@keyframes ian-dot { 0%, 60%, 100% { opacity: .3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+
+.ian-composer { position: sticky; bottom: calc(env(safe-area-inset-bottom) + 88px); z-index: 5; display: flex; gap: 8px; align-items: flex-end; padding: 8px; border-radius: 22px; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--hair); box-shadow: var(--shadow); }
+.ian-composer textarea { flex: 1; min-width: 0; resize: none; max-height: 140px; min-height: 42px; padding: 10px 12px; border: 0; background: transparent; line-height: 1.4; field-sizing: content; }
+.ian-composer textarea:focus-visible { outline: none; }
+.ian-composer:focus-within { border-color: var(--accent); }
+.ian-composer .btn { flex: none; width: 44px; height: 44px; padding: 0; justify-content: center; border-radius: 16px; }
+.ian-fine { font-size: 12.5px; color: var(--ink-3); line-height: 1.45; }
+.ian-fine a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.ian-left { display: inline-block; margin-left: 4px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+@media (min-width: 960px) { .ian-composer { bottom: 16px; } .ian-page { max-width: 760px; } }
+
+.ian-banner { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; padding: 14px 16px; border-radius: 20px; background: linear-gradient(135deg, var(--accent-wash), transparent 70%), var(--surface); border: 1px solid var(--hair); }
+.ian-banner > div { flex: 1; min-width: 0; }
+.ian-banner h2 { font-family: var(--font-display); font-weight: 650; font-size: 16px; letter-spacing: -0.015em; }
+.ian-banner p { color: var(--ink-2); font-size: 13.5px; line-height: 1.4; margin-top: 2px; }
+.ian-banner .btn { flex: none; text-decoration: none; }
+@media (max-width: 520px) { .ian-banner { flex-wrap: wrap; } .ian-banner .btn { width: 100%; justify-content: center; } }
+@media (prefers-reduced-motion: reduce) { .ian-typing span { animation: none; opacity: .6; } }

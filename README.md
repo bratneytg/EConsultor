@@ -61,7 +61,8 @@ Al abrir la app tras una actualización aparece una ventana con las funciones nu
 | Cierre por inactividad (10 min, configurable con «Mantener conectado») y acceso con huella (passkeys) | ✅ (la huella exige HTTPS y `PUBLIC_ORIGIN` correcto) |
 | Importación de CSV, Excel (.xlsx), LibreOffice (.ods) y PDF; entiende extractos de cuenta y de tarjeta (gastos en positivo, p. ej. Nexi), fechas/números de ES-DE-IT, con botón «Invertir gastos e ingresos» | ✅ |
 | Importación con categorización por reglas, aprendizaje de tu historial y detección de comercios tras PayPal | ✅ |
-| Plan gratis / Premium (interruptor de demostración; falta pasarela de pago) | 🟡 |
+| Plan gratis / Premium: cobro mensual con Stripe (`servidor.sh cobros`); Premium añade la IA | ✅ (probado con Stripe simulado; falta probarlo con una cuenta real) |
+| **Ian**: asistente con IA (solo Premium) que responde preguntas sobre tus datos con herramientas de consulta; sin historial en el servidor; tope diario `IAN_DAILY_LIMIT` (40) | ✅ (necesita `ANTHROPIC_API_KEY`) |
 | Gastos e ingresos periódicos (alquiler, transporte, Netflix, nómina…): el servidor los anota solo cada mes en el día elegido (también si no abres la app); idempotente, con pausa, fin opcional y día ajustado a meses cortos | ✅ |
 | Categorías propias: crear, renombrar (también las de serie), ocultar y eliminar (sus movimientos pasan a «Otros»); con color y naturaleza fija/variable/discrecional | ✅ |
 | «En qué gastas» en barras o en tarta (se recuerda por dispositivo) | ✅ |

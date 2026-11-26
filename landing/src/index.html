@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EConsultor · Tus cuentas en un servidor privado</title>
+  <meta name="description" content="EConsultor es una app de economía personal que funciona en un servidor privado: sin conexión a tu banco, sin anuncios y sin que tus datos pasen por bancos, administraciones ni multinacionales.">
+  <meta name="theme-color" content="#f3f3f8">
+  <meta property="og:title" content="EConsultor · Tus cuentas en un servidor privado">
+  <meta property="og:description" content="Entiende en qué se va tu dinero y ahorra más, sin conectar tu banco y sin que tus datos salgan de un servidor privado.">
+  <meta property="og:type" content="website">
+  {{ROBOTS}}
+  <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <link rel="preload" href="assets/fonts/bricolage-grotesque-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#contenido">Saltar al contenido</a>
+
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="#top" aria-label="EConsultor, inicio"><img src="assets/icons/icon-192.png" alt="" width="34" height="34">EConsultor</a>
+      <nav class="nav" aria-label="Principal">
+        <a href="#privacidad">Privacidad</a>
+        <a href="#ventajas">Ventajas</a>
+        <a href="#premium">Premium</a>
+        <a href="#instalar">Instalar</a>
+        <a class="login" href="{{APP_URL}}">Log-in</a>
+      </nav>
+      <a class="login-m" href="{{APP_URL}}">Log-in</a>
+      <details class="menu">
+        <summary aria-label="Abrir el menú"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
+        <nav aria-label="Menú">
+          <a href="#privacidad">Privacidad</a>
+          <a href="#ventajas">Ventajas</a>
+          <a href="#premium">Premium</a>
+          <a href="#instalar">Instalar</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+
+  <main id="contenido">
+    <section class="hero" id="top">
+      <div class="wrap">
+        <div>
+          <h1 class="display">Tus cuentas, en un servidor privado.</h1>
+          <p class="lead">EConsultor te ayuda a entender en qué se va tu dinero y a ahorrar más. Sin conectarte a tu banco y sin que tus datos pasen por bancos, administraciones ni multinacionales.</p>
+          <div class="ctas">
+            {{ANDROID_BTN_HERO}}
+            <a class="btn btn-line" href="#iphone">Instalar en iPhone</a>
+          </div>
+          <p class="small">Gratis para empezar · Sin anuncios · En español, inglés, italiano y alemán. ¿Ya tienes cuenta? <a href="{{APP_URL}}">Log-in</a></p>
+        </div>
+        <figure class="phones">
+          <div class="phone a"><img src="assets/img/app-resumen.webp" width="780" height="1560" alt="Pantalla de resumen de EConsultor: lo que llevas ahorrado este mes, ingresos, gastos y el saldo día a día."></div>
+          <div class="phone b"><img src="assets/img/app-ian.webp" width="780" height="1560" alt="Ian, el asistente con IA de EConsultor, responde en qué se ha gastado más dinero este mes."></div>
+          <figcaption>Capturas de la app con datos de ejemplo.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="deep ledger" id="privacidad" aria-labelledby="h-acceso">
+      <div class="wrap">
+        <div class="head">
+          <h2 class="display" id="h-acceso">Quién puede ver tus datos</h2>
+          <p>EConsultor es un proyecto independiente. No está vinculado a ningún banco, gobierno ni multinacional, y tus cuentas viven en un servidor privado, no en la nube de una gran tecnológica. Este es el listado completo.</p>
+        </div>
+        <table class="access">
+          <caption class="sr-only">Quién tiene acceso a tus datos en EConsultor</caption>
+          <thead class="sr-only"><tr><th scope="col">Quién</th><th scope="col">Qué ve</th><th scope="col">Acceso</th></tr></thead>
+          <tbody>
+            <tr>
+              <th scope="row">Tú</th>
+              <td class="what">Todo: tus movimientos, gráficas e informes. Puedes descargarlo o borrar tu cuenta cuando quieras.</td>
+              <td class="state"><span class="mark yes"><i aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Acceso total</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Tu banco</th>
+              <td class="what">No hay conexión con tu banco. Subes un extracto o anotas tú mismo, y nunca das tus claves.</td>
+              <td class="state"><span class="mark no"><i aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></i>Sin conexión</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Administraciones y gobiernos</th>
+              <td class="what">EConsultor no envía tus datos a ninguna administración ni se conecta a sus sistemas.</td>
+              <td class="state"><span class="mark no"><i aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></i>Sin conexión</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Grandes empresas y publicidad</th>
+              <td class="what">Sin anuncios, sin rastreadores y sin vender datos a terceros.</td>
+              <td class="state"><span class="mark no"><i aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></i>Sin acceso</span></td>
+            </tr>
+            <tr>
+              <th scope="row">La inteligencia artificial</th>
+              <td class="what">Solo en Premium y solo si la usas. Recibe lo necesario para tu pregunta, nunca tu IBAN, tu correo ni tus datos de acceso. Funciona con Claude, de Anthropic.</td>
+              <td class="state"><span class="mark some"><i aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M5 12h14"/></svg></i>Limitado y opcional</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="ledger-note">Tus datos se guardan cifrados en el servidor. El panel de administración solo muestra información técnica y recuentos, no tus importes.</p>
+      </div>
+    </section>
+
+    <section class="section" id="ventajas" aria-labelledby="h-ventajas">
+      <div class="wrap split">
+        <div class="sticky">
+          <h2 class="display" id="h-ventajas">Lo que hace por ti</h2>
+          <p class="intro">Pensada para usarla cada día en medio minuto, o una vez al mes con el extracto del banco.</p>
+        </div>
+        <ul class="points">
+          <li><h3>Anotas en segundos</h3><p>Importe, categoría y listo. Si quieres crear la costumbre, un aviso diario te lo recuerda a la hora que elijas.</p></li>
+          <li><h3>Importa tu extracto sin dar acceso a tu banco</h3><p>Sube el CSV o el PDF que te descargas del banco. EConsultor reconoce fechas, importes y categorías, y tú revisas lo dudoso.</p></li>
+          <li><h3>Entiende en qué se va tu dinero</h3><p>Resumen del mes, gráficas, previsión a fin de mes y un análisis comercio por comercio de tus últimos tres meses.</p></li>
+          <li><h3>Consejos que no sacan tus datos de casa</h3><p>Se calculan en el servidor con tus propios números, sin límite de movimientos en la cuenta gratuita.</p></li>
+          <li><h3>Hecha a tu medida</h3><p>Categorías propias con tus colores, gastos e ingresos periódicos que se anotan solos e informe mensual en PDF.</p></li>
+          <li><h3>Seguridad de verdad</h3><p>Verificación en dos pasos, acceso con huella o cara, y cierre de sesión automático si te dejas la app abierta.</p></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="plus section" id="premium" aria-labelledby="h-premium">
+      <div class="wrap">
+        <div>
+          <h2 class="display" id="h-premium">Si quieres más, Premium</h2>
+          <p class="intro">Premium añade la inteligencia artificial: consejos escritos con tus comercios y tus hábitos, y Ian, un asistente al que le preguntas por tus gastos como si fuera una persona.</p>
+          <div class="plans">
+            <div class="plan">
+              <h3>Gratis <span>para siempre</span></h3>
+              <ul>
+                <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Todo lo que ves arriba, sin límite de movimientos</li>
+                <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Consejos y análisis a fondo hechos en el servidor</li>
+              </ul>
+            </div>
+            <div class="plan pro">
+              <h3>Premium <span>{{PRICE}} al mes · sin permanencia</span></h3>
+              <ul>
+                <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Todo lo gratuito</li>
+                <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Consejos escritos por IA con tus comercios y hábitos</li>
+                <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Ian, tu asistente: pregunta y te responde con tus datos</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="chat" role="img" aria-label="Ejemplo de conversación con Ian: le preguntan en qué se ha gastado más este mes y responde con cifras de ejemplo.">
+          <div class="who"><span class="av" aria-hidden="true">I</span><div><b>Ian</b><span>Tu asistente con IA</span></div></div>
+          <div class="bub me">¿En qué he gastado más este mes?</div>
+          <div class="bub ian"><p>Este mes llevas 2.377 € en gastos. Lo que más pesa es Vivienda (780 €, un 33 %), seguido de Supermercado (650 €, un 27 %) y Restaurantes (364 €, un 15 %).</p><p>Transporte se ha más que duplicado: 128 € frente a 58 € el mes pasado.</p></div>
+          <p class="note">Ejemplo con datos de muestra. La conversación no se guarda.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section install" id="instalar" aria-labelledby="h-instalar">
+      <div class="wrap">
+        <h2 class="display" id="h-instalar">Instálala en tu móvil</h2>
+        <p class="intro">EConsultor funciona como una app en Android, iPhone y ordenador. Elige tu dispositivo.</p>
+        <div class="ways">
+          <div class="way" id="android">
+            <h3>Android</h3>
+            <p>Descarga el instalador y ábrelo.</p>
+            <ol>
+              <li><span>Pulsa «Descargar para Android» y espera a que termine.</span></li>
+              <li><span>Abre el archivo. Si Android lo pide, permite instalar apps desde tu navegador.</span></li>
+              <li><span>Abre EConsultor, entra con tu cuenta y activa el aviso diario si quieres.</span></li>
+            </ol>
+            {{ANDROID_BTN_STEP}}
+            <p class="hint">También puedes abrirla en Chrome y elegir Menú › Instalar app.</p>
+          </div>
+          <div class="way" id="iphone">
+            <h3>iPhone y iPad</h3>
+            <p>No hace falta App Store: se instala desde Safari.</p>
+            <ol>
+              <li><span>Abre <a href="{{APP_URL}}">la app</a> en <b>Safari</b>.</span></li>
+              <li><span>Toca el botón Compartir <svg class="share" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 11v9h14v-9"/></svg> de la barra inferior.</span></li>
+              <li><span>Elige «Añadir a pantalla de inicio» y confirma.</span></li>
+              <li><span>Abre EConsultor desde su icono, como cualquier otra app.</span></li>
+            </ol>
+            <p class="hint">Si no ves la opción, comprueba que estás en Safari y no dentro de otra app.</p>
+          </div>
+          <div class="way" id="ordenador">
+            <h3>Ordenador</h3>
+            <p>Úsala en el navegador o instálala como programa.</p>
+            <ol>
+              <li><span>Abre <a href="{{APP_URL}}">la app</a> en Chrome o Edge.</span></li>
+              <li><span>Pulsa el icono de instalar que aparece al final de la barra de direcciones.</span></li>
+              <li><span>Se abrirá en su propia ventana y quedará en tu menú de aplicaciones.</span></li>
+            </ol>
+            <a class="btn btn-line" href="{{APP_URL}}">Abrir en el navegador</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="deep final" aria-labelledby="h-final">
+      <div class="wrap">
+        <h2 class="display" id="h-final">Empieza con tus propios números.</h2>
+        <p>Crea tu cuenta gratuita en un minuto. Sin tarjeta, sin conectar el banco y con tus datos en un servidor privado.</p>
+        <a class="btn btn-primary" href="{{APP_URL}}">Entrar o crear cuenta</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap">
+      <span>© {{YEAR}} EConsultor</span>
+      <a href="impressum.html">Aviso legal (Impressum)</a>
+      <a href="privacidad.html">Privacidad</a>
+      <a class="sp" href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a>
+    </div>
+  </footer>
+</body>
+</html>

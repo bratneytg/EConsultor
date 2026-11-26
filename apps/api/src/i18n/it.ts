@@ -266,4 +266,10 @@ export const it: Record<string, string> = {
   "No se pudo conectar con el sistema de pago. Inténtalo de nuevo en un momento.": "Non è stato possibile contattare il sistema di pagamento. Riprova tra un attimo.",
   "Todavía no tienes ninguna suscripción.": "Non hai ancora nessun abbonamento.",
   "No hemos podido cancelar tu suscripción. Inténtalo de nuevo en un momento; no se ha borrado nada.": "Non siamo riusciti ad annullare il tuo abbonamento. Riprova tra un attimo; non è stato eliminato nulla.",
+  "Ian es una función de Premium": "Ian è una funzione Premium",
+  "Ian no está disponible ahora mismo. Inténtalo más tarde.": "Ian non è disponibile in questo momento. Riprova più tardi.",
+  "Escribe una pregunta para Ian.": "Scrivi una domanda per Ian.",
+  "Has llegado al límite de mensajes de hoy. Mañana podrás seguir hablando con Ian.": "Hai raggiunto il limite di messaggi di oggi. Domani potrai continuare a parlare con Ian.",
+  "Ian no ha podido responder ahora. Inténtalo de nuevo en un momento.": "Ian non è riuscito a rispondere ora. Riprova tra un attimo.",
+  "No he conseguido reunir todos los datos para responderte. ¿Puedes concretar el periodo o la categoría?": "Non sono riuscito a raccogliere tutti i dati per risponderti. Puoi precisare il periodo o la categoria?",
 };

@@ -73,7 +73,7 @@ export function SubscriptionCard() {
       <div className="card-head">
         <div>
           <h2>{t('Suscripción')}</h2>
-          <p>{premium ? t('Tienes Premium: consejos escritos por IA y análisis a fondo mejorado.') : t('Plan gratuito: todo el análisis hecho en el servidor, sin límite de movimientos.')}</p>
+          <p>{premium ? t('Tienes Premium: consejos escritos por IA, análisis a fondo mejorado y Ian, tu asistente.') : t('Plan gratuito: todo el análisis hecho en el servidor, sin límite de movimientos.')}</p>
         </div>
         <span className={`badge ${premium ? 'premium' : ''}`}>{premium ? t('Premium') : t('Gratis')}</span>
       </div>

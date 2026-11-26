@@ -8,7 +8,7 @@ import type { SpendingDetail } from './detailed.js';
 import { LANG_NAME_ES, curLang } from '../../lib/i18n.js';
 
 /** Añade al final del prompt el idioma en el que debe redactar la IA (el de la persona). */
-const withLang = (sys: string): string => `${sys}\nIDIOMA DE RESPUESTA: redacta todos los textos (títulos, cuerpos y acciones) en ${LANG_NAME_ES[curLang()]}. Los nombres de categoría y de comercio que recibas déjalos como vienen.`;
+export const withLang = (sys: string): string => `${sys}\nIDIOMA DE RESPUESTA: redacta todos los textos (títulos, cuerpos y acciones) en ${LANG_NAME_ES[curLang()]}. Los nombres de categoría y de comercio que recibas déjalos como vienen.`;
 
 const SYSTEM = `Eres el coach financiero de EConsultor, una app de economía personal. Respondes SIEMPRE en el idioma que se indica al final de estas instrucciones, con tono cercano, claro y motivador.
 Recibirás un resumen numérico y anónimo (importes en céntimos) del perfil financiero de un usuario. Genera entre 4 y 6 consejos concretos y accionables, mezclando:
@@ -53,6 +53,14 @@ function digest(p: FinancialProfile, o: Overview) {
 
 export type AiResult<T> = { items: T } | { issue: AiIssue };
 
+/** Qué falla según lo que contesta la API de Anthropic (se usa también en Ian). */
+export function issueOf(status: number, msg: string): AiIssue {
+  if (status === 401 || status === 403) return 'key';
+  if (status === 404 || (status === 400 && /model/i.test(msg))) return 'model';
+  if (status === 429 || (status === 400 && /credit|balance|billing/i.test(msg))) return 'limit';
+  return 'busy';
+}
+
 /** Llama a Claude y, si falla, dice POR QUÉ (se apunta en el registro del servidor, nunca la clave). */
 async function callClaude(cfg: Config, system: string, content: string, maxTokens: number, timeoutMs: number, signal?: AbortSignal): Promise<{ text: string; stop?: string } | { issue: AiIssue }> {
   if (!cfg.anthropicApiKey) return { issue: 'no_key' };
@@ -68,10 +76,7 @@ async function callClaude(cfg: Config, system: string, content: string, maxToken
       const body = (await res.json().catch(() => null)) as { error?: { type?: string; message?: string } } | null;
       const msg = body?.error?.message ?? '';
       const detail = `HTTP ${res.status}${msg ? `: ${msg.slice(0, 160)}` : ''}`;
-      if (res.status === 401 || res.status === 403) return fail('key', detail);
-      if (res.status === 404 || (res.status === 400 && /model/i.test(msg))) return fail('model', detail);
-      if (res.status === 429 || (res.status === 400 && /credit|balance|billing/i.test(msg))) return fail('limit', detail);
-      return fail('busy', detail);
+      return fail(issueOf(res.status, msg), detail);
     }
     const data = (await res.json()) as { content?: { type: string; text?: string }[]; stop_reason?: string };
     // Se juntan todos los bloques de texto (el modelo puede repartir la respuesta en varios).

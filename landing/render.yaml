@@ -1,0 +1,47 @@
+# Blueprint de Render SOLO para la web de presentación (sitio estático, gratuito).
+# En Render: New › Blueprint › elige este repositorio y, en «Blueprint Path», escribe  landing/render.yaml
+# No toca el servicio de la app (el render.yaml de la raíz).
+services:
+  - type: web
+    name: econsultor-web
+    runtime: static
+    rootDir: landing
+    buildCommand: node build.mjs
+    staticPublishPath: dist
+    autoDeploy: true
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: no-referrer
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; img-src 'self' data:; style-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'"
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      # Dirección de la app a la que lleva «Log-in» (obligatoria; el build falla si falta).
+      - key: APP_URL
+        sync: false
+      # Descarga del APK de Android (opcional; sin ella el botón sale desactivado).
+      - key: APK_URL
+        sync: false
+      - key: PRICE
+        value: "4,99 €"
+      # Datos del Impressum (obligatorios para publicar: sin ellos la web se ve con avisos y no se indexa).
+      - key: OWNER_NAME
+        sync: false
+      - key: OWNER_ADDRESS
+        sync: false
+      - key: CONTACT_EMAIL
+        sync: false
+      - key: PHONE
+        sync: false

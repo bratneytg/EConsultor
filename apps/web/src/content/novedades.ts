@@ -11,6 +11,15 @@ export interface Release { version: string; title: string; changes: Change[] }
  */
 export const RELEASES: Release[] = [
   {
+    version: '1.6.0',
+    title: tk('Conoce a Ian, tu asistente con IA'),
+    changes: [
+      { kind: 'new', text: tk('Ian, un asistente con IA incluido en Premium: le preguntas por tus gastos («¿en qué gasto más?», «¿cómo voy frente al mes pasado?») y te contesta con tus propios datos.') },
+      { kind: 'feature', text: tk('Lo encuentras en Consejos, en «Hablar con Ian». La conversación no se guarda y verás cuántos mensajes te quedan hoy.') },
+      { kind: 'improvement', text: tk('La página Premium, Ajustes y la Ayuda explican ahora qué incluye cada plan y qué datos recibe la IA en cada caso.') },
+    ],
+  },
+  {
     version: '1.5.0',
     title: tk('Premium: la IA, por suscripción'),
     changes: [

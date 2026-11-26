@@ -149,7 +149,7 @@ export function Settings() {
     ...(cfg?.demo ? [{ id: 'demo', icon: 'spark' as const, title: tk('Modo demostración'), hint: tk('Solo visible en desarrollo.'), body: (
       <Card title={t('Modo demostración')} subtitle={t('Solo visible en desarrollo.')}>
             <div className="setting">
-              <div><b>{t('Plan')}</b><p>{t('Ahora: {plan}. Premium desbloquea todos los consejos y la IA.', { plan: user.plan === 'premium' ? t('Premium') : t('Gratis') })}</p></div>
+              <div><b>{t('Plan')}</b><p>{t('Ahora: {plan}. Premium añade la IA: consejos escritos por IA y Ian, tu asistente.', { plan: user.plan === 'premium' ? t('Premium') : t('Gratis') })}</p></div>
               <button className="btn" onClick={async () => setUser(await api<PublicUser>('/dev/plan', { method: 'POST', json: { plan: user.plan === 'premium' ? 'free' : 'premium' } }))}>
                 {t('Cambiar a {plan}', { plan: user.plan === 'premium' ? t('Gratis') : t('Premium') })}
               </button>
