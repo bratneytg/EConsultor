@@ -25,6 +25,30 @@ const EXPENSE_RULES: Rule[] = [
   [/(\bovs\b|\bcalzedonia|\bintimissimi|\btezenis|\bmediaworld|\bunieuro|\bleroy merlin|\bbricocenter|\bibs\b|\bmaisons du monde|\bflying tiger|\bsephora|\bkiko\b|\bprofumeria|\bcartoleria|\btabaccheria|\btabacchi|\bpandora|\bscarpe|\babbigliamento|\bcalzature|\bgiocattoli|\bferramenta|\bmondadori|\bfeltrinelli|\blibreria|\bgarden|\bbrico|\beurospin shop|amazon|amzn|zalando|h&m|zara|primark|ikea|mediamarkt|media markt|saturn|apple (store|retail)|decathlon|otto\b|ebay|kleinanzeigen|vinted|\bdm\b|dm-drogerie|drogerie|rossmann|mueller|tk maxx|action\b|\bobi\b|bauhaus|hornbach|toom|hagebau|baumarkt|douglas|asos|shein|temu|aliexpress|\bkik\b|c&a|deichmann|schuh|thalia|hugendubel|buchhandlung|sportscheck|intersport|globetrotter|conrad|notino|about you|etsy|tedi|woolworth|takko|new yorker|mango\b|bershka|pull ?& ?bear|fressnapf|zooplus|blumen|floristik|gaertnerei|dehner|garten|tchibo|pollin|cyberport|alternate|notebooksbilliger|thomann|euronics|lego\b|smyths|spielwaren|moebel|xxxlutz|\bpoco\b|roller\b|segmueller|jysk|galeria|karstadt|outlet|pandora|swarovski|pepco|el corte ingles|leroy merlin)/, 'shopping'],
 ];
 
+/** Casos que otra regla confundiría: se evalúan antes que nada. */
+const PRIORITY_EXPENSE: Rule[] = [
+  [/viajes el corte ingles/, 'travel'],
+  [/\b(tk ?maxx|tkmaxx)\b/, 'shopping'],
+  [/\bmd (spa|discount|supermercati|s\.?p\.?a)\b/, 'groceries'],
+  [/\b(optica|opticas|optico|optiker)\b/, 'health'],
+  [/\b(cines?|cinesa|yelmo|kinepolis|multicines|ocine)\b/, 'leisure'],
+];
+
+/** Vocabulario añadido para Italia, Alemania y España (se evalúa después de las reglas principales). */
+const EXTRA_EXPENSE: Rule[] = [
+  [/(gimnasio|basic ?fit|\bgym\b|\bpalestra\b|fitness ?first|holmes place|anytime fitness)/, 'subscriptions'],
+  [/(\bselex\b|naturasi|\bcrai\b|superconti|dia supermercad|\bdia (market|%)|\beroski|\bconsum\b|alcampo|bonpreu|caprabo|gadis|ahorramas|supercor|simply market|froiz|coviran|hipercor|bm supermercados|marktkauf|globus markt|famila|\bnahkauf|\bhit markt)/, 'groceries'],
+  [/(glovo|deliveroo|roadhouse|\bwolt\b|uber ?eats|just ?eat|telepizza|foodora|cerveceria|taberna|\bmeson\b|asador|bocadiller|kebab|doener|imbiss|gaststaette|wirtshaus|brauhaus|biergarten|eiscafe|bar\/ristorante|\bcafeteria|food ?court|sushi|pasteleria|heladeria|autogrill|\bgrill\b)/, 'dining'],
+  [/(repsol|cepsa|\bgalp\b|moeve|totalerg|tamoil|\bemt\b|\btmb\b|\btper\b|\bgtt\b|\bamt genova|cabify|\bbolt\b|free ?now|\buber\b|blablacar|\balsa\b|renfe|\bfgc\b|metro de|metrobus|bicimad|bicing|\blime\b|\btier\b|share ?now|flinkster|getaround|via ?verde|viacard|estacion de servicio|gasolinera|e-?scooter|ladestation|ladesaeule|\bapcoa|\bavis\b|\bhertz\b|europcar|rent a car|autovermietung|tuev|dekra|\bitv\b|taller mecanico|werkstatt|autolavaggio)/, 'transport'],
+  [/(crociere|crucero|viajes (halcon|barcelo|el corte ingles)|logitravel|rumbo\b|edreams|skyscanner|kayak|\bparador|hostal|ferienwohnung|pension zur|reisebuero|reiseveranstalter|flixtrain|interrail)/, 'travel'],
+  [/(centro dentistico|laboratorio analisi|\blab(oratorio)? analisi|clinica|policlinica|hospital|\bdentista|\bzahnarzt|\barzt|heilpraktiker|physiotherap|krankengymnastik|\bpsicolog|\bpsycholog|veterinari|tierarzt|\bsanitat|\bmedico\b|\bmedica\b)/, 'health'],
+  [/(\bfnac\b|tigota|\bpearl\b|\blibri\b|libreria|\bthalia|casa del libro|worten|pc ?componentes|\bshein\b|\btemu\b|vinted|ali ?express|conforama|\bjysk|bershka|stradivarius|oysho|massimo dutti|lefties|new yorker|gamestop|kiabi|\bmaxi zoo|\bdepot\b|\bwish\b|\bnormal\b|rituals|\bhema\b|ernstings|takko|\bnkd\b|\bpimkie|\bmueller (drogerie|markt)|\bmüller\b|saturn\b|expert\b|euronics|cyberport|alternate\b|notebooksbilliger|\botto\b|tchibo|\bkik\b|\bacton\b|\baction\b)/, 'shopping'],
+  [/(aguas de|canal de isabel|emasesa|\baigues|\bdigi\b|masmovil|\borange\b|yoigo|pepephone|jazztel|\blowi\b|holaluz|somenergia|\bepm\b|\bsoluzioni energia|\benergia (elettrica|y|pura)|\bsky wifi|vodafone|\bwtw\b|\bwoodoo\b|ewe tel)/, 'utilities'],
+  [/(spielothek|spielhalle|casino|bowling|escape room|\bzoo\b|tierpark|freizeitpark|therme|schwimmbad|\bsauna|museum|museo|musei|theater|teatro|oper\b|konzert|festival|ticket ?master|entradas|\bdiscoteca|nachtclub|\bclub\b)/, 'leisure'],
+  [/(\bschule\b|\bkindergarten|\bkita\b|colegio|escuela|guarderia|autoescuela|scuola guida|\bmatricula|\bmatricola|nachhilfe|\bfahrschule|studentenwerk|semesterbeitrag|studiengebuehr)/, 'education'],
+];
+
+
 /** Palabras muy genéricas: valen para clasificar, pero con menos seguridad (se resaltan para revisar). */
 const WEAK_EXPENSE: Rule[] = [
   [/(abo\b|abbonamento|abonnement|mitgliedschaft|mitgliedsbeitrag|membership|subscription|suscripcion)/, 'subscriptions'],
@@ -33,6 +57,8 @@ const WEAK_EXPENSE: Rule[] = [
   [/(\bbuch\b|\bbuecher\b|\bbuecherei\b)/, 'shopping'],
   [/(kontofuehrung|kontogebuehr|jahresgebuehr|bankgebuehr|kartengebuehr|entgelt|gebuehr|comision|comisiones|steuer\b|finanzamt|hundesteuer|grundsteuer|bussgeld|verwarnung|ordnungsamt|spende\b|spenden\b|donation)/, 'other_expense'],
 ];
+
+const EXPENSE_ALL: Rule[] = [...PRIORITY_EXPENSE, ...EXPENSE_RULES, ...EXTRA_EXPENSE];
 
 const INCOME_RULES: Rule[] = [
   [/(stipendio|emolumenti|retribuzione|competenze|busta paga|cedolino|\bnomina\b|\bsalario|gehalt|lohn\b|entgelt|verguetung|salary|nomina|arbeitgeber|dhl|deutsche post|payroll|lohn\/gehalt)/, 'salary'],
@@ -130,7 +156,7 @@ export function categorize(r: RawRow, history?: History): Categorized {
   const hay = haystack(r);
   const income = r.amountMinor > 0;
   const internal = INTERNAL.test(norm(`${r.name ?? ''} ${r.reference ?? ''} ${r.kind ?? ''}`));
-  for (const [re, id] of income ? INCOME_RULES : EXPENSE_RULES) {
+  for (const [re, id] of income ? INCOME_RULES : EXPENSE_ALL) {
     if (re.test(hay)) return { categoryId: id, confidence: 'high', via: 'rule', internal };
   }
   if (history) {
@@ -173,7 +199,7 @@ const INCOME_WORDS = /(stipendio|emolumenti|retribuzione|busta paga|rimborso|sto
 export function polarity(r: Pick<RawRow, 'name' | 'reference'>): 1 | -1 | 0 {
   const hay = haystack(r);
   if (INCOME_WORDS.test(hay)) return 1;
-  for (const [re] of EXPENSE_RULES) if (re.test(hay)) return -1;
+  for (const [re] of EXPENSE_ALL) if (re.test(hay)) return -1;
   if (/(kartenzahlung|lastschrift|abbuchung|pagamento (pos|carta|con carta)|acquisto|\bpos\b|compra|purchase|withdrawal|prelievo|addebito|bargeld|geldautomat)/.test(hay)) return -1;
   return 0;
 }
