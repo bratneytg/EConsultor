@@ -306,7 +306,24 @@ h1, h2, h3, p { margin: 0; }
 .imp-ai input { margin-top: 3px; accent-color: var(--accent); }
 .imp-ai b { display: block; font-weight: 600; }
 .imp-ai small { color: var(--ink-3); font-size: 12.5px; }
-.imp-wait { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 48px 10px; color: var(--ink-2); }
+/* Espera del análisis: tarea en el servidor, con etapa, barra y aviso de que puede tardar */
+.imp-wait { display: grid; justify-items: center; gap: 10px; padding: 36px 6px 8px; text-align: center; color: var(--ink-2); }
+.imp-wait b { color: var(--ink); font-weight: 600; }
+.imp-wait p { margin: 0; font-size: 14px; max-width: 34ch; }
+.imp-wait small { color: var(--ink-3); font-size: 12.5px; max-width: 38ch; }
+.imp-wait .imp-count { font-size: 13px; color: var(--ink-3); }
+.imp-wait.compact { padding: 14px 12px; margin: 8px 0; border: 1px solid var(--hair); border-radius: 16px; background: var(--plane); }
+.imp-bar { width: min(100%, 320px); height: 6px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.imp-bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .4s ease; }
+.imp-bar[data-indet='true'] i { width: 34%; animation: imp-slide 1.5s ease-in-out infinite; }
+@keyframes imp-slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+.imp-wait-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+.imp-classify { display: grid; gap: 6px; margin: 8px 0; justify-items: start; }
+.imp-classify small { color: var(--ink-3); font-size: 12.5px; }
+.imp-meta { min-width: 0; }
+.imp-tag-ai { background: var(--accent-wash); color: var(--accent); }
+.imp-hint { color: var(--ink-3); }
+@media (prefers-reduced-motion: reduce) { .imp-bar[data-indet='true'] i { animation: none; width: 100%; opacity: .35; } .imp-bar i { transition: none; } }
 .spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--surface-3); border-top-color: var(--accent); animation: imp-spin .8s linear infinite; }
 @keyframes imp-spin { to { transform: rotate(360deg); } }
 .imp-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }

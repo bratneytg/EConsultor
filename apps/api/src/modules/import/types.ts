@@ -24,6 +24,10 @@ export interface ImportRow {
   via: 'rule' | 'bank' | 'ai' | 'history' | 'default';
   /** Por qué se propone omitirla (el usuario puede forzarla). */
   skip?: 'duplicate' | 'internal' | 'other_account';
+  /** Qué es el comercio según la IA («Alquiler de esquís»), si la categoría la propuso ella. */
+  hint?: string;
+  /** La IA lo buscó en internet para identificarlo. */
+  web?: boolean;
 }
 
 export interface ImportPreview {
@@ -40,6 +44,8 @@ export interface ImportPreview {
   accounts: { name: string; count: number }[];
   /** Casi todo coincide con lo que ya hay en la MISMA cuenta: el extracto ya estaba importado. */
   sameStatement?: { matched: number; total: number };
+  /** Qué hizo la IA con lo que las reglas no reconocían (solo si se pidió). */
+  ai?: { identified: number; web: number; skippedWeb: number; problem?: 'unavailable' | 'web_unavailable' };
   /** Casi todo coincide con OTRA cuenta: probablemente el mismo extracto. `ignored`: la persona dijo que es otra. */
   overlap?: { account: string; matched: number; total: number; ignored: boolean };
 }

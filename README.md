@@ -25,7 +25,8 @@ El botón **«Importar extractos bancarios»** (en *Movimientos* y en *Ajustes �
 
 - **CSV** (recomendado): N26 → web app → descargar extracto en CSV. También vale cualquier CSV con columnas de fecha e importe.
 - **PDF**: se lee su texto con `unpdf`. Es una lectura heurística: va bien con tablas simples. Si el PDF es solo una imagen (extracto escaneado o capturas), el servidor lo lee con **OCR** (Tesseract + poppler, ya incluidos en la imagen de Docker; sin ellos esa lectura se omite y se pide el CSV) y avisa de que hay que revisarlo.
-- **IA opcional**: con `ANTHROPIC_API_KEY` aparece la casilla «Mejorar con IA», que envía a Claude solo las descripciones de lo que las reglas no reconocen (sin IBAN ni emails) y ayuda con PDFs de formato raro.
+- **IA opcional**: con `ANTHROPIC_API_KEY` aparece la casilla «Mejorar con IA»: lo que las reglas no reconocen se agrupa por comercio, Claude lo identifica por el nombre (sin IBAN ni emails; los pagos a personas no se envían) y, si no lo conoce, lo busca en internet (cupo diario `IMPORT_WEB_LOOKUPS_DAILY`, 150 por defecto). Lo que propone la IA sale marcado para revisarlo. También ayuda con PDFs de formato raro.
+- **Análisis en el servidor**: el archivo se sube una vez y se analiza como tarea en segundo plano (puede tardar minutos); apagar la pantalla o cambiar de app no lo corta y se retoma al volver (en memoria, sin guardar el archivo). La app de Android mantiene la pantalla encendida mientras tanto.
 
 ## Idiomas
 

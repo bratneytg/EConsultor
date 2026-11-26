@@ -11,6 +11,16 @@ export interface Release { version: string; title: string; changes: Change[] }
  */
 export const RELEASES: Release[] = [
   {
+    version: '1.7.0',
+    title: tk('Importar extractos: más inteligente y sin cortes'),
+    changes: [
+      { kind: 'improvement', text: tk('Reconoce muchos más comercios por sí solo: autobuses y trenes (Flix…), alquiler de esquís o coches, bares, tiendas pequeñas, peluquerías, talleres y servicios.') },
+      { kind: 'new', text: tk('Con «Mejorar con IA», lo que sigue sin reconocerse se identifica por su nombre y, si hace falta, buscándolo en internet. Sale marcado con «IA» y una breve descripción para que lo revises.') },
+      { kind: 'feature', text: tk('El análisis ya no se corta si apagas la pantalla o cambias de app: se hace en el servidor y lo recuperas al volver. Te avisamos de que puede tardar algunos minutos.') },
+      { kind: 'feature', text: tk('Si lo subiste sin IA, puedes pedirla después solo para los movimientos sin clasificar, sin perder lo que ya corregiste.') },
+    ],
+  },
+  {
     version: '1.6.0',
     title: tk('Conoce a Ian, tu asistente con IA'),
     changes: [

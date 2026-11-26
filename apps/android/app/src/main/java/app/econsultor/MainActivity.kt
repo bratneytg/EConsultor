@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import android.view.View
+import android.view.WindowManager
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
@@ -193,6 +194,18 @@ class MainActivity : AppCompatActivity() {
                     isAppearanceLightStatusBars = !dark
                     isAppearanceLightNavigationBars = !dark
                 }
+            }
+        }
+
+        /**
+         * Mantiene la pantalla encendida mientras la web lo pide (p. ej. al analizar un extracto, que puede tardar minutos).
+         * Es un extra: el análisis corre en el servidor y sigue aunque la pantalla se apague.
+         */
+        @JavascriptInterface
+        fun keepScreenOn(on: Boolean) {
+            runOnUiThread {
+                if (on) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             }
         }
 

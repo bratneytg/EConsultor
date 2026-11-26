@@ -27,6 +27,8 @@ const envSchema = z.object({
   ANTHROPIC_MODEL: z.string().default('claude-sonnet-5-5'),
   /** Mensajes por día y cuenta que se pueden enviar a Ian (acota el gasto de IA). */
   IAN_DAILY_LIMIT: z.coerce.number().int().min(1).max(1000).default(40),
+  /** Comercios por día y cuenta que la IA puede buscar en internet al importar un extracto (0 = no buscar). */
+  IMPORT_WEB_LOOKUPS_DAILY: z.coerce.number().int().min(0).max(2000).default(150),
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().default('mailto:admin@localhost'),
@@ -69,6 +71,7 @@ export interface Config {
   anthropicApiKey?: string;
   anthropicModel: string;
   ianDailyLimit: number;
+  importWebLookupsDaily: number;
   vapid?: { publicKey: string; privateKey: string; subject: string };
   premiumForAll: boolean;
   adminToken?: string;
@@ -132,6 +135,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): Config {
     anthropicApiKey: e.ANTHROPIC_API_KEY,
     anthropicModel: e.ANTHROPIC_MODEL,
     ianDailyLimit: e.IAN_DAILY_LIMIT,
+    importWebLookupsDaily: e.IMPORT_WEB_LOOKUPS_DAILY,
     premiumForAll: e.PREMIUM_FOR_ALL,
     adminToken: e.ADMIN_TOKEN,
     billing:

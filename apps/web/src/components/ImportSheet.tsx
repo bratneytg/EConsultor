@@ -1,5 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useBackClose } from '../lib/backClose';
+import { useKeepAwake } from '../lib/keepAwake';
+import { Aborted, clearSavedJob, discardJob, loadSavedJob, newKey, saveJob, startJob, waitJob, type JobProgress } from '../lib/importJob';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useUser } from '../lib/auth';
 import { ApiError, api } from '../lib/api';
@@ -19,7 +21,12 @@ interface PreviewRow {
   confidence: 'high' | 'medium' | 'low';
   via: string;
   skip?: 'duplicate' | 'internal' | 'other_account';
+  /** Qué es el comercio según la IA, y si la IA lo buscó en internet. */
+  hint?: string;
+  web?: boolean;
 }
+interface AiInfo { identified: number; web: number; skippedWeb: number; problem?: 'unavailable' | 'web_unavailable' }
+interface ClassifyResult { ai: AiInfo; warnings: string[]; results: { id: string; categoryId: string; hint: string; web: boolean }[] }
 interface Preview {
   source: 'csv' | 'pdf' | 'sheet';
   engine: 'offline' | 'ai';
@@ -31,6 +38,7 @@ interface Preview {
   accounts: AccountInfo[];
   sameStatement?: { matched: number; total: number };
   overlap?: { account: string; matched: number; total: number; ignored: boolean };
+  ai?: AiInfo;
 }
 interface AccountInfo { name: string; count: number }
 interface Opts { ai: boolean; flip: boolean; account: string; assume: boolean }
@@ -84,6 +92,39 @@ function decodeText(buf: ArrayBuffer): string {
   try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch { return new TextDecoder('windows-1252').decode(buf); }
 }
 
+const STAGES: Record<string, () => string> = {
+  queued: () => t('En cola…'),
+  reading: () => t('Leyendo el archivo…'),
+  rules: () => t('Reconociendo comercios…'),
+  ai_knowledge: () => t('Claude está identificando comercios…'),
+  ai_web: () => t('Buscando en internet los comercios que no se reconocen…'),
+  checking: () => t('Comprobando movimientos repetidos…'),
+};
+
+/** Espera del análisis: qué está haciendo, cuánto lleva y que se puede apagar la pantalla o cambiar de app. */
+function Wait({ progress, uploading, ai, compact, onClose, onCancel }: { progress: JobProgress | null; uploading?: boolean; ai: boolean; compact?: boolean; onClose?: () => void; onCancel?: () => void }) {
+  const label = uploading ? t('Subiendo el archivo…') : (progress && STAGES[progress.stage]?.()) || t('Analizando tu extracto…');
+  const pct = progress && progress.total > 0 ? Math.min(100, Math.round((progress.done / progress.total) * 100)) : null;
+  return (
+    <div className={`imp-wait${compact ? ' compact' : ''}`} role="status" aria-live="polite">
+      <span className="spinner" aria-hidden="true" />
+      <b>{label}</b>
+      {progress && progress.total > 0 && !uploading && <span className="imp-count num">{t('{done} de {total}', { done: progress.done, total: progress.total })}</span>}
+      <div className="imp-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct ?? undefined} data-indet={pct === null}><i style={pct === null ? undefined : { width: `${pct}%` }} /></div>
+      <p>{ai ? t('Puede tardar algunos minutos: Claude identifica los comercios y busca en internet los que no conoce.') : t('Puede tardar algunos minutos.')}</p>
+      {uploading
+        ? <small>{t('Mantén la app abierta unos segundos mientras se sube.')}</small>
+        : <small>{t('Puedes apagar la pantalla o cambiar de app: el análisis sigue en el servidor y lo recuperas al volver.')}</small>}
+      {(onClose || onCancel) && !uploading && (
+        <div className="imp-wait-actions">
+          {onClose && <button type="button" className="btn" onClick={onClose}>{t('Cerrar y seguir después')}</button>}
+          {onCancel && <button type="button" className="btn" onClick={onCancel}>{t('Cancelar análisis')}</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface Props { open: boolean; onClose: () => void; onDone: (message: string) => void }
 
 export function ImportSheet({ open, onClose, onDone }: Props) {
@@ -99,23 +140,67 @@ export function ImportSheet({ open, onClose, onDone }: Props) {
   const [known, setKnown] = useState<AccountInfo[]>([]);
   const [account, setAccount] = useState('');
   const [showPicker, setShowPicker] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState<JobProgress | null>(null);
+  const [classifying, setClassifying] = useState(false);
+  const [resumedFile, setResumedFile] = useState('');
+  const run = useRef<AbortController | null>(null);
+  const jobId = useRef('');
   const opts = useRef<Opts>({ ai: false, flip: false, account: '', assume: false });
   const file = useRef<HTMLInputElement>(null);
   const last = useRef<File | null>(null);
 
+  const busy = step === 'importing' || uploading;
+  const close = useCallback(() => { run.current?.abort(); onClose(); }, [onClose]);
+
+  /** Sigue una tarea del servidor hasta que acaba. Aunque la app se duerma o se cierre, la tarea sigue y se retoma. */
+  const follow = useCallback(async (id: string, keepReview: boolean) => {
+    run.current?.abort();
+    const ctl = new AbortController();
+    run.current = ctl;
+    jobId.current = id;
+    setStep('analyzing');
+    try {
+      const res = await waitJob<Preview>(id, { signal: ctl.signal, onProgress: setProgress });
+      clearSavedJob();
+      jobId.current = '';
+      setPreview(res);
+      setKnown(res.accounts);
+      setRows(res.rows.map((r) => ({ ...r, on: !r.skip })));
+      setStep('review');
+    } catch (e) {
+      if (e instanceof Aborted) return;
+      clearSavedJob();
+      jobId.current = '';
+      setError(e instanceof ApiError ? e.message : t('No se pudo analizar el archivo. Inténtalo de nuevo.'));
+      setStep(keepReview ? 'review' : 'pick');
+    }
+  }, []);
+
   useEffect(() => {
-    if (!open) return;
+    if (!open) { run.current?.abort(); return; }
     setStep('pick'); setError(''); setPreview(null); setRows([]); setUseAi(false); last.current = null; setAccount(''); setShowPicker(false);
+    setUploading(false); setProgress(null); setClassifying(false); setResumedFile(''); jobId.current = '';
     opts.current = { ai: false, flip: false, account: '', assume: false };
     api<{ accounts: AccountInfo[] }>('/import/accounts').then((r) => setKnown(r.accounts)).catch(() => setKnown([]));
-  }, [open]);
+    // Si había un análisis en marcha (cerraste la ventana, se apagó la pantalla, la app se reinició), se retoma.
+    const saved = loadSavedJob();
+    if (saved) {
+      setResumedFile(saved.fileName); setUseAi(saved.ai); setAccount(saved.account);
+      opts.current = { ai: saved.ai, flip: false, account: saved.account, assume: false };
+      void follow(saved.id, false);
+    }
+    return () => run.current?.abort();
+  }, [open, follow]);
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && step !== 'analyzing' && step !== 'importing' && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !busy && close();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose, step]);
+  }, [open, close, busy]);
+
+  useKeepAwake(open && (step === 'analyzing' || classifying));
 
   const analyze = useCallback(async (f: File, o: Opts, keepReview = false) => {
     setError('');
@@ -127,26 +212,67 @@ export function ImportSheet({ open, onClose, onDone }: Props) {
     if (!isPdf && !isSheet && !isText) return setError(t('Solo se admiten archivos CSV, Excel (.xlsx), LibreOffice (.ods) o PDF.'));
     last.current = f;
     opts.current = o;
+    setResumedFile('');
+    setProgress(null);
     setStep('analyzing');
+    setUploading(true);
+    run.current?.abort();
+    const ctl = new AbortController();
+    run.current = ctl;
     try {
       const buf = await f.arrayBuffer();
       const binary = isPdf || isSheet;
-      const res = await api<Preview>('/import/preview', {
-        method: 'POST',
-        json: {
-          kind: isPdf ? 'pdf' : isSheet ? 'sheet' : 'csv', content: binary ? toBase64(buf) : decodeText(buf),
-          useAi: o.ai, flipSigns: o.flip, account: o.account || undefined, assumeDifferentAccount: o.assume || undefined,
-        },
-      });
-      setPreview(res);
-      setKnown(res.accounts);
-      setRows(res.rows.map((r) => ({ ...r, on: !r.skip })));
-      setStep('review');
+      // Se sube una sola vez: el servidor analiza por su cuenta y esta pantalla solo pregunta cómo va.
+      const job = await startJob<Preview>('/import/jobs', {
+        kind: isPdf ? 'pdf' : isSheet ? 'sheet' : 'csv', content: binary ? toBase64(buf) : decodeText(buf),
+        useAi: o.ai, flipSigns: o.flip, account: o.account || undefined, assumeDifferentAccount: o.assume || undefined, key: newKey(),
+      }, ctl.signal);
+      saveJob({ id: job.id, fileName: f.name, startedAt: Date.now(), ai: o.ai, account: o.account });
+      setUploading(false);
+      await follow(job.id, keepReview);
     } catch (e) {
+      setUploading(false);
+      if (e instanceof Aborted) return;
       setError(e instanceof ApiError ? e.message : t('No se pudo analizar el archivo. Inténtalo de nuevo.'));
       setStep(keepReview ? 'review' : 'pick');
     }
-  }, []);
+  }, [follow]);
+
+  /** Cancela el análisis en curso: se descarta en el servidor y se vuelve a elegir archivo. */
+  const cancelAnalysis = () => {
+    run.current?.abort();
+    if (jobId.current) void discardJob(jobId.current);
+    jobId.current = '';
+    clearSavedJob();
+    setResumedFile(''); setStep(preview ? 'review' : 'pick');
+  };
+
+  /** Pide a la IA que identifique SOLO lo que sigue sin clasificar; lo que ya se corrigió a mano no se toca. */
+  const lowRows = useMemo(() => rows.filter((r) => r.confidence === 'low' && r.note.trim()), [rows]);
+  const classify = async () => {
+    setError('');
+    setClassifying(true);
+    setProgress(null);
+    run.current?.abort();
+    const ctl = new AbortController();
+    run.current = ctl;
+    try {
+      const items = lowRows.slice(0, 1500).map((r) => ({ id: r.id, text: r.note.slice(0, 300), amountMinor: r.type === 'income' ? r.amountMinor : -r.amountMinor }));
+      const job = await startJob<ClassifyResult>('/import/classify', { key: newKey(), items }, ctl.signal);
+      const res = await waitJob<ClassifyResult>(job.id, { signal: ctl.signal, onProgress: setProgress });
+      const hits = new Map(res.results.map((x) => [x.id, x]));
+      setRows((rs) => rs.map((r) => {
+        const h = hits.get(r.id);
+        return h && r.confidence === 'low' ? { ...r, categoryId: h.categoryId, confidence: 'medium', via: 'ai', hint: h.hint, web: h.web } : r;
+      }));
+      setPreview((p) => p && { ...p, engine: res.results.length ? 'ai' : p.engine, ai: res.ai, warnings: [...p.warnings, ...res.warnings, ...(res.results.length ? [] : [t('La IA no ha podido identificar ninguno de esos movimientos. Elige su categoría a mano.')])] });
+    } catch (e) {
+      if (e instanceof Aborted) return;
+      setError(e instanceof ApiError ? e.message : t('No se pudo analizar el archivo. Inténtalo de nuevo.'));
+    } finally {
+      setClassifying(false);
+    }
+  };
 
   /** Vuelve a analizar el mismo archivo cambiando solo algunas opciones. */
   const reanalyze = (patch: Partial<Opts>) => { if (last.current) void analyze(last.current, { ...opts.current, ...patch }, true); };
@@ -166,7 +292,7 @@ export function ImportSheet({ open, onClose, onDone }: Props) {
 
   const setRow = (id: string, patch: Partial<Draft>) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   const setCategory = (id: string, categoryId: string) =>
-    setRow(id, { categoryId, type: allIncomeCategories().some((c) => c.id === categoryId) ? 'income' : 'expense', confidence: 'high' });
+    setRow(id, { categoryId, type: allIncomeCategories().some((c) => c.id === categoryId) ? 'income' : 'expense', confidence: 'high', via: 'manual', hint: undefined, web: undefined });
 
   const commit = async () => {
     if (!chosen.length) return;
@@ -179,21 +305,20 @@ export function ImportSheet({ open, onClose, onDone }: Props) {
       });
       await invalidate();
       onDone(t('{n} movimientos importados · tu perfil financiero está actualizado', { n: res.created }));
-      onClose();
+      close();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t('No se pudo importar. Inténtalo de nuevo.'));
       setStep('review');
     }
   };
 
-  const busy = step === 'analyzing' || step === 'importing';
-  useBackClose(open, onClose, () => !busy);
+  useBackClose(open, close, () => !busy);
 
   return (
     <AnimatePresence>
       {open && (
         <>
-          <motion.div className="scrim" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !busy && onClose()} />
+          <motion.div className="scrim" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !busy && close()} />
           <motion.div
             className="sheet import-sheet" role="dialog" aria-modal="true" aria-label={t('Importar extractos bancarios')}
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 34, stiffness: 380 }}
@@ -201,7 +326,7 @@ export function ImportSheet({ open, onClose, onDone }: Props) {
             <div className="grabber" />
             <div className="imp-head">
               <h2>{t('Importar extractos bancarios')}</h2>
-              <button className="icon-btn" aria-label={t('Cerrar')} disabled={busy} onClick={onClose}><Icon name="x" size={20} /></button>
+              <button className="icon-btn" aria-label={t('Cerrar')} disabled={busy} onClick={close}><Icon name="x" size={20} /></button>
             </div>
 
             {step === 'pick' && (
@@ -239,7 +364,7 @@ export function ImportSheet({ open, onClose, onDone }: Props) {
                     <input type="checkbox" checked={useAi} onChange={(e) => setUseAi(e.target.checked)} />
                     <span>
                       <b>{t('Mejorar con IA')}</b>
-                      <small>{t('Para lo que las reglas no reconocen, se envían a Claude solo las descripciones de esos movimientos, sin IBAN ni emails.')}</small>
+                      <small>{t('Para lo que las reglas no reconocen, se envían a Claude solo los nombres de esos comercios (sin IBAN ni emails; los pagos a personas no se envían). Si no los conoce, los busca en internet. Puede tardar algunos minutos.')}</small>
                     </span>
                   </label>
                 )}
@@ -248,7 +373,7 @@ export function ImportSheet({ open, onClose, onDone }: Props) {
             )}
 
             {step === 'analyzing' && (
-              <div className="imp-wait" role="status"><span className="spinner" />{t('Analizando fechas, importes y categorías…')}</div>
+              <Wait progress={progress} uploading={uploading} ai={opts.current.ai} onClose={close} onCancel={cancelAnalysis} />
             )}
 
             {(step === 'review' || step === 'importing') && preview && (
@@ -275,8 +400,8 @@ export function ImportSheet({ open, onClose, onDone }: Props) {
                     <div>
                       <p>{t('Este extracto se parece mucho al de tu cuenta «{account}»: {matched} de {total} movimientos coinciden en fecha, importe y descripción. ¿Lo subiste por error?', { account: accountName(preview.overlap.account), matched: preview.overlap.matched, total: preview.overlap.total })}</p>
                       <div className="imp-dup-actions">
-                        <button type="button" className="btn" disabled={step === 'importing'} onClick={() => { setAccount(preview.overlap!.account); reanalyze({ account: preview.overlap!.account, assume: false }); }}>{t('Es esa misma cuenta')}</button>
-                        <button type="button" className="btn" disabled={step === 'importing'} onClick={() => reanalyze({ assume: true })}>{t('Es otra cuenta distinta')}</button>
+                        <button type="button" className="btn" disabled={step === 'importing' || !last.current} onClick={() => { setAccount(preview.overlap!.account); reanalyze({ account: preview.overlap!.account, assume: false }); }}>{t('Es esa misma cuenta')}</button>
+                        <button type="button" className="btn" disabled={step === 'importing' || !last.current} onClick={() => reanalyze({ assume: true })}>{t('Es otra cuenta distinta')}</button>
                       </div>
                     </div>
                   </div>
@@ -284,7 +409,18 @@ export function ImportSheet({ open, onClose, onDone }: Props) {
                 {preview.overlap?.ignored && (
                   <p className="hint imp-range">{t('Se importará como una cuenta distinta de «{account}», aunque algunos movimientos se parezcan.', { account: accountName(preview.overlap.account) })}</p>
                 )}
+                {resumedFile && <p className="hint imp-range">{t('Este es el análisis de «{file}», que seguía en marcha en el servidor.', { file: resumedFile })}</p>}
                 {preview.warnings.map((w) => <p key={w} className="imp-warn"><Icon name="info" size={16} />{w}</p>)}
+                {cfg?.ai && (!preview.ai || !!preview.ai.problem) && lowRows.length > 0 && (
+                  classifying
+                    ? <Wait progress={progress} ai compact />
+                    : (
+                      <div className="imp-classify">
+                        <button type="button" className="btn" disabled={step === 'importing'} onClick={classify}>{t('Identificar con IA {n} movimientos sin clasificar', { n: lowRows.length })}</button>
+                        <small>{t('Envía a Claude solo los nombres de esos comercios y busca en internet los que no conoce. Puede tardar algunos minutos; lo que ya has corregido no se toca.')}</small>
+                      </div>
+                    )
+                )}
                 <p className="hint imp-flip">
                   {t('¿Los gastos salen como ingresos, o al revés?')}{' '}
                   <button type="button" className="link-btn" disabled={step === 'importing' || !last.current} onClick={() => reanalyze({ flip: !preview.signs?.flipped })}>
@@ -304,7 +440,7 @@ export function ImportSheet({ open, onClose, onDone }: Props) {
                           <b className={`num ${r.type === 'income' ? 'pos' : ''}`}>{r.type === 'income' ? '+' : '−'}{money(r.amountMinor, user.currency)}</b>
                         </div>
                         <div className="imp-line sub">
-                          <span>{dayShort(r.date)} {r.date.slice(0, 4)}{r.skip && <em className="imp-tag">{skipLabel(r.skip)}</em>}</span>
+                          <span className="imp-meta">{dayShort(r.date)} {r.date.slice(0, 4)}{r.skip && <em className="imp-tag">{skipLabel(r.skip)}</em>}{r.via === 'ai' && <em className="imp-tag imp-tag-ai" title={r.web ? t('Identificado por la IA buscando en internet') : t('Identificado por la IA')}>{r.web ? t('IA · web') : t('IA')}</em>}{r.hint && r.via === 'ai' && <span className="imp-hint"> {r.hint}</span>}</span>
                           <select
                             className="imp-cat" value={r.categoryId} disabled={step === 'importing'} aria-label={t('Categoría')}
                             style={{ ['--tile-c' as string]: categoryColor(r.categoryId) }} onChange={(e) => setCategory(r.id, e.target.value)}

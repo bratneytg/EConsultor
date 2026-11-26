@@ -1,4 +1,3 @@
-import { CATEGORIES } from '@econsultor/shared';
 import type { Config } from '../../config.js';
 import type { RawRow } from './types.js';
 
@@ -34,34 +33,6 @@ const json = (t: string): unknown => {
   const b = t.lastIndexOf(']');
   return a >= 0 && b > a ? JSON.parse(t.slice(a, b + 1)) : null;
 };
-
-const CAT_LIST = CATEGORIES.map((c) => `${c.id} (${c.type === 'income' ? 'ingreso' : 'gasto'}: ${c.label})`).join('; ');
-
-/** Categoriza en lotes los movimientos que las reglas no reconocen. Devuelve índice → categoría. */
-export async function aiCategorize(cfg: Config, items: { i: number; text: string; amountMinor: number }[]): Promise<Map<number, string>> {
-  const out = new Map<number, string>();
-  const valid = new Map(CATEGORIES.map((c) => [c.id, c.type]));
-  for (let k = 0; k < items.length; k += 80) {
-    const batch = items.slice(k, k + 80);
-    const text = await ask(
-      cfg,
-      `Clasificas movimientos bancarios alemanes/europeos. Categorías: ${CAT_LIST}. Importe negativo = gasto (usa SOLO categorías de gasto), positivo = ingreso (SOLO de ingreso). ` +
-        'Responde únicamente con un array JSON: [{"i":0,"c":"groceries"}]. Si dudas, usa other_expense u other_income.',
-      JSON.stringify(batch.map((b) => ({ i: b.i, t: scrub(b.text).slice(0, 90), a: b.amountMinor / 100 }))),
-      3000,
-    );
-    if (!text) continue;
-    try {
-      const arr = json(text) as { i: number; c: string }[] | null;
-      for (const r of arr ?? []) {
-        const src = batch.find((b) => b.i === r.i);
-        const type = valid.get(r.c);
-        if (src && type && (type === 'income') === src.amountMinor > 0) out.set(r.i, r.c);
-      }
-    } catch { /* lote ilegible: se queda con la regla/por defecto */ }
-  }
-  return out;
-}
 
 /** Extrae movimientos de un PDF difícil a partir de su texto. */
 export async function aiExtractStatement(cfg: Config, text: string): Promise<RawRow[] | null> {

@@ -4,8 +4,11 @@ import type { Config } from '../../config.js';
 import { badRequest, AppError } from '../../lib/errors.js';
 import { addDays } from '../../lib/dates.js';
 import type { Store, UserRecord } from '../../store/types.js';
-import { aiCategorize, aiExtractStatement } from './ai.js';
-import { buildHistory, categorize, haystack } from './categorize.js';
+import { aiExtractStatement } from './ai.js';
+import { groupMerchants, identifyMerchants, isPrivateTransfer } from './identify.js';
+import { grantLookups, refundLookups } from './quota.js';
+import type { JobHooks } from './jobs.js';
+import { buildHistory, categorize, type Categorized } from './categorize.js';
 import { rowsFromCsv } from './csv.js';
 import { pdfLines, rowsFromPdfLines } from './pdf.js';
 import { ocrPdfLines } from './ocr.js';
@@ -42,8 +45,10 @@ function note(r: RawRow): string {
 }
 
 /** Lee el extracto, categoriza (reglas; IA opcional) y marca duplicados frente a lo que el usuario ya tiene. */
-export async function analyzeStatement(cfg: Config, store: Store, user: UserRecord, today: string, input: AnalyzeInput): Promise<ImportPreview> {
+export async function analyzeStatement(cfg: Config, store: Store, user: UserRecord, today: string, input: AnalyzeInput, hooks?: JobHooks): Promise<ImportPreview> {
   const warnings: string[] = [];
+  let aiInfo: ImportPreview['ai'];
+  hooks?.progress({ stage: 'reading' });
   let engine: 'offline' | 'ai' = 'offline';
   let raw: RawRow[] = [];
   let docText = '';
@@ -132,14 +137,14 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
   const cats = raw.map((r) => categorize(r, history));
   const learned = cats.filter((c) => c.via === 'history').length;
   if (learned) warnings.push(learned === 1 ? tr('1 movimiento se ha clasificado según lo que ya habías categorizado antes.') : tr('{n} movimientos se han clasificado según lo que ya habías categorizado antes.', { n: learned }));
+  hooks?.progress({ stage: 'rules' });
   if (input.useAi && cfg.anthropicApiKey) {
-    const unknown = cats.map((c, i) => ({ c, i })).filter(({ c }) => c.confidence === 'low');
-    if (unknown.length) {
-      const res = await aiCategorize(cfg, unknown.map(({ i }) => ({ i, text: haystack(raw[i]!), amountMinor: raw[i]!.amountMinor })));
-      if (res.size) engine = 'ai';
-      for (const [i, id] of res) cats[i] = { ...cats[i]!, categoryId: id, confidence: 'medium', via: 'ai' as const };
-    }
+    const ai = await aiIdentify(cfg, user.id, today, raw, cats, hooks);
+    aiInfo = ai.info;
+    warnings.push(...ai.warnings);
+    if (ai.info.identified) engine = 'ai';
   }
+  hooks?.progress({ stage: 'checking' });
 
   // Duplicados y cuentas. Dentro de la MISMA cuenta, lo ya guardado (fecha, importe y tipo) sale desmarcado. Si casi todo
   // coincide con OTRA cuenta (mismo importe, fecha cercana y comercio parecido) es casi seguro el mismo extracto subido
@@ -180,7 +185,7 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
   const rows: ImportRow[] = raw.map((r, i) => {
     const c = cats[i]!;
     const it = items[i]!;
-    const row: ImportRow = { id: randomUUID(), date: r.date, type: it.type, categoryId: c.categoryId, amountMinor: it.amountMinor, note: it.note, confidence: c.confidence, via: c.via };
+    const row: ImportRow = { id: randomUUID(), date: r.date, type: it.type, categoryId: c.categoryId, amountMinor: it.amountMinor, note: it.note, confidence: c.confidence, via: c.via, ...(c.hint ? { hint: c.hint } : {}), ...(c.web ? { web: true } : {}) };
     if (dupSame.has(i)) row.skip = 'duplicate';
     else if (crossDuplicates && dupOther.has(i)) row.skip = 'other_account';
     else if (c.internal) row.skip = 'internal';
@@ -204,6 +209,7 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
     signs: { mode: resolved.mode, flipped: !!input.flipSigns },
     account,
     accounts: accountList(allTxs),
+    ...(aiInfo ? { ai: aiInfo } : {}),
     ...(sameStatement ? { sameStatement: { matched: dupSame.size, total: items.length } } : {}),
     ...(overlap ? { overlap: { ...overlap, ignored: !!input.assumeDifferentAccount } } : {}),
     stats: { total: rows.length, income: kept.filter((r) => r.type === 'income').length, expense: kept.filter((r) => r.type === 'expense').length, skipped, from, to, incomeMinor: sum('income'), expenseMinor: sum('expense') },
@@ -219,4 +225,40 @@ export function accountList(txs: { account?: string }[]): { name: string; count:
     m.set(canon, (m.get(canon) ?? 0) + 1);
   }
   return [...m.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+}
+
+
+/**
+ * Pregunta a la IA por lo que las reglas no reconocen (confianza baja) y actualiza `cats` en el sitio.
+ * Los pagos a personas no se envían. Agrupa por comercio: 50 cargos del mismo sitio son una sola pregunta.
+ */
+export async function aiIdentify(cfg: Config, userId: string, today: string, raw: RawRow[], cats: Categorized[], hooks?: JobHooks): Promise<{ info: NonNullable<ImportPreview['ai']>; warnings: string[] }> {
+  const warnings: string[] = [];
+  const unknown = cats.map((c, i) => ({ c, i })).filter(({ c, i }) => c.confidence === 'low' && !isPrivateTransfer(raw[i]!));
+  const info: NonNullable<ImportPreview['ai']> = { identified: 0, web: 0, skippedWeb: 0 };
+  if (!unknown.length) return { info, warnings };
+  const { merchants, idx } = groupMerchants(unknown.map(({ i }) => ({ i, raw: raw[i]! })));
+  let granted = 0;
+  const r = await identifyMerchants(cfg, merchants, {
+    web: cfg.importWebLookupsDaily > 0,
+    signal: hooks?.signal,
+    grantLookups: (wanted) => (granted = grantLookups(userId, today, cfg.importWebLookupsDaily, wanted)),
+    onProgress: (p) => hooks?.progress({ stage: p.stage === 'web' ? 'ai_web' : 'ai_knowledge', done: p.done, total: p.total }),
+  });
+  // Las búsquedas concedidas que no se llegaron a hacer (fallo de la IA, cancelación) no cuentan para el cupo.
+  refundLookups(userId, today, Math.max(0, granted - r.webDone));
+  for (const [key, f] of r.found) {
+    for (const i of idx.get(key) ?? []) {
+      cats[i] = { ...cats[i]!, categoryId: f.categoryId, confidence: 'medium', via: 'ai', hint: f.hint, web: f.web };
+      info.identified++;
+      if (f.web) info.web++;
+    }
+  }
+  info.skippedWeb = r.skippedWeb;
+  if (r.problem) info.problem = r.problem;
+  if (r.problem === 'unavailable') warnings.push(tr('La IA no está disponible ahora (revisa la clave o el crédito): no he podido identificar comercios.'));
+  else if (r.problem === 'web_unavailable') warnings.push(tr('La búsqueda en internet de la IA no está disponible ahora: he clasificado solo con lo que Claude sabe.'));
+  else if (r.skippedWeb > 0) warnings.push(tr('{n} comercios no se han buscado en internet porque has llegado al límite diario de búsquedas. Puedes seguir mañana o elegir su categoría a mano.', { n: r.skippedWeb }));
+  if (r.found.size) warnings.push(r.found.size === 1 ? tr('La IA ha identificado 1 comercio que las reglas no reconocían: revisa su categoría (marcada con «IA»).') : tr('La IA ha identificado {n} comercios que las reglas no reconocían: revisa sus categorías (marcadas con «IA»).', { n: r.found.size }));
+  return { info, warnings };
 }

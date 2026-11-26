@@ -7,6 +7,8 @@ interface AndroidBridge {
   setReminder(enabled: boolean, hhmm: string): void;
   appVersion(): string;
   setBars?(dark: boolean): void;
+  /** Mantiene la pantalla encendida (p. ej. mientras se analiza un extracto). Solo en versiones nuevas de la app. */
+  keepScreenOn?(on: boolean): void;
   saveTextFile?(name: string, mime: string, content: string): void;
   /** Guarda un archivo binario (PDF) en Descargas; `base64` es su contenido. Solo en versiones nuevas de la app. */
   saveBinaryFile?(name: string, mime: string, base64: string): void;
