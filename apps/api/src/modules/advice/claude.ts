@@ -1,26 +1,11 @@
-import { z } from 'zod';
 import type { Advice, AiIssue, Overview } from '@econsultor/shared';
 import { categoryById } from '@econsultor/shared';
 import type { Config } from '../../config.js';
+import { parseAdviceList } from './ai-parse.js';
 import { scrub } from '../import/ai.js';
 import type { FinancialProfile } from '../profile/engine.js';
 import type { SpendingDetail } from './detailed.js';
 import { LANG_NAME_ES, curLang } from '../../lib/i18n.js';
-
-/** Los modelos a veces se pasan unos caracteres: se recorta en vez de descartar toda la respuesta. */
-const cut = (max: number) => z.string().min(3).transform((s) => (s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s));
-const itemSchema = z.object({
-  kind: z.enum(['saving', 'spending', 'income', 'habit', 'risk', 'win']),
-  severity: z.enum(['info', 'tip', 'warn', 'win']),
-  title: cut(90),
-  body: cut(500),
-  // Un entero positivo razonable; si viene con decimales o desmedido, se ajusta.
-  impactMinor: z.number().nonnegative().max(1_000_000_00).transform((n) => Math.round(n)).optional(),
-});
-const responseSchema = z.array(itemSchema).min(1).max(8);
-
-const detailedItemSchema = itemSchema.extend({ action: cut(320) });
-const detailedResponseSchema = z.array(detailedItemSchema).min(3).max(9);
 
 /** Añade al final del prompt el idioma en el que debe redactar la IA (el de la persona). */
 const withLang = (sys: string): string => `${sys}\nIDIOMA DE RESPUESTA: redacta todos los textos (títulos, cuerpos y acciones) en ${LANG_NAME_ES[curLang()]}. Los nombres de categoría y de comercio que recibas déjalos como vienen.`;
@@ -69,7 +54,7 @@ function digest(p: FinancialProfile, o: Overview) {
 export type AiResult<T> = { items: T } | { issue: AiIssue };
 
 /** Llama a Claude y, si falla, dice POR QUÉ (se apunta en el registro del servidor, nunca la clave). */
-async function callClaude(cfg: Config, system: string, content: string, maxTokens: number, timeoutMs: number, signal?: AbortSignal): Promise<{ text: string } | { issue: AiIssue }> {
+async function callClaude(cfg: Config, system: string, content: string, maxTokens: number, timeoutMs: number, signal?: AbortSignal): Promise<{ text: string; stop?: string } | { issue: AiIssue }> {
   if (!cfg.anthropicApiKey) return { issue: 'no_key' };
   const fail = (issue: AiIssue, detail: string): { issue: AiIssue } => { console.error(`[IA] no ha respondido: ${issue} (${detail}) · modelo ${cfg.anthropicModel}`); return { issue }; };
   try {
@@ -88,23 +73,27 @@ async function callClaude(cfg: Config, system: string, content: string, maxToken
       if (res.status === 429 || (res.status === 400 && /credit|balance|billing/i.test(msg))) return fail('limit', detail);
       return fail('busy', detail);
     }
-    const data = (await res.json()) as { content?: { type: string; text?: string }[] };
-    return { text: data.content?.find((c) => c.type === 'text')?.text ?? '' };
+    const data = (await res.json()) as { content?: { type: string; text?: string }[]; stop_reason?: string };
+    // Se juntan todos los bloques de texto (el modelo puede repartir la respuesta en varios).
+    return { text: (data.content ?? []).filter((c) => c.type === 'text').map((c) => c.text ?? '').join('\n'), stop: data.stop_reason };
   } catch (e) {
     return fail('network', e instanceof Error ? e.message : 'error');
   }
 }
 
-const parseList = <T>(text: string, schema: z.ZodType<T[], z.ZodTypeDef, unknown>): T[] | null => {
-  try { return schema.parse(JSON.parse(text.slice(text.indexOf('['), text.lastIndexOf(']') + 1))); }
-  catch (e) { console.error(`[IA] respuesta ilegible: ${e instanceof Error ? e.message.slice(0, 200) : 'error'}`); return null; }
+/** Lee la respuesta; si no hay forma, apunta en el registro qué llegó (para poder arreglarlo) y devuelve null. */
+const readList = (r: { text: string; stop?: string }, detailed: boolean) => {
+  const items = parseAdviceList(r.text, detailed);
+  if (!items) console.error(`[IA] respuesta ilegible (stop_reason=${r.stop ?? '?'}, ${r.text.length} caracteres). Empieza así: ${JSON.stringify(r.text.slice(0, 240))}`);
+  else if (r.stop === 'max_tokens') console.warn(`[IA] la respuesta se cortó por longitud; se usaron ${items.length} consejos completos.`);
+  return items;
 };
 
 /** Asesor con IA (Claude). Si falla devuelve el motivo y el llamador usa las reglas. */
 export async function claudeAdvice(cfg: Config, p: FinancialProfile, o: Overview, signal?: AbortSignal): Promise<AiResult<Advice[]>> {
-  const r = await callClaude(cfg, withLang(SYSTEM), JSON.stringify(digest(p, o)), 1500, 25_000, signal);
+  const r = await callClaude(cfg, withLang(SYSTEM), JSON.stringify(digest(p, o)), 4000, 45_000, signal);
   if ('issue' in r) return r;
-  const items = parseList(r.text, responseSchema);
+  const items = readList(r, false);
   return items ? { items: items.map((it, i) => ({ id: `ai-${i}`, scope: 'specific' as const, ...it })) } : { issue: 'format' };
 }
 
@@ -144,8 +133,8 @@ export function detailedDigest(d: SpendingDetail) {
 
 /** Consejos detallados con IA. Si falla devuelve el motivo y el llamador usa el análisis local. */
 export async function claudeDetailedAdvice(cfg: Config, d: SpendingDetail, signal?: AbortSignal): Promise<AiResult<Advice[]>> {
-  const r = await callClaude(cfg, withLang(DETAILED_SYSTEM), JSON.stringify(detailedDigest(d)), 3000, 40_000, signal);
+  const r = await callClaude(cfg, withLang(DETAILED_SYSTEM), JSON.stringify(detailedDigest(d)), 6000, 60_000, signal);
   if ('issue' in r) return r;
-  const items = parseList(r.text, detailedResponseSchema);
+  const items = readList(r, true);
   return items ? { items: items.map((it, i) => ({ id: `dai-${i}`, scope: 'specific' as const, ...it })) } : { issue: 'format' };
 }
