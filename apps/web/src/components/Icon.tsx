@@ -42,6 +42,7 @@ const P: Record<string, string> = {
   ticket: 'M3 9V6h18v3a2 2 0 000 4v3H3v-3a2 2 0 000-4zM14 6v10',
   bag: 'M5 8h14l-1 12H6L5 8zM9 8V6a3 3 0 016 0v2',
   plane: 'M3 13l18-8-6 15-3-6-9-1zM12 14l9-9',
+  mic: 'M12 3a3 3 0 00-3 3v6a3 3 0 006 0V6a3 3 0 00-3-3zM6 11a6 6 0 0012 0M12 17v4M9 21h6',
   repeat: 'M17 2l3 3-3 3M4 11V9a4 4 0 014-4h12M7 22l-3-3 3-3M20 13v2a4 4 0 01-4 4H4',
   umbrella: 'M3 12a9 9 0 0118 0H3zM12 12v7a2 2 0 004 0',
   card: 'M3 6h18v12H3zM3 10h18M7 15h3',

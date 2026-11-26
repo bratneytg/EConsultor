@@ -568,3 +568,7 @@ textarea.input { resize: vertical; min-height: 110px; font: inherit; }
 .ignored-row:last-child { border-bottom: 0; }
 .ignored-row p { margin: 0; overflow-wrap: anywhere; }
 .ignored-row small { color: var(--ink-2); }
+.ian-composer .btn.mic { flex: none; width: 44px; height: 44px; padding: 0; justify-content: center; border-radius: 16px; }
+.ian-composer .btn.mic.on { background: var(--ink); color: var(--plane); animation: micpulse 1.4s ease-in-out infinite; }
+@keyframes micpulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--ink) 18%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .ian-composer .btn.mic.on { animation: none; } }

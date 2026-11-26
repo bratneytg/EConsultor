@@ -7,6 +7,7 @@ import { LanguagePicker } from '../components/LanguagePicker';
 import { Icon, type IconName } from '../components/Icon';
 import { ModeSwitch } from '../components/ModeSwitch';
 import { CaptureCard } from '../components/CaptureCard';
+import { StatementReminderSetting } from '../components/StatementReminderSetting';
 import { CategoriesCard } from '../components/CategoriesCard';
 import { RecurringCard } from '../components/RecurringCard';
 import { ReportCard } from '../components/ReportCard';
@@ -134,6 +135,7 @@ export function Settings() {
     { id: 'datos', icon: 'upload', title: tk('Tus datos'), hint: tk('Importar extractos, exportar o borrar'), body: (
       <Card title={t('Tus datos')} subtitle={t('Son tuyos: puedes llevártelos o borrarlos cuando quieras.')}>
           <div className="setting"><div><b>{t('Importar extractos bancarios')}</b><p>{t('Sube el CSV o el PDF de tu banco y rellenamos tus movimientos y tu perfil.')}</p></div><button className="btn" onClick={openImport}><Icon name="upload" size={18} />{t('Importar')}</button></div>
+          <StatementReminderSetting />
           <div className="setting"><div><b>{t('Exportar mis datos')}</b><p>{t('Un archivo JSON con tus movimientos y ajustes.')}</p></div><button className="btn" onClick={exportData}><Icon name="download" size={18} />{t('Exportar')}</button></div>
           <DangerZone onDone={() => invalidate()} />
         </Card>

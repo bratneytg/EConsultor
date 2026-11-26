@@ -10,6 +10,7 @@ import { clearAdviceCache } from '../modules/advice/advisor.js';
 import { normAccount } from '../modules/import/accounts.js';
 import { accountList, aiIdentify, analyzeStatement, MAX_ROWS } from '../modules/import/service.js';
 import { importJobs, type Job } from '../modules/import/jobs.js';
+import { markImported, reminderInfo } from '../modules/import/reminder.js';
 import { categorize, type Categorized } from '../modules/import/categorize.js';
 import { curLang } from '../lib/i18n.js';
 import { notFound } from '../lib/errors.js';
@@ -119,6 +120,28 @@ export async function importRoutes(app: FastifyInstance): Promise<void> {
     return reply.code(204).send();
   });
 
+  // Recordatorio mensual de subir el extracto.
+  app.get('/reminder', auth, async (req) => reminderInfo(store, req.user));
+
+  app.put('/reminder', auth, async (req) => {
+    const b = z.object({ enabled: z.boolean().optional(), day: z.number().int().min(1).max(28).optional() }).parse(req.body ?? {});
+    const u = req.user;
+    u.statementReminder = { ...u.statementReminder, ...(b.enabled !== undefined ? { enabled: b.enabled } : {}), ...(b.day !== undefined ? { day: b.day } : {}) };
+    u.updatedAt = new Date().toISOString();
+    await store.users.update(u);
+    return reminderInfo(store, u);
+  });
+
+  // «Ahora no»: se calla el aviso de este mes (el mes que viene vuelve a tocar).
+  app.post('/reminder/dismiss', auth, async (req) => {
+    const u = req.user;
+    const info = await reminderInfo(store, u);
+    u.statementReminder = { ...u.statementReminder, dismissedMonth: info.month };
+    u.updatedAt = new Date().toISOString();
+    await store.users.update(u);
+    return reminderInfo(store, u);
+  });
+
   app.get('/accounts', auth, async (req) => ({ accounts: accountList(await store.transactions.list(req.user.id, { limit: 50_000 })) }));
 
   app.post('/commit', { ...auth, bodyLimit: 4 * 1024 * 1024, config: { rateLimit: limit } }, async (req) => {
@@ -153,6 +176,7 @@ export async function importRoutes(app: FastifyInstance): Promise<void> {
     clearAdviceCache(req.user.id);
     const dates = rows.map((r) => r.date).sort();
     const months = new Set(dates.map((d) => d.slice(0, 7)));
+    await markImported(store, req.user);
     await store.audit.append({ id: randomUUID(), userId: req.user.id, type: 'statement_import', at: now, ip: req.ip, detail: `${rows.length} movimientos` });
     return { created: rows.length, from: dates[0]!, to: dates[dates.length - 1]!, monthsCovered: months.size };
   });

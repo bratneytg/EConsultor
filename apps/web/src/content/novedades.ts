@@ -11,6 +11,16 @@ export interface Release { version: string; title: string; changes: Change[] }
  */
 export const RELEASES: Release[] = [
   {
+    version: '1.9.0',
+    title: tk('Tus pagos entran solos'),
+    changes: [
+      { kind: 'new', text: tk('Captura automática de pagos, sin conectar tu banco: en iPhone, un Atajo envía cada pago con Apple Pay; en Android, la app lee los avisos de tu banco o de Google Wallet. Se activa en Ajustes › Captura de pagos.') },
+      { kind: 'feature', text: tk('Lo que se reconoce con seguridad se añade solo; lo dudoso espera en «Pagos pendientes» para que elijas la categoría en un toque. Nada se duplica con lo que ya anotaste ni con el extracto del banco.') },
+      { kind: 'new', text: tk('Ian ahora anota por ti: dile o dicta «he gastado 12 € en el súper» y lo apunta. Si te equivocas, le pides que lo deshaga.') },
+      { kind: 'feature', text: tk('Recordatorio mensual: a principios de mes te avisamos para subir el extracto del banco, con un banner y una notificación (puedes apagarlo o cambiar el día).') },
+    ],
+  },
+  {
     version: '1.8.0',
     title: tk('Ian te ayuda a ordenar tus gastos'),
     changes: [

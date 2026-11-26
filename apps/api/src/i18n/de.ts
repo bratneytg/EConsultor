@@ -289,4 +289,6 @@ export const de: Record<string, string> = {
   "Token de captura no válido": "Ungültiges Erfassungs-Token",
   "Ingreso": "Einnahme",
   "Pago con tarjeta": "Kartenzahlung",
+  "Es hora de subir tu extracto": "Zeit, deinen Kontoauszug hochzuladen",
+  "{name}, sube el extracto de {month} y tus gráficas quedarán completas. Si ya capturas pagos desde el móvil, no se duplicarán.": "{name}, lade den Kontoauszug für {month} hoch, und deine Diagramme sind vollständig. Wenn du schon Zahlungen vom Handy erfasst, werden sie nicht doppelt gezählt.",
 };

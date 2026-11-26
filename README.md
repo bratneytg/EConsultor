@@ -37,6 +37,16 @@ La app está en **inglés (por defecto), español, italiano y alemán**. Se elig
 - Las pruebas (`cobertura.test.ts`, `idiomas.test.ts`) fallan si un texto nuevo no está en los tres idiomas o pierde una variable `{…}`. La ayuda traducida está en `apps/web/src/content/ayuda.{en,it,de}.ts`.
 - Lo único sin traducir es el texto del aviso nativo de la app de Android (`apps/android`), que sigue en español.
 
+## Captura automática de pagos (sin conectar el banco)
+
+*Ajustes → Captura de pagos* crea un **token personal** y un buzón de **pagos pendientes**:
+
+- **iPhone**: un Atajo de Apple (Automatización → Transacción) envía comercio e importe de cada pago con Apple Pay a `POST /api/capture/in`. La pantalla da los pasos con la dirección y el token para copiar (Apple no permite instalar atajos con acciones sin crearlos uno mismo).
+- **Android**: la app lee las notificaciones de las apps de banco o Google Wallet que la persona marque (permiso «Acceso a notificaciones») y las manda al servidor, con cola local si no hay conexión.
+- El servidor entiende avisos en alemán, español, inglés e italiano; modo **inteligente** (añade lo que reconoce con seguridad), **revisar todo** o **automático**. Lo dudoso espera en «Pagos pendientes». No duplica lo ya anotado ni lo que llega después en el extracto del banco.
+- **Ian anota por ti** (texto o dictado): `crear_movimiento` y `deshacer_ultimo_movimiento`.
+- **Recordatorio mensual** del extracto (banner + push a las 10:00 locales, una vez al mes) a quien ya ha importado alguna vez; se ajusta en *Ajustes → Tus datos*.
+
 ## Varias cuentas e importación de cualquier banco
 
 - Cada movimiento puede pertenecer a una **cuenta** (por ejemplo «N26» o «Tarjeta Nexi»); al importar eliges la cuenta del extracto y *Movimientos* se puede filtrar por cuenta.

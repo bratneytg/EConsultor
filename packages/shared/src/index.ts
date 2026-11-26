@@ -495,3 +495,17 @@ export interface CaptureInfo {
   items: CaptureItem[];
   ignored: CaptureIgnored[];
 }
+
+/** Recordatorio mensual de subir el extracto del banco. */
+export interface StatementReminderInfo {
+  enabled: boolean;
+  /** Día del mes (1-28) a partir del cual se avisa si aún no se ha subido nada ese mes. */
+  day: number;
+  /** Hay que avisar ahora (ya llegó el día, no se ha importado este mes y no se ha descartado). */
+  due: boolean;
+  /** Mes al que se refiere el aviso (AAAA-MM). */
+  month: string;
+  /** Mes del extracto que probablemente toca subir (el anterior al actual). */
+  statementMonth: string;
+  lastImportAt?: string;
+}

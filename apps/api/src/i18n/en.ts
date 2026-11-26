@@ -289,4 +289,6 @@ export const en: Record<string, string> = {
   "Token de captura no válido": "Invalid capture token",
   "Ingreso": "Income",
   "Pago con tarjeta": "Card payment",
+  "Es hora de subir tu extracto": "Time to upload your statement",
+  "{name}, sube el extracto de {month} y tus gráficas quedarán completas. Si ya capturas pagos desde el móvil, no se duplicarán.": "{name}, upload your {month} statement and your charts will be complete. If you already capture payments from your phone, they won't be duplicated.",
 };

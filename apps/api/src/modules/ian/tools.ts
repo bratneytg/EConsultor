@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { CATEGORIES, type Transaction } from '@econsultor/shared';
 import { z } from 'zod';
 import { monthOf } from '../../lib/dates.js';
@@ -6,6 +7,8 @@ import type { UserRecord } from '../../store/types.js';
 import { buildOverview } from '../analytics/analytics.js';
 import { buildSpendingDetail } from '../advice/detailed.js';
 import { scrub } from '../import/ai.js';
+import { categorize } from '../import/categorize.js';
+import { addDays } from '../../lib/dates.js';
 import { exactKey, UNCLASSIFIED, unclassifiedGroups } from './unclassified.js';
 
 /**
@@ -20,6 +23,10 @@ export interface IanContext {
   today: string;
   /** Guarda la nueva categoría de esos movimientos. Sin esto, la herramienta de reclasificar no está disponible. */
   reclassify?: (txs: Transaction[], categoryId: string) => Promise<void>;
+  /** Guarda un movimiento nuevo anotado a petición de la persona. Sin esto, anotar no está disponible. */
+  create?: (t: Transaction) => Promise<void>;
+  /** Borra un movimiento que Ian anotó (para deshacer un error). */
+  remove?: (t: Transaction) => Promise<void>;
   /** Este mensaje puede sacar el tema de los gastos sin clasificar (como mucho una vez al día). */
   nudge?: boolean;
 }
@@ -98,10 +105,31 @@ export const TOOLS = [
       required: ['comercio', 'categoria'],
     },
   },
+  {
+    name: 'crear_movimiento',
+    description: 'Anota UN gasto o ingreso nuevo que la persona acaba de decirte («he gastado 12 € en el súper», «me han ingresado 50 de Ana»). Úsala solo cuando haya dicho claramente el importe y qué fue; nunca con hipótesis ni ejemplos. Un movimiento por llamada.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        tipo: { type: 'string', enum: ['gasto', 'ingreso'] },
+        importe: { type: 'number', description: 'Importe en unidades de la moneda de la persona (12.5), siempre positivo.' },
+        concepto: { type: 'string', description: 'Comercio o nota corta («Mercadona», «Cena con Ana»).' },
+        categoria: { type: 'string', description: 'Categoría solo si la persona la dijo o es evidente. Si se omite, se propone por el comercio.' },
+        fecha: { type: 'string', description: 'AAAA-MM-DD. Por defecto, hoy. Calcula «ayer» o «el lunes» a partir de la fecha de hoy.' },
+      },
+      required: ['tipo', 'importe', 'concepto'],
+    },
+  },
+  {
+    name: 'deshacer_ultimo_movimiento',
+    description: 'Borra el último movimiento que anotaste con crear_movimiento, si fue hace menos de una hora. Úsala si la persona dice que te equivocaste o pide deshacerlo.',
+    input_schema: { type: 'object', properties: {} },
+  },
 ] as const;
 
-/** Las herramientas que cada conversación puede usar: reclasificar solo existe si hay forma de guardar el cambio. */
-export const toolsFor = (ctx: Pick<IanContext, 'reclassify'>) => TOOLS.filter((t) => ctx.reclassify || t.name !== 'reclasificar_comercio');
+/** Las herramientas que cada conversación puede usar: las que cambian datos solo existen si hay forma de guardar el cambio. */
+export const toolsFor = (ctx: Pick<IanContext, 'reclassify' | 'create' | 'remove'>) =>
+  TOOLS.filter((t) => (t.name === 'reclasificar_comercio' ? !!ctx.reclassify : t.name === 'crear_movimiento' ? !!ctx.create : t.name === 'deshacer_ultimo_movimiento' ? !!ctx.remove : true));
 
 const periodo = z.object({ desde: date.optional(), hasta: date.optional() });
 
@@ -243,23 +271,73 @@ export function runTool(name: string, input: unknown, ctx: IanContext): unknown 
       });
     }
 
+    case 'crear_movimiento': {
+      if (!ctx.create) throw new Error('No se pueden anotar movimientos ahora mismo.');
+      const q = z.object({
+        tipo: z.enum(['gasto', 'ingreso']),
+        importe: z.number().positive().max(10_000_000),
+        concepto: z.string().trim().min(1).max(80),
+        categoria: z.string().max(60).optional(),
+        fecha: date.optional(),
+      }).parse(input ?? {});
+      const type = q.tipo === 'ingreso' ? 'income' : 'expense';
+      const day = q.fecha ?? today;
+      if (day < '2000-01-01' || day > addDays(today, 1)) throw new Error('Esa fecha no es válida: no se pueden anotar movimientos en el futuro.');
+      const minor = Math.round(q.importe * 100);
+      if (minor < 1) throw new Error('El importe es demasiado pequeño.');
+      const note = scrub(q.concepto).slice(0, 80).trim() || q.concepto.slice(0, 80);
+      let categoryId: string | null = null;
+      let sure = true;
+      if (q.categoria) {
+        categoryId = resolveCategory(user, q.categoria, type);
+        if (!categoryId) throw new Error(`No existe esa categoría de ${q.tipo}. Elige una de: ${choices(user, type).map((c) => label(c)).join(', ')}, o no indiques categoría.`);
+      } else {
+        const c = categorize({ date: day, amountMinor: type === 'income' ? minor : -minor, name: note });
+        categoryId = c.categoryId;
+        sure = c.confidence !== 'low';
+      }
+      const now = new Date().toISOString();
+      const t: Transaction = { id: randomUUID(), type, amountMinor: minor, currency, categoryId, date: day, note, source: 'ian', createdAt: now, updatedAt: now };
+      return ctx.create(t).then(() => {
+        txs.push(t);
+        return {
+          anotado: { tipo: q.tipo, importe: amt(minor), moneda: currency, concepto: note, categoria: label(categoryId!), fecha: day },
+          categoria_segura: sure,
+          ...(sure ? {} : { nota: 'No he podido deducir la categoría: ha quedado en «Otros». Pregunta si quiere elegir una y, si la dice, usa reclasificar_comercio (solo para gastos).' }),
+        };
+      });
+    }
+
+    case 'deshacer_ultimo_movimiento': {
+      if (!ctx.remove) throw new Error('No se pueden borrar movimientos ahora mismo.');
+      const cutoff = Date.now() - 60 * 60_000;
+      const last = txs.filter((t) => t.source === 'ian' && Date.parse(t.createdAt) >= cutoff).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+      if (!last) throw new Error('No hay ningún movimiento anotado por ti en la última hora que se pueda deshacer.');
+      return ctx.remove(last).then(() => {
+        txs.splice(txs.indexOf(last), 1);
+        return { borrado: { tipo: last.type === 'income' ? 'ingreso' : 'gasto', importe: amt(last.amountMinor), concepto: last.note ?? '', fecha: last.date } };
+      });
+    }
+
     default:
       throw new Error(`Herramienta desconocida: ${name}`);
   }
 }
 
-/** Categorías de gasto que la persona ve, sin «Otros» (reclasificar a «Otros» no aclara nada). */
-function expenseChoices(user: Pick<UserRecord, 'categoryPrefs'>): string[] {
+/** Categorías que la persona ve, sin «Otros» (clasificar como «Otros» no aclara nada). */
+function choices(user: Pick<UserRecord, 'categoryPrefs'>, type: 'expense' | 'income'): string[] {
   const prefs = prefsOf(user);
   const hidden = new Set(prefs.hidden);
-  return [...CATEGORIES.filter((c) => c.type === 'expense' && c.id !== UNCLASSIFIED && !hidden.has(c.id)).map((c) => c.id), ...prefs.custom.filter((c) => c.type === 'expense').map((c) => c.id)];
+  return [...CATEGORIES.filter((c) => c.type === type && c.id !== UNCLASSIFIED && c.id !== 'other_income' && !hidden.has(c.id)).map((c) => c.id), ...prefs.custom.filter((c) => c.type === type).map((c) => c.id)];
 }
+const expenseChoices = (user: Pick<UserRecord, 'categoryPrefs'>): string[] => choices(user, 'expense');
 
 /** Acepta el nombre que la persona ve («Ocio», «Supermercado») o el id; con coincidencia parcial solo si es única. */
-function resolveExpenseCategory(user: Pick<UserRecord, 'categoryPrefs'>, wanted: string): string | null {
+const resolveExpenseCategory = (user: Pick<UserRecord, 'categoryPrefs'>, wanted: string): string | null => resolveCategory(user, wanted, 'expense');
+function resolveCategory(user: Pick<UserRecord, 'categoryPrefs'>, wanted: string, type: 'expense' | 'income'): string | null {
   const prefs = prefsOf(user);
   const n = norm(wanted).trim();
-  const ids = expenseChoices(user);
+  const ids = choices(user, type);
   const exact = ids.filter((id) => norm(id) === n || norm(categoryLabelFor(prefs, id)) === n);
   if (exact.length === 1) return exact[0]!;
   const part = ids.filter((id) => norm(categoryLabelFor(prefs, id)).includes(n));

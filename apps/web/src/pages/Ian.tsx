@@ -7,6 +7,7 @@ import { PremiumNudge } from '../components/Premium';
 import { api } from '../lib/api';
 import { useUser } from '../lib/auth';
 import { t, tk } from '../lib/i18n';
+import { useSpeech } from '../lib/speech';
 import { useIanStatus, useInvalidateData } from '../lib/queries';
 
 interface Msg { role: 'user' | 'assistant'; content: string; error?: boolean }
@@ -17,6 +18,9 @@ const SUGGESTIONS = [
   tk('¿Qué cargos se repiten cada mes?'),
   tk('¿Cuánto me sobrará a fin de mes?'),
 ];
+
+/** Ejemplos de cómo anotar hablando: rellenan el cuadro para que la persona los cambie por lo suyo. */
+const NOTE_EXAMPLES = [tk('Ayer pagué 30 € de gasolina'), tk('He gastado 12 € en el súper')];
 
 /** Aparece solo si hay gastos en «Otros»: Ian los repasa de uno en uno y los reclasifica cuando la persona lo confirma. */
 const CLASSIFY = tk('Ayúdame a clasificar mis gastos sin categoría');
@@ -66,6 +70,19 @@ export function Ian() {
   const endRef = useRef<HTMLDivElement>(null);
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const remaining = left ?? status?.remaining ?? null;
+  const [voiceNote, setVoiceNote] = useState('');
+  const base = useRef('');
+  // Dictado: lo que se va diciendo aparece en el cuadro; se envía con el botón (así se puede corregir antes).
+  const speech = useSpeech(
+    (spoken) => setText((base.current ? `${base.current} ${spoken}` : spoken).slice(0, IAN_MAX_CHARS)),
+    (e) => setVoiceNote(e === 'denied' ? t('No tengo permiso para usar el micrófono. Actívalo en los ajustes del navegador.') : e === 'none' ? t('No he oído nada. Inténtalo de nuevo.') : t('El dictado no ha funcionado. Puedes escribirlo o usar el micrófono de tu teclado.')),
+  );
+  const toggleMic = () => {
+    setVoiceNote('');
+    if (speech.listening) { speech.stop(); return; }
+    base.current = text.trim();
+    speech.start();
+  };
 
   useEffect(() => { endRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' }); }, [msgs, busy]);
 
@@ -131,8 +148,10 @@ export function Ian() {
         {msgs.length === 0 && (
           <div className="ian-empty">
             <p className="sub">{t('Pregúntame lo que quieras sobre tus números: gastos, ingresos, categorías o cargos que se repiten. Te contesto con lo que has anotado.')}</p>
+            <p className="sub">{t('También puedo anotar por ti: dime o dicta «he gastado 12 € en el súper» y lo apunto.')}</p>
             <div className="ian-suggestions">
               {(status?.unclassified ?? 0) > 0 && <button className="chip-btn" disabled={busy || noneLeft} onClick={() => send(t(CLASSIFY))}>{t(CLASSIFY)}</button>}
+              {NOTE_EXAMPLES.map((s) => <button key={s} className="chip-btn" disabled={busy || noneLeft} onClick={() => { setText(t(s)); areaRef.current?.focus(); }}>{t('Anotar: {ej}', { ej: t(s) })}</button>)}
               {SUGGESTIONS.map((s) => <button key={s} className="chip-btn" disabled={busy || noneLeft} onClick={() => send(t(s))}>{t(s)}</button>)}
             </div>
           </div>
@@ -158,12 +177,18 @@ export function Ian() {
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); } }}
         />
+        {speech.supported && (
+          <button type="button" className={`btn mic${speech.listening ? ' on' : ''}`} aria-pressed={speech.listening} aria-label={speech.listening ? t('Parar el dictado') : t('Dictar con la voz')} disabled={busy || noneLeft} onClick={toggleMic}><Icon name="mic" size={18} /></button>
+        )}
         <button className="btn btn-primary" type="submit" disabled={busy || noneLeft || !text.trim()} aria-label={t('Enviar')}><Icon name="right" size={18} /></button>
       </form>
 
+      {voiceNote && <p className="error" role="alert" style={{ margin: '6px 4px' }}>{voiceNote}</p>}
+      {speech.listening && <p className="ian-fine" role="status">{t('Te escucho… pulsa el micrófono cuando termines.')}</p>}
       <p className="ian-fine">
         {t('Para contestar, Ian consulta tus movimientos en tu servidor y envía a la IA (Claude, de Anthropic) solo los datos que necesita para esa pregunta: importes, categorías y notas sin IBAN ni correos. La conversación no se guarda.')}{' '}
         {t('Ian también puede ayudarte a clasificar gastos que están en «Otros»: te pregunta por un comercio y, solo si tú se lo confirmas, cambia su categoría. Puedes corregirlo después en Movimientos.')}{' '}
+        {t('Ian también puede anotar los gastos e ingresos que le cuentes y deshacer el último si te equivocas. El dictado por voz lo hace tu navegador (Google o Apple), no EConsultor: solo se usa si pulsas el micrófono.')}{' '}
         {t('Ian no es un asesor financiero: es una ayuda para entender tus números.')}
         {remaining !== null && <> <span className="ian-left">{t('Mensajes que te quedan hoy: {n}', { n: remaining })}</span></>}
       </p>

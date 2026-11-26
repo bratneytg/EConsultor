@@ -289,4 +289,6 @@ export const it: Record<string, string> = {
   "Token de captura no válido": "Token di cattura non valido",
   "Ingreso": "Entrata",
   "Pago con tarjeta": "Pagamento con carta",
+  "Es hora de subir tu extracto": "È ora di caricare il tuo estratto conto",
+  "{name}, sube el extracto de {month} y tus gráficas quedarán completas. Si ya capturas pagos desde el móvil, no se duplicarán.": "{name}, carica l'estratto conto di {month} e i tuoi grafici saranno completi. Se già catturi i pagamenti dal telefono, non verranno duplicati.",
 };

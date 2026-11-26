@@ -1,4 +1,4 @@
-import type { AdviceResponse, BillingInfo, CaptureInfo, IanStatus, Overview, Recurring, RecurringInput, Transaction, TransactionInput } from '@econsultor/shared';
+import type { AdviceResponse, BillingInfo, CaptureInfo, StatementReminderInfo, IanStatus, Overview, Recurring, RecurringInput, Transaction, TransactionInput } from '@econsultor/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 
@@ -27,7 +27,7 @@ export const useAppConfig = () =>
 
 export function useInvalidateData() {
   const qc = useQueryClient();
-  return () => Promise.all([qc.invalidateQueries({ queryKey: ['overview'] }), qc.invalidateQueries({ queryKey: ['tx'] }), qc.invalidateQueries({ queryKey: ['advice'] }), qc.invalidateQueries({ queryKey: ['accounts'] }), qc.invalidateQueries({ queryKey: ['recurring'] })]);
+  return () => Promise.all([qc.invalidateQueries({ queryKey: ['overview'] }), qc.invalidateQueries({ queryKey: ['tx'] }), qc.invalidateQueries({ queryKey: ['advice'] }), qc.invalidateQueries({ queryKey: ['accounts'] }), qc.invalidateQueries({ queryKey: ['recurring'] }), qc.invalidateQueries({ queryKey: ['statement-reminder'] })]);
 }
 
 export function useSaveTransaction() {
@@ -65,3 +65,7 @@ export function useDeleteRecurring() {
 /** Pagos capturados desde el móvil: pendientes de revisar, avisos no reconocidos y ajustes. */
 export const useCapture = (enabled = true) =>
   useQuery({ queryKey: ['capture'], queryFn: () => api<CaptureInfo>('/capture'), enabled, staleTime: 20_000, refetchOnWindowFocus: true });
+
+/** Recordatorio mensual de subir el extracto del banco. */
+export const useStatementReminder = () =>
+  useQuery({ queryKey: ['statement-reminder'], queryFn: () => api<StatementReminderInfo>('/import/reminder'), staleTime: 5 * 60_000 });

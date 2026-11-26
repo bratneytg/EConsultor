@@ -62,12 +62,25 @@ export interface UserRecord {
   passkeys?: PasskeyRecord[];
   /** Captura de pagos desde el móvil: token (solo su hash), modo, pendientes y no reconocidos. */
   capture?: CaptureState;
+  /** Recordatorio mensual del extracto: ausente = activado desde el día 3 para quien ya ha importado alguna vez. */
+  statementReminder?: StatementReminderState;
   /** Dispositivos de la app de Android con huella nativa (el WebView no admite WebAuthn). Solo se guarda un hash del secreto. */
   appBiometrics?: AppBiometricRecord[];
   failedLogins: number;
   lockedUntil?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface StatementReminderState {
+  enabled?: boolean;
+  day?: number;
+  /** Última importación confirmada (ISO). */
+  lastImportAt?: string;
+  /** Mes (AAAA-MM) cuyo aviso la persona descartó. */
+  dismissedMonth?: string;
+  /** Mes (AAAA-MM) en que ya se mandó el aviso push. */
+  pushedMonth?: string;
 }
 
 export interface CaptureState {

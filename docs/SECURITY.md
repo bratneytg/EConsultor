@@ -50,6 +50,16 @@ Es una credencial pública a propósito, para probar la interfaz. Se limita así
 - Los IBAN del extracto no se guardan en las notas. La confirmación valida categoría, fecha (no futura) e importe en servidor; el tipo gasto/ingreso se deduce de la categoría.
 - Los datos de un extracto real son sensibles. Mientras el despliegue de Render use disco efímero y `ALLOW_DEMO_DATA=true`, **no importes tus movimientos reales ahí**: usa tu servidor propio con `ALLOW_DEMO_DATA=false`.
 
+## Captura de pagos desde el móvil
+
+- **Token personal** (`ecp_` + 32 bytes aleatorios): se muestra **una sola vez**; en el servidor solo se guarda su SHA-256 y se compara en tiempo constante. Solo sirve para **añadir pagos pendientes a su dueño** (`POST /api/capture/in`): no lee movimientos, no cambia ajustes y la respuesta no devuelve ningún dato (`{ok, status}`). Generar uno nuevo o desactivar la captura invalida el anterior al instante. En la app de Android se guarda en el almacenamiento privado de la app (`allowBackup=false`).
+- **Endpoint público acotado**: cuerpo máximo 16 kB, 60 peticiones/min por IP, tope de 400 avisos al día por cuenta y como mucho 100 pendientes (30 días) y 30 avisos no reconocidos (7 días). Los fallos de token devuelven siempre el mismo 401.
+- **Qué lee Android**: `NotificationListenerService` con el permiso especial «Acceso a notificaciones» que da la propia persona. Solo se procesan las apps que ella marca (lista de bancos conocidos instalados por defecto) y solo los avisos con una cifra; de las demás únicamente se recuerda el nombre de la app para ofrecerla en la lista. El texto se interpreta en el servidor (`modules/capture/parse.ts`, sin IA); el servidor guarda comercio e importe, y de lo no reconocido solo un extracto sin números largos (IBAN, códigos).
+- **Nada se duplica ni se pisa**: huella `tipo|importe|comercio` en 10 minutos, identificador del móvil (reintentos de la cola), movimiento igual ya guardado ese día, y un candado por cuenta alrededor de cada lectura-modificación-escritura del estado. Al importar un extracto, lo ya capturado (`source: 'capture'`, ±4 días) sale desmarcado.
+- **IA opcional y acotada**: solo para un pago pendiente de comercio desconocido, sin búsqueda web, con tope de 40 al día por cuenta, nunca para ingresos ni pagos a personas (envíos, transferencias, Bizum); se envía solo el nombre saneado del comercio.
+- **Otra moneda**: nunca se añade sola; la persona escribe el importe en su moneda.
+- **Dictado de Ian** (micrófono): lo hace el navegador (Google/Apple) y solo mientras la persona lo mantiene activo; EConsultor recibe el texto. Las herramientas de Ian que cambian datos (`crear_movimiento`, `deshacer_ultimo_movimiento`) solo actúan sobre la cuenta de quien habla, marcan lo anotado como `source: 'ian'` y solo borran lo anotado por Ian en la última hora.
+
 ## Reglas operativas
 
 1. **Nunca** subas `.env` ni `data/` (ya están en `.gitignore`).

@@ -7,7 +7,7 @@ import { markSeen, pendingReleases, RELEASES, type Release } from '../content/no
 import { AddSheet } from './AddSheet';
 import { ErrorBoundary } from './ErrorBoundary';
 import { ImportSheet } from './ImportSheet';
-import { PendingBanner } from './PendingBanner';
+import { PendingBanner, StatementBanner } from './PendingBanner';
 import { PendingSheet } from './PendingSheet';
 import { ReportSheet } from './ReportSheet';
 import { t, tk } from '../lib/i18n';
@@ -87,6 +87,15 @@ export function Shell() {
     setTimeout(() => setToastText(null), 2200);
   }, []);
 
+  // /movimientos?import=1 (clic en el aviso mensual del extracto) abre la importación.
+  useEffect(() => {
+    if (params.get('import') === '1') {
+      openImport();
+      params.delete('import');
+      setParams(params, { replace: true });
+    }
+  }, [params, setParams, openImport]);
+
   // /?add=1 (atajo de la PWA y clic en la notificación) abre la hoja de anotar.
   useEffect(() => {
     if (params.get('add') === '1') {
@@ -125,7 +134,7 @@ export function Shell() {
         </nav>
 
         <main id="main">
-          {(loc.pathname === '/' || loc.pathname === '/movimientos') && <PendingBanner />}
+          {(loc.pathname === '/' || loc.pathname === '/movimientos') && <><StatementBanner /><PendingBanner /></>}
           <ErrorBoundary resetKey={loc.pathname}><Outlet /></ErrorBoundary>
         </main>
         <button className="report-dot" aria-label={t('Reportar un fallo')} title={t('Reportar un fallo')} onClick={openReport}><Icon name="bug" size={16} /></button>

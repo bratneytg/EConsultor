@@ -46,7 +46,9 @@ export async function ianRoutes(app: FastifyInstance): Promise<void> {
       for (const t of list) await store.transactions.update(userId, { ...t, categoryId, updatedAt: now });
       clearAdviceCache(userId);
     };
-    const r = await askIan(cfg, { user: req.user, txs, today: day, reclassify, nudge }, turns);
+    const create = async (t: Transaction): Promise<void> => { changed = true; await store.transactions.create(userId, t); clearAdviceCache(userId); };
+    const remove = async (t: Transaction): Promise<void> => { changed = true; await store.transactions.delete(userId, t.id); clearAdviceCache(userId); };
+    const r = await askIan(cfg, { user: req.user, txs, today: day, reclassify, create, remove, nudge }, turns);
     if ('issue' in r) {
       give(req.user.id, day);
       if (r.issue === 'no_key' || r.issue === 'key' || r.issue === 'model') throw new AppError(503, 'ian_unavailable', 'Ian no está disponible ahora mismo. Inténtalo más tarde.');
