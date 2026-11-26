@@ -6,13 +6,12 @@ import { BalanceArea, BalanceLegend } from '../charts/BalanceArea';
 import { Breakdown } from '../charts/Breakdown';
 import { FlowRiver } from '../charts/FlowRiver';
 import { HealthParts, HealthRing } from '../charts/HealthRing';
-import { HeatCalendar } from '../charts/HeatCalendar';
 import { MonthlyColumns } from '../charts/MonthlyColumns';
 import { WeekdayBars } from '../charts/WeekdayBars';
 import { useUser } from '../lib/auth';
 import { CatTile } from '../components/ui';
 import { categoryLabel } from '../lib/categories';
-import { dayShort, money, monthLabel, monthShort, pct, shiftMonth } from '../lib/format';
+import { dayShort, money, monthLabel, monthShort, pct, shiftMonth, weekdayName } from '../lib/format';
 import { useOverview } from '../lib/queries';
 
 function greeting(): string {
@@ -138,15 +137,8 @@ export function HomePro() {
           </ChartCard>
 
           <ChartCard
-            title="Mapa de gasto" subtitle="Cada casilla es un día; más claro, más gasto."
-            table={{ head: ['Día', 'Gasto'], rows: o.heatmap.filter((d) => d.expenseMinor > 0).slice(-60).reverse().map((d) => [dayShort(d.date), money(d.expenseMinor, cur, 0)]) }}
-          >
-            <HeatCalendar o={o} />
-          </ChartCard>
-
-          <ChartCard
             title="Tu semana" subtitle="Gasto medio por día, últimos 3 meses."
-            table={{ head: ['Día', 'Gasto medio'], rows: o.weekday.map((d) => [['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'][d.weekday]!, money(d.avgExpenseMinor, cur, 0)]) }}
+            table={{ head: ['Día', 'Gasto medio'], rows: o.weekday.map((d) => [weekdayName(d.weekday), money(d.avgExpenseMinor, cur, 0)]) }}
           >
             <WeekdayBars o={o} />
           </ChartCard>

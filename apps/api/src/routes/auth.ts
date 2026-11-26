@@ -30,7 +30,11 @@ export function toPublicUser(u: UserRecord, premiumForAll = false): PublicUser {
     reminderTime: u.reminderTime,
     uiMode: u.uiMode ?? 'simple',
     keepSignedIn: !!u.keepSignedIn,
-    passkeys: (u.passkeys ?? []).map((k) => ({ id: k.id, name: k.name, createdAt: k.createdAt, lastUsedAt: k.lastUsedAt })),
+    language: u.language ?? 'en',
+    passkeys: [
+      ...(u.passkeys ?? []).map((k) => ({ id: k.id, name: k.name, kind: 'passkey' as const, createdAt: k.createdAt, lastUsedAt: k.lastUsedAt })),
+      ...(u.appBiometrics ?? []).map((k) => ({ id: k.id, name: k.name, kind: 'app' as const, createdAt: k.createdAt, lastUsedAt: k.lastUsedAt })),
+    ],
     mfaEnabled: u.mfa.enabled,
     hasPassword: !!u.passwordHash,
     googleLinked: !!u.googleSub,

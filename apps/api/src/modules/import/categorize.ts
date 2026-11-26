@@ -164,7 +164,7 @@ export function buildHistory(txs: { note?: string; categoryId: string }[]): Hist
 }
 
 /** Palabras que dicen, por sí solas, que un movimiento entra a tu cuenta (nómina, devolución, abono…). */
-const INCOME_WORDS = /(stipendio|emolumenti|retribuzione|busta paga|rimborso|storno|\breso\b|restituzione|nota di credito|accredito|bonifico (a vostro favore|ricevuto|in entrata)|incasso|pensione|gehalt|lohn\b|erstattung|gutschrift|rueckerstattung|retoure|refund|reversal|credited|nomina\b|abono|reembolso|devolucion|ingreso|transferencia recibida|payment received|pagamento ricevuto|zahlung erhalten)/;
+const INCOME_WORDS = /(stipendio|emolumenti|retribuzione|busta paga|rimborso|storno|\breso\b|restituzione|nota di credito|accredito|bonifico (a vostro favore|ricevuto|in entrata|da )|giroconto da|incasso|pensione|gehalt|lohn\b|erstattung|gutschrift|rueckerstattung|retoure|refund|reversal|credited|nomina\b|abono|reembolso|devolucion|ingreso|transferencia (recibida|de )|ueberweisung von|zahlungseingang|geldeingang|payment received|pagamento ricevuto|zahlung erhalten)/;
 
 /**
  * Pista léxica sobre el sentido del movimiento: +1 = parece un ingreso, −1 = parece un gasto, 0 = no se sabe.

@@ -1,4 +1,5 @@
 import type { PublicUser } from '@econsultor/shared';
+import { locale, t } from '../lib/i18n';
 import { useQuery } from '@tanstack/react-query';
 import QRCode from 'qrcode';
 import { useEffect, useState } from 'react';
@@ -12,7 +13,7 @@ import { api, ApiError } from '../lib/api';
 import { useAuth, useUser } from '../lib/auth';
 import { useAppConfig, useInvalidateData } from '../lib/queries';
 import { disablePush, enablePush, hasPushSubscription, isIOS, isStandalone, pushSupported } from '../lib/push';
-import { forgetDevicePasskey, passkeyMessage, passkeysAvailable, registerPasskey } from '../lib/passkey';
+import { passkeyMessage, passkeyStatus, registerPasskey, removePasskey as removeKey, statusMessage, thisDeviceKeyId, type PasskeyStatus } from '../lib/passkey';
 import { applyTheme, getThemePref, type ThemePref } from '../lib/theme';
 
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'MXN', 'ARS', 'COP', 'CLP', 'PEN', 'BRL'];
@@ -184,22 +185,22 @@ function Security() {
     await logout();
   };
 
-  const [canPasskey, setCanPasskey] = useState<boolean | null>(null);
+  const [pkStatus, setPkStatus] = useState<PasskeyStatus | null>(null);
   const [pkBusy, setPkBusy] = useState(false);
-  useEffect(() => { passkeysAvailable().then(setCanPasskey); }, []);
+  useEffect(() => { passkeyStatus().then(setPkStatus); }, []);
+  const hereId = thisDeviceKeyId();
   const refreshMe = async () => setUser(await api<PublicUser>('/me'));
   const addPasskey = async () => {
     setPkBusy(true);
-    try { await registerPasskey(); await refreshMe(); toast('Huella activada en este dispositivo'); }
+    try { await registerPasskey(); await refreshMe(); toast(t('Huella activada en este dispositivo')); }
     catch (e) { const m = e instanceof ApiError ? e.message : passkeyMessage(e); if (m) toast(m); }
     finally { setPkBusy(false); }
   };
-  const removePasskey = async (id: string) => {
+  const removePasskey = async (id: string, kind: 'passkey' | 'app') => {
     try {
-      await api(`/auth/passkey/${encodeURIComponent(id)}`, { method: 'DELETE' });
-      forgetDevicePasskey();
+      await removeKey(id, kind);
       await refreshMe();
-      toast('Dispositivo eliminado');
+      toast(t('Dispositivo eliminado'));
     } catch (e) { toast((e as Error).message); }
   };
   const setKeep = async (v: boolean) => {
@@ -273,17 +274,17 @@ function Security() {
           <div>
             <b>Entrar con huella</b>
             <p>
-              {canPasskey === false
-                ? 'Este dispositivo o navegador no ofrece huella, cara o PIN para iniciar sesión.'
-                : 'Usa la huella (o la cara o el PIN) de este dispositivo en lugar de la contraseña. La huella nunca sale del dispositivo.'}
+              {pkStatus && !pkStatus.ok
+                ? statusMessage(pkStatus.reason)
+                : t('Usa la huella (o la cara o el PIN) de este dispositivo en lugar de la contraseña. La huella nunca sale del dispositivo.')}
             </p>
           </div>
-          {canPasskey && <button className="btn btn-primary" disabled={pkBusy} onClick={addPasskey}><Icon name="fingerprint" size={18} />Activar aquí</button>}
+          {pkStatus?.ok && <button className="btn btn-primary" disabled={pkBusy} onClick={addPasskey}><Icon name="fingerprint" size={18} />{t('Activar aquí')}</button>}
         </div>
         {user.passkeys.map((k) => (
           <div className="event" key={k.id}>
-            <span><Icon name="fingerprint" size={16} /> {k.name} <span className="muted">· desde {new Date(k.createdAt).toLocaleDateString('es-ES', { dateStyle: 'medium' })}</span></span>
-            <button className="chip-btn" onClick={() => removePasskey(k.id)}>Quitar</button>
+            <span><Icon name="fingerprint" size={16} /> {k.name}{hereId === k.id && <> · <b>{t('este dispositivo')}</b></>} <span className="muted">· {t('desde {date}', { date: new Date(k.createdAt).toLocaleDateString(locale(), { dateStyle: 'medium' }) })}</span></span>
+            <button className="chip-btn" onClick={() => removePasskey(k.id, k.kind)}>{t('Quitar')}</button>
           </div>
         ))}
       </div>

@@ -57,6 +57,8 @@ export const transactionInput = z
     categoryId: z.enum(CATEGORY_IDS),
     note: z.string().trim().max(200).optional(),
     date: isoDate,
+    /** Cuenta o tarjeta de origen («Nexi», «Ahorro»…). Ausente = cuenta principal. */
+    account: z.string().trim().max(40).optional(),
   })
   .superRefine((v, ctx) => {
     const cat = categoryById(v.categoryId);
@@ -111,6 +113,12 @@ export const IDLE_TIMEOUT_MIN = 10;
 
 export const googleInput = z.object({ idToken: z.string().min(20) });
 
+/** Idiomas de la app. `en` es el predeterminado. */
+export const LANGUAGES = ['en', 'es', 'it', 'de'] as const;
+export type Lang = (typeof LANGUAGES)[number];
+export const DEFAULT_LANG: Lang = 'en';
+export const langSchema = z.enum(LANGUAGES);
+
 export const settingsInput = z
   .object({
     displayName: z.string().trim().min(1).max(60),
@@ -120,6 +128,7 @@ export const settingsInput = z
     reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
     uiMode: uiModeSchema,
     keepSignedIn: z.boolean(),
+    language: langSchema,
   })
   .partial();
 export type SettingsInput = z.infer<typeof settingsInput>;
@@ -141,7 +150,10 @@ export interface PublicUser {
   /** true → la sesión no se cierra tras 10 min de inactividad. */
   keepSignedIn: boolean;
   /** Llaves de acceso (huella) registradas. */
-  passkeys: { id: string; name: string; createdAt: string; lastUsedAt?: string }[];
+  /** Dispositivos con huella: `passkey` = llave del navegador (WebAuthn); `app` = huella nativa de la app de Android. */
+  /** Idioma elegido; las cuentas antiguas que aún no lo han elegido reciben `en`. */
+  language: Lang;
+  passkeys: { id: string; name: string; kind: 'passkey' | 'app'; createdAt: string; lastUsedAt?: string }[];
   mfaEnabled: boolean;
   hasPassword: boolean;
   googleLinked: boolean;

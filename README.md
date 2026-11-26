@@ -35,7 +35,7 @@ El botón **«Importar extractos bancarios»** (en *Movimientos* y en *Ajustes �
 | Verificación en dos pasos (TOTP + códigos de recuperación) | ✅ |
 | Acceso con Google (API lista; falta el botón en la web, ver `docs/ROADMAP.md`) | 🟡 |
 | Movimientos: alta, edición, borrado, búsqueda, filtros | ✅ |
-| Gráficas propias: saldo con previsión, «río» de dinero (Sankey), reparto por familias, 12 meses, mapa de calor, patrón semanal, pulso financiero | ✅ |
+| Gráficas propias: saldo con previsión, «río» de dinero (Sankey), reparto por familias, 12 meses, patrón semanal, pulso financiero | ✅ |
 | Recordatorio diario (Web Push, a la hora local del usuario, solo si no ha anotado nada) | ✅ (necesita claves VAPID) |
 | Perfil financiero interno (nunca se muestra ni se expone por la API) | ✅ |
 | Consejos: pestaña «Generales» y pestaña «A fondo» (comercios, recurrentes, gastos pequeños, tendencias; con «qué hacer»); la IA es opcional y con consentimiento | ✅ (IA necesita `ANTHROPIC_API_KEY`) |

@@ -12,6 +12,9 @@ export const useMonthTransactions = (month: string) =>
     placeholderData: keepPreviousData,
   });
 
+export const useAccounts = (enabled = true) =>
+  useQuery({ queryKey: ['accounts'], queryFn: () => api<{ accounts: { name: string; count: number }[] }>('/import/accounts').then((r) => r.accounts), enabled, staleTime: 60_000 });
+
 export const useAdvice = () => useQuery({ queryKey: ['advice'], queryFn: () => api<AdviceResponse>('/advice') });
 export const useDetailedAdvice = (enabled: boolean) => useQuery({ queryKey: ['advice', 'detailed'], queryFn: () => api<AdviceResponse>('/advice/detailed'), enabled });
 
@@ -20,7 +23,7 @@ export const useAppConfig = () =>
 
 export function useInvalidateData() {
   const qc = useQueryClient();
-  return () => Promise.all([qc.invalidateQueries({ queryKey: ['overview'] }), qc.invalidateQueries({ queryKey: ['tx'] }), qc.invalidateQueries({ queryKey: ['advice'] })]);
+  return () => Promise.all([qc.invalidateQueries({ queryKey: ['overview'] }), qc.invalidateQueries({ queryKey: ['tx'] }), qc.invalidateQueries({ queryKey: ['advice'] }), qc.invalidateQueries({ queryKey: ['accounts'] })]);
 }
 
 export function useSaveTransaction() {

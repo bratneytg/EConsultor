@@ -23,7 +23,7 @@ export interface ImportRow {
   confidence: 'high' | 'medium' | 'low';
   via: 'rule' | 'bank' | 'ai' | 'history' | 'default';
   /** Por qué se propone omitirla (el usuario puede forzarla). */
-  skip?: 'duplicate' | 'internal';
+  skip?: 'duplicate' | 'internal' | 'other_account';
 }
 
 export interface ImportPreview {
@@ -35,4 +35,11 @@ export interface ImportPreview {
   warnings: string[];
   /** Cómo se decidió qué es gasto y qué es ingreso. `flipped`: la persona pidió invertirlo. */
   signs: { mode: 'normal' | 'inverted' | 'unsigned'; flipped: boolean };
+  /** Cuenta a la que se importa (vacío = la principal) y las que ya tiene la persona. */
+  account: string;
+  accounts: { name: string; count: number }[];
+  /** Casi todo coincide con lo que ya hay en la MISMA cuenta: el extracto ya estaba importado. */
+  sameStatement?: { matched: number; total: number };
+  /** Casi todo coincide con OTRA cuenta: probablemente el mismo extracto. `ignored`: la persona dijo que es otra. */
+  overlap?: { account: string; matched: number; total: number; ignored: boolean };
 }

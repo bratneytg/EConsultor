@@ -8,9 +8,15 @@ interface AndroidBridge {
   appVersion(): string;
   setBars?(dark: boolean): void;
   saveTextFile?(name: string, mime: string, content: string): void;
+  /** Huella nativa (BiometricPrompt + Keystore). Solo en versiones nuevas de la app. */
+  biometricAvailable?(): boolean;
+  biometricInfo?(): string;
+  biometricEnroll?(cb: string, userId: string, id: string, secret: string, title: string, subtitle: string, cancel: string): void;
+  biometricLogin?(cb: string, title: string, subtitle: string, cancel: string): void;
+  biometricForget?(): void;
 }
 declare global {
-  interface Window { EConsultorAndroid?: AndroidBridge }
+  interface Window { EConsultorAndroid?: AndroidBridge; __ecBio?: (cb: string, ok: boolean, data: string) => void }
 }
 
 export const native = (): AndroidBridge | null => (typeof window !== 'undefined' ? window.EConsultorAndroid ?? null : null);
@@ -43,3 +49,47 @@ export function watchNativeBars(): void {
   push();
   new MutationObserver(push).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 }
+
+// ───────── Huella nativa de la app de Android ─────────
+// El WebView de Android no admite WebAuthn, así que la huella la gestiona la app (BiometricPrompt).
+
+/** ¿Esta versión de la app sabe pedir la huella y el teléfono tiene una registrada? */
+export function nativeBiometricAvailable(): boolean {
+  try { return !!native()?.biometricAvailable?.(); } catch { return false; }
+}
+/** ¿La app es de una versión antigua, sin huella? (para avisar de que hay que actualizarla). */
+export const nativeBiometricSupported = (): boolean => typeof native()?.biometricAvailable === 'function';
+
+/** Datos no secretos del dispositivo ya activado: `{ userId, id }`, o null. */
+export function nativeBiometricInfo(): { userId: string; id: string } | null {
+  try {
+    const raw = native()?.biometricInfo?.();
+    const v = raw ? (JSON.parse(raw) as { userId?: string; id?: string }) : null;
+    return v?.userId && v.id ? { userId: v.userId, id: v.id } : null;
+  } catch { return null; }
+}
+export const nativeBiometricForget = (): void => { try { native()?.biometricForget?.(); } catch { /* nada */ } };
+
+type Pending = { resolve: (data: string) => void; reject: (reason: string) => void };
+const pending = new Map<string, Pending>();
+function ensureCallback(): void {
+  window.__ecBio = (cb, ok, data) => {
+    const p = pending.get(cb);
+    pending.delete(cb);
+    if (p) ok ? p.resolve(data) : p.reject(data);
+  };
+}
+function call(start: (cb: string) => void): Promise<string> {
+  ensureCallback();
+  const cb = `b${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  return new Promise((resolve, reject) => {
+    pending.set(cb, { resolve, reject });
+    try { start(cb); } catch (e) { pending.delete(cb); reject(String((e as Error)?.message ?? e)); }
+  });
+}
+export interface BioText { title: string; subtitle: string; cancel: string }
+/** Pide la huella y guarda el secreto protegido por ella. Rechaza con 'cancel' si la persona canceló. */
+export const nativeBiometricEnroll = (userId: string, id: string, secret: string, tx: BioText): Promise<string> =>
+  call((cb) => native()!.biometricEnroll!(cb, userId, id, secret, tx.title, tx.subtitle, tx.cancel));
+/** Pide la huella y devuelve `{ userId, id, secret }` en JSON. */
+export const nativeBiometricLogin = (tx: BioText): Promise<string> => call((cb) => native()!.biometricLogin!(cb, tx.title, tx.subtitle, tx.cancel));

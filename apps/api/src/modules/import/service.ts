@@ -11,6 +11,8 @@ import { pdfLines, rowsFromPdfLines } from './pdf.js';
 import { readSpreadsheet, SheetError } from './sheet.js';
 import { resolveSigns } from './signs.js';
 import { rowsFromTable } from './table.js';
+import { isSameStatement, matchAgainst, normAccount, sameAccount, TRANSFER_CUE, windowAround, type Candidate, type Overlap } from './accounts.js';
+import { norm } from './parse.js';
 import type { ImportPreview, ImportRow, RawRow } from './types.js';
 
 export const MAX_ROWS = 5000;
@@ -22,6 +24,10 @@ export interface AnalyzeInput {
   useAi: boolean;
   /** La persona pide invertir gastos e ingresos (cuando el extracto tiene el signo al revés). */
   flipSigns?: boolean;
+  /** Cuenta o tarjeta a la que pertenece el extracto (vacío = la principal). */
+  account?: string;
+  /** La persona confirma que es OTRA cuenta aunque se parezca a una que ya tiene. */
+  assumeDifferentAccount?: boolean;
 }
 
 const unprocessable = (m: string, code = 'unreadable_statement') => new AppError(422, code, m);
@@ -107,8 +113,8 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
 
   // Categorización: reglas offline, luego lo que la propia persona ya categorizó para ese comercio
   // y, si lo pide, IA para lo que sigue sin reconocerse.
-  const mine = await store.transactions.list(user.id, { limit: 50_000 });
-  const history = buildHistory(mine);
+  const allTxs = await store.transactions.list(user.id, { limit: 50_000 });
+  const history = buildHistory(allTxs);
   const cats = raw.map((r) => categorize(r, history));
   const learned = cats.filter((c) => c.via === 'history').length;
   if (learned) warnings.push(`${learned === 1 ? '1 movimiento se ha clasificado' : `${learned} movimientos se han clasificado`} según lo que ya habías categorizado antes.`);
@@ -121,26 +127,50 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
     }
   }
 
-  // Duplicados: multiconjunto (fecha, importe, tipo) frente a lo ya guardado.
+  // Duplicados y cuentas. Dentro de la MISMA cuenta, lo ya guardado (fecha, importe y tipo) sale desmarcado. Si casi todo
+  // coincide con OTRA cuenta (mismo importe, fecha cercana y comercio parecido) es casi seguro el mismo extracto subido
+  // con otro nombre: se avisa y se desmarca, salvo que la persona confirme que es otra cuenta.
+  const account = normAccount(input.account);
   const dates = raw.map((r) => r.date).sort();
   const from = dates[0]!;
   const to = dates[dates.length - 1]!;
-  const existing = await store.transactions.list(user.id, { from, to, limit: 20_000 });
-  const seen = new Map<string, number>();
-  for (const t of existing) {
-    const k = `${t.date}|${t.amountMinor}|${t.type}`;
-    seen.set(k, (seen.get(k) ?? 0) + 1);
+  const win = windowAround(from, to);
+  const pool = allTxs.filter((t) => t.date >= win.from && t.date <= win.to);
+  const sameAcc = pool.filter((t) => sameAccount(t.account, account));
+  const others = pool.filter((t) => !sameAccount(t.account, account));
+
+  const items: (Candidate & { internal: boolean })[] = raw.map((r, i) => {
+    const c = cats[i]!;
+    return {
+      date: r.date,
+      type: categoryById(c.categoryId)?.type ?? (r.amountMinor > 0 ? 'income' : 'expense'),
+      amountMinor: Math.abs(r.amountMinor),
+      note: note(r),
+      internal: c.internal,
+    };
+  });
+  const dupSame = matchAgainst(items, sameAcc, { tolDays: 0, names: false });
+  const dupOther = matchAgainst(items, others, { tolDays: 2, names: true, skip: new Set(dupSame.keys()) });
+  const sameStatement = isSameStatement(dupSame.size, items.length);
+  let overlap: Overlap | null = null;
+  if (!sameStatement && isSameStatement(dupOther.size, items.length)) {
+    const counts = new Map<string, number>();
+    for (const t of dupOther.values()) counts.set(t.account ?? '', (counts.get(t.account ?? '') ?? 0) + 1);
+    const [acc] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]!;
+    overlap = { account: acc, matched: dupOther.size, total: items.length };
   }
+  const crossDuplicates = overlap && !input.assumeDifferentAccount;
+  // Traspasos entre cuentas propias: mismo importe y signo contrario en otra cuenta, y el texto lo dice.
+  const transfers = matchAgainst(items, others, { tolDays: 3, names: false, opposite: true, skip: new Set([...dupSame.keys(), ...dupOther.keys()]) });
 
   const rows: ImportRow[] = raw.map((r, i) => {
     const c = cats[i]!;
-    const type = categoryById(c.categoryId)?.type ?? (r.amountMinor > 0 ? 'income' : 'expense');
-    const amountMinor = Math.abs(r.amountMinor);
-    const row: ImportRow = { id: randomUUID(), date: r.date, type, categoryId: c.categoryId, amountMinor, note: note(r), confidence: c.confidence, via: c.via };
-    const k = `${r.date}|${amountMinor}|${type}`;
-    const left = seen.get(k) ?? 0;
-    if (left > 0) { seen.set(k, left - 1); row.skip = 'duplicate'; }
+    const it = items[i]!;
+    const row: ImportRow = { id: randomUUID(), date: r.date, type: it.type, categoryId: c.categoryId, amountMinor: it.amountMinor, note: it.note, confidence: c.confidence, via: c.via };
+    if (dupSame.has(i)) row.skip = 'duplicate';
+    else if (crossDuplicates && dupOther.has(i)) row.skip = 'other_account';
     else if (c.internal) row.skip = 'internal';
+    else if (transfers.has(i) && TRANSFER_CUE.test(norm(`${r.name ?? ''} ${r.reference ?? ''}`))) row.skip = 'internal';
     return row;
   });
   rows.sort((a, b) => b.date.localeCompare(a.date));
@@ -158,6 +188,21 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
     rows,
     warnings,
     signs: { mode: resolved.mode, flipped: !!input.flipSigns },
+    account,
+    accounts: accountList(allTxs),
+    ...(sameStatement ? { sameStatement: { matched: dupSame.size, total: items.length } } : {}),
+    ...(overlap ? { overlap: { ...overlap, ignored: !!input.assumeDifferentAccount } } : {}),
     stats: { total: rows.length, income: kept.filter((r) => r.type === 'income').length, expense: kept.filter((r) => r.type === 'expense').length, skipped, from, to, incomeMinor: sum('income'), expenseMinor: sum('expense') },
   };
+}
+
+/** Cuentas que la persona ya usa, con su número de movimientos (la principal es la cadena vacía). */
+export function accountList(txs: { account?: string }[]): { name: string; count: number }[] {
+  const m = new Map<string, number>();
+  for (const t of txs) {
+    const key = normAccount(t.account);
+    const canon = [...m.keys()].find((k) => k.toLowerCase() === key.toLowerCase()) ?? key;
+    m.set(canon, (m.get(canon) ?? 0) + 1);
+  }
+  return [...m.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
 }

@@ -1,9 +1,11 @@
+import { locale, t } from './i18n';
+
 const nfCache = new Map<string, Intl.NumberFormat>();
 function nf(currency: string, digits: number): Intl.NumberFormat {
-  const key = `${currency}|${digits}`;
+  const key = `${locale()}|${currency}|${digits}`;
   let f = nfCache.get(key);
   if (!f) {
-    f = new Intl.NumberFormat('es-ES', { style: 'currency', currency, minimumFractionDigits: digits, maximumFractionDigits: digits });
+    f = new Intl.NumberFormat(locale(), { style: 'currency', currency, minimumFractionDigits: digits, maximumFractionDigits: digits });
     nfCache.set(key, f);
   }
   return f;
@@ -16,7 +18,7 @@ export const money = (minor: number, currency: string, digits = 2): string => nf
 export const moneyShort = (minor: number, currency: string): string => {
   const v = minor / 100;
   const abs = Math.abs(v);
-  if (abs >= 10_000) return `${new Intl.NumberFormat('es-ES', { notation: 'compact', maximumFractionDigits: 1 }).format(v)} ${symbol(currency)}`;
+  if (abs >= 10_000) return `${new Intl.NumberFormat(locale(), { notation: 'compact', maximumFractionDigits: 1 }).format(v)} ${symbol(currency)}`;
   return nf(currency, abs % 1 === 0 || abs >= 1000 ? 0 : 2).format(v);
 };
 
@@ -49,18 +51,21 @@ export function parseAmount(input: string): number | null {
   return minor > 0 && minor <= 10_000_000_000 ? minor : null;
 }
 
-export const pct = (v: number, digits = 0): string => `${(v * 100).toFixed(digits).replace('.', ',')} %`;
+export const pct = (v: number, digits = 0): string => new Intl.NumberFormat(locale(), { style: 'percent', minimumFractionDigits: digits, maximumFractionDigits: digits }).format(v);
 
-const MONTH = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric', timeZone: 'UTC' });
-const MONTH_SHORT = new Intl.DateTimeFormat('es-ES', { month: 'short', timeZone: 'UTC' });
-const DAY_LONG = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
-const DAY_SHORT = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const dtfCache = new Map<string, Intl.DateTimeFormat>();
+function dtf(opts: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = `${locale()}|${JSON.stringify(opts)}`;
+  let f = dtfCache.get(key);
+  if (!f) { f = new Intl.DateTimeFormat(locale(), { ...opts, timeZone: 'UTC' }); dtfCache.set(key, f); }
+  return f;
+}
 
 const d = (s: string): Date => new Date(`${s.length === 7 ? `${s}-01` : s}T00:00:00Z`);
-export const monthLabel = (m: string): string => MONTH.format(d(m));
-export const monthShort = (m: string): string => MONTH_SHORT.format(d(m)).replace('.', '');
-export const dayLong = (s: string): string => DAY_LONG.format(d(s));
-export const dayShort = (s: string): string => DAY_SHORT.format(d(s));
+export const monthLabel = (m: string): string => dtf({ month: 'long', year: 'numeric' }).format(d(m));
+export const monthShort = (m: string): string => dtf({ month: 'short' }).format(d(m)).replace('.', '');
+export const dayLong = (s: string): string => dtf({ weekday: 'long', day: 'numeric', month: 'long' }).format(d(s));
+export const dayShort = (s: string): string => dtf({ day: 'numeric', month: 'short' }).format(d(s));
 
 export const shiftMonth = (m: string, delta: number): string => {
   const [y, mo] = m.split('-').map(Number) as [number, number];
@@ -77,10 +82,12 @@ export const addDays = (s: string, n: number): string => {
 };
 
 export function relativeDay(date: string, today: string): string {
-  if (date === today) return 'Hoy';
-  if (date === addDays(today, -1)) return 'Ayer';
+  if (date === today) return t('Hoy');
+  if (date === addDays(today, -1)) return t('Ayer');
   return dayLong(date);
 }
 
-export const WEEKDAYS_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-export const WEEKDAYS_LONG = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados', 'domingos'];
+/** Lunes primero. Letras sueltas para ejes y nombres completos en plural («sábados»). */
+export const weekdaysShort = (): string[] => [t('L'), t('M'), t('X'), t('J'), t('V'), t('S'), t('D')];
+export const weekdaysLong = (): string[] => [t('lunes'), t('martes'), t('miércoles'), t('jueves'), t('viernes'), t('sábados'), t('domingos')];
+export const weekdayName = (weekday: number): string => [t('lunes'), t('martes'), t('miércoles'), t('jueves'), t('viernes'), t('sábado'), t('domingo')][weekday]!;

@@ -7,10 +7,11 @@ import {
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
 import type { AuthResponse } from '@econsultor/shared';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { AppError, badRequest, unauthorized } from '../lib/errors.js';
 import { randomToken } from '../security/crypto.js';
-import type { PasskeyRecord, UserRecord } from '../store/types.js';
+import type { AppBiometricRecord, PasskeyRecord, UserRecord } from '../store/types.js';
 
 export interface PasskeyDeps {
   complete: (req: FastifyRequest, reply: FastifyReply, user: UserRecord, method: string) => Promise<AuthResponse>;
@@ -20,6 +21,9 @@ export interface PasskeyDeps {
 
 const CHALLENGE_TTL_MS = 5 * 60_000;
 const MAX_PASSKEYS = 5;
+const sha256 = (s: string): string => createHash('sha256').update(s).digest('hex');
+const sameHash = (a: string, b: string): boolean => a.length === b.length && timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'));
+const methodsLeft = (u: UserRecord): number => (u.passkeys?.length ?? 0) + (u.appBiometrics?.length ?? 0);
 
 const b64u = {
   enc: (b: Uint8Array): string => Buffer.from(b).toString('base64url'),
@@ -121,7 +125,7 @@ export async function passkeyRoutes(app: FastifyInstance, deps: PasskeyDeps): Pr
     const gone = list.find((k) => k.id === id);
     if (!gone) throw new AppError(404, 'not_found', 'Dispositivo no encontrado');
     // Sin contraseña ni Google, la huella sería la única forma de entrar: no se permite quitar la última.
-    if (!user.passwordHash && !user.googleSub && list.length === 1) throw badRequest('Es tu único método de acceso; añade otro antes de quitarlo.', 'last_login_method');
+    if (!user.passwordHash && !user.googleSub && methodsLeft(user) === 1) throw badRequest('Es tu único método de acceso; añade otro antes de quitarlo.', 'last_login_method');
     user.passkeys = list.filter((k) => k.id !== id);
     user.updatedAt = new Date().toISOString();
     await store.users.update(user);
@@ -178,4 +182,57 @@ export async function passkeyRoutes(app: FastifyInstance, deps: PasskeyDeps): Pr
     return reply.send(await complete(req, reply, user, 'passkey'));
   });
 
+  // ── Huella nativa de la app de Android ──
+  // El WebView de Android no admite WebAuthn. La app guarda en el Keystore (protegido por la huella) un secreto
+  // aleatorio de 256 bits que el servidor reconoce por su hash. Para usarlo hay que pasar el BiometricPrompt.
+  app.post('/biometric/register', { ...auth, ...strict }, async (req) => {
+    const body = z.object({ name: z.string().trim().max(40).optional() }).parse(req.body ?? {});
+    const user = req.user;
+    if ((user.appBiometrics ?? []).length >= MAX_PASSKEYS) throw badRequest(`Máximo ${MAX_PASSKEYS} dispositivos. Elimina alguno primero.`, 'too_many_passkeys');
+    const secret = randomToken(32);
+    const rec: AppBiometricRecord = {
+      id: randomToken(12),
+      name: body.name || `${deviceLabel(req.headers['user-agent'])} · app`,
+      secretHash: sha256(secret),
+      createdAt: new Date().toISOString(),
+    };
+    user.appBiometrics = [...(user.appBiometrics ?? []), rec];
+    user.updatedAt = new Date().toISOString();
+    await store.users.update(user);
+    await audit(req, 'passkey_added', user.id, rec.name);
+    // El secreto solo se entrega ahora; el servidor no puede volver a darlo.
+    return { userId: user.id, id: rec.id, secret, name: rec.name, createdAt: rec.createdAt };
+  });
+
+  app.post('/biometric/login', strict, async (req, reply) => {
+    const body = z.object({ userId: z.string().min(8).max(80), id: z.string().min(8).max(80), secret: z.string().min(20).max(200) }).parse(req.body);
+    const fail = () => unauthorized('No se pudo iniciar sesión con la huella. Usa tu contraseña.', 'passkey_failed');
+    const user = await store.users.byId(body.userId);
+    const dev = user?.appBiometrics?.find((d) => d.id === body.id);
+    if (!user || !dev) {
+      await audit(req, 'login_failed', undefined, 'biometric_unknown');
+      throw fail();
+    }
+    assertNotLocked(user);
+    if (!sameHash(dev.secretHash, sha256(body.secret))) {
+      await audit(req, 'login_failed', user.id, 'biometric_invalid');
+      throw fail();
+    }
+    dev.lastUsedAt = new Date().toISOString();
+    return reply.send(await complete(req, reply, user, 'app_biometric'));
+  });
+
+  app.delete('/biometric/:id', auth, async (req) => {
+    const { id } = z.object({ id: z.string().min(1).max(100) }).parse(req.params);
+    const user = req.user;
+    const list = user.appBiometrics ?? [];
+    const gone = list.find((k) => k.id === id);
+    if (!gone) throw new AppError(404, 'not_found', 'Dispositivo no encontrado');
+    if (!user.passwordHash && !user.googleSub && methodsLeft(user) === 1) throw badRequest('Es tu único método de acceso; añade otro antes de quitarlo.', 'last_login_method');
+    user.appBiometrics = list.filter((k) => k.id !== id);
+    user.updatedAt = new Date().toISOString();
+    await store.users.update(user);
+    await audit(req, 'passkey_removed', user.id, gone.name);
+    return { ok: true };
+  });
 }

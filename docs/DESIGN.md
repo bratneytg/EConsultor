@@ -48,6 +48,5 @@ Claro y oscuro son **dos selecciones propias** de la misma paleta, no una invers
 | El río de tu dinero | ¿De dónde viene y a dónde va? | Sankey (ingresos → hub → familias de gasto + «te sobra»/«déficit») |
 | En qué se va | ¿Qué pesa más y qué ha cambiado? | Barra segmentada + ranking con variación mensual |
 | Últimos 12 meses | ¿Tendencia? | Columnas agrupadas; tocar un mes lo abre |
-| Mapa de gasto | ¿Qué días gasto más? | Calendario de calor de 17 semanas |
 | Tu semana | ¿Qué día gasto más? | 7 columnas, la mayor resaltada |
 | Pulso financiero | ¿Qué tal estoy? | Anillo + 4 medidores (ahorro, fijos, estabilidad, constancia) |

@@ -51,7 +51,7 @@ export const ARTICULOS: Articulo[] = [
     claves: ['modo', 'simple', 'pro', 'profesional', 'sencilla', 'interfaz', 'cambiar vista'],
     texto: [
       'Sencilla muestra tu saldo, un gráfico claro y tus categorías principales. Está pensada para mirarla en diez segundos.',
-      'Profesional añade el flujo del dinero, el pulso financiero, el mapa de gasto por días, tu semana tipo y la comparación de los últimos 12 meses.',
+      'Profesional añade el flujo del dinero, el pulso financiero, tu semana tipo y la comparación de los últimos 12 meses.',
       'Se cambia en Ajustes › Interfaz y la elección se guarda en tu cuenta, así que es la misma en el móvil y en el ordenador.',
     ],
     accion: { etiqueta: 'Ir a Ajustes', to: '/ajustes' },
@@ -129,11 +129,10 @@ export const ARTICULOS: Articulo[] = [
   {
     id: 'mapa-y-semana',
     tema: 'Gráficas',
-    titulo: 'Mapa de gasto y «Tu semana»',
-    resumen: 'Descubre qué días gastas más.',
-    claves: ['mapa de calor', 'calendario', 'semana', 'fin de semana', 'días', 'heatmap'],
+    titulo: '«Tu semana»',
+    resumen: 'Descubre qué días de la semana gastas más.',
+    claves: ['semana', 'fin de semana', 'días', 'día de la semana'],
     texto: [
-      'El mapa de gasto dibuja cada día como una casilla: cuanto más intenso el color, más gasto. Sirve para localizar picos, como el día de cobro o los fines de semana.',
       '«Tu semana» promedia el gasto por día de la semana en los últimos tres meses. Si los sábados destacan, ya sabes dónde mirar.',
     ],
   },

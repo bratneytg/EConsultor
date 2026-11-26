@@ -206,7 +206,7 @@ describe('inicio de sesión con huella (WebAuthn)', () => {
     for (const texto of [exp.body, res.body, (await app.inject({ method: 'GET', url: '/api/me', headers: authed(token) })).body]) {
       expect(texto).not.toMatch(/publicKey|counter|credentialId|transports/);
     }
-    expect(Object.keys(json(exp).user.passkeys[0]).sort()).toEqual(['createdAt', 'id', 'name']);
+    expect(Object.keys(json(exp).user.passkeys[0]).sort()).toEqual(['createdAt', 'id', 'kind', 'name']);
   });
 
   it('entra con la huella sin contraseña, y no pide el segundo factor', async () => {
@@ -274,5 +274,55 @@ describe('inicio de sesión con huella (WebAuthn)', () => {
     for (let i = 0; i < 5; i++) expect((await altaLlave(token)).res.statusCode).toBe(200);
     const o = await app.inject({ method: 'POST', url: '/api/auth/passkey/register/options', headers: authed(token) });
     expect(o.statusCode).toBe(400);
+  });
+
+  describe('huella nativa de la app de Android', () => {
+    const post = (url: string, token: string | null, payload: object = {}) =>
+      app.inject({ method: 'POST', url, headers: token ? authed(token, true) : {}, payload });
+
+    it('se activa, entra sin contraseña ni segundo factor, y el secreto no se filtra', async () => {
+      const { token, userId } = await registro();
+      const reg = json(await post('/api/auth/passkey/biometric/register', token));
+      expect(reg.secret.length).toBeGreaterThan(30);
+      expect(reg.userId).toBe(userId);
+      const stored = (await store.users.byId(userId))!;
+      expect(JSON.stringify(stored.appBiometrics)).not.toContain(reg.secret); // solo el hash
+      const login = await post('/api/auth/passkey/biometric/login', null, { userId, id: reg.id, secret: reg.secret });
+      expect(login.statusCode).toBe(200);
+      expect(json(login).accessToken).toBeTruthy();
+      const me = json(await app.inject({ method: 'GET', url: '/api/me', headers: authed(token) }));
+      expect(me.passkeys).toEqual([{ id: reg.id, name: expect.any(String), kind: 'app', createdAt: expect.any(String), lastUsedAt: expect.any(String) }]);
+      const exp = (await app.inject({ method: 'GET', url: '/api/me/export', headers: authed(token) })).body;
+      expect(exp).not.toMatch(/secretHash|secret"/);
+    });
+
+    it('rechaza secretos falsos, dispositivos ajenos y datos inventados', async () => {
+      const a = await registro();
+      const b = await registro();
+      const ra = json(await post('/api/auth/passkey/biometric/register', a.token));
+      const bad = await post('/api/auth/passkey/biometric/login', null, { userId: a.userId, id: ra.id, secret: 'x'.repeat(43) });
+      expect(bad.statusCode).toBe(401);
+      const cross = await post('/api/auth/passkey/biometric/login', null, { userId: b.userId, id: ra.id, secret: ra.secret });
+      expect(cross.statusCode).toBe(401);
+      expect((await post('/api/auth/passkey/biometric/login', null, { userId: 'nadie-1234', id: 'dispositivo1', secret: ra.secret })).statusCode).toBe(401);
+      expect((await post('/api/auth/passkey/biometric/login', null, { userId: a.userId })).statusCode).toBe(400);
+    });
+
+    it('al quitar el dispositivo el secreto deja de valer; máximo 5; no se quita el último método si no hay contraseña', async () => {
+      const { token, userId } = await registro();
+      const r = json(await post('/api/auth/passkey/biometric/register', token));
+      const del = await app.inject({ method: 'DELETE', url: `/api/auth/passkey/biometric/${r.id}`, headers: authed(token, true) });
+      expect(del.statusCode).toBe(200);
+      expect((await post('/api/auth/passkey/biometric/login', null, { userId, id: r.id, secret: r.secret })).statusCode).toBe(401);
+      for (let i = 0; i < 5; i++) expect((await post('/api/auth/passkey/biometric/register', token)).statusCode).toBe(200);
+      expect((await post('/api/auth/passkey/biometric/register', token)).statusCode).toBe(400);
+      // Una cuenta sin contraseña ni Google no puede quedarse sin su único método.
+      const u = (await store.users.byId(userId))!;
+      u.passwordHash = undefined;
+      u.appBiometrics = u.appBiometrics!.slice(0, 1);
+      await store.users.update(u);
+      const last = await app.inject({ method: 'DELETE', url: `/api/auth/passkey/biometric/${u.appBiometrics![0]!.id}`, headers: authed(token, true) });
+      expect(last.statusCode).toBe(400);
+    });
   });
 });

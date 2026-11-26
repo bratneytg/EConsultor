@@ -1,4 +1,4 @@
-import type { Plan, Transaction, UiMode } from '@econsultor/shared';
+import type { Lang, Plan, Transaction, UiMode } from '@econsultor/shared';
 
 /** Llave de acceso (huella, cara o PIN del dispositivo). Solo guardamos la clave PÚBLICA. */
 export interface PasskeyRecord {
@@ -36,11 +36,24 @@ export interface UserRecord {
   };
   /** Si es true, la sesión no se cierra por inactividad. Ausente → se cierra a los 10 min. */
   keepSignedIn?: boolean;
+  /** Idioma de la app y de los textos que genera el servidor. Ausente → inglés. */
+  language?: Lang;
   passkeys?: PasskeyRecord[];
+  /** Dispositivos de la app de Android con huella nativa (el WebView no admite WebAuthn). Solo se guarda un hash del secreto. */
+  appBiometrics?: AppBiometricRecord[];
   failedLogins: number;
   lockedUntil?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AppBiometricRecord {
+  id: string;
+  name: string;
+  /** SHA-256 del secreto de 256 bits que guarda el Keystore del teléfono, protegido por la huella. */
+  secretHash: string;
+  createdAt: string;
+  lastUsedAt?: string;
 }
 
 export interface SessionRecord {
@@ -94,6 +107,8 @@ export interface TxFilter {
   to?: string;
   type?: 'income' | 'expense';
   categoryId?: string;
+  /** Nombre de cuenta; '' = movimientos sin cuenta (la principal). */
+  account?: string;
   limit?: number;
 }
 

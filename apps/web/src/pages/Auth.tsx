@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { t } from '../lib/i18n';
 import { Icon } from '../components/Icon';
 import { ApiError, authApi, takeIdleFlag } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { deviceHasPasskey, loginWithPasskey, passkeyMessage, passkeysAvailable } from '../lib/passkey';
+import { deviceHasPasskey, loginWithPasskey, passkeyMessage, passkeyStatus } from '../lib/passkey';
 
 /** Cintas de color: el motivo gráfico de la marca (flujo de dinero), con deriva lenta. */
 function Ribbons() {
@@ -34,8 +35,11 @@ export function Auth() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [idleNotice] = useState(() => takeIdleFlag());
+  // En el navegador se ofrece siempre que el dispositivo lo admita (las llaves pueden venir de otro dispositivo);
+  // en la app de Android solo cuando ya se activó aquí.
   const [canPasskey, setCanPasskey] = useState(false);
-  useEffect(() => { if (deviceHasPasskey()) passkeysAvailable().then(setCanPasskey); }, []);
+  const [pkKnown] = useState(() => deviceHasPasskey());
+  useEffect(() => { passkeyStatus().then((s) => setCanPasskey(s.ok && (pkKnown || s.mode === 'webauthn'))); }, [pkKnown]);
 
   const withFingerprint = async () => {
     setBusy(true); setError('');
@@ -105,8 +109,8 @@ export function Auth() {
             {idleNotice && mode === 'login' && <p className="notice" role="status">Cerramos tu sesión tras 10 minutos sin actividad, para proteger tus datos. Puedes cambiarlo en Ajustes → Seguridad.</p>}
             {canPasskey && mode === 'login' && (
               <>
-                <button type="button" className="btn btn-primary btn-block" disabled={busy} onClick={withFingerprint}><Icon name="fingerprint" size={20} />Entrar con huella</button>
-                <p className="hint" style={{ textAlign: 'center', margin: '10px 0 14px' }}>o con tu email y contraseña</p>
+                <button type="button" className="btn btn-primary btn-block" disabled={busy} onClick={withFingerprint}><Icon name="fingerprint" size={20} />{t('Entrar con huella')}</button>
+                <p className="hint" style={{ textAlign: 'center', margin: '10px 0 14px' }}>{pkKnown ? t('o con tu email y contraseña') : t('o con tu email y contraseña. Si aún no has activado la huella, hazlo en Ajustes › Seguridad.')}</p>
               </>
             )}
             {mode === 'register' && (

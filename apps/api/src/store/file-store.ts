@@ -165,6 +165,7 @@ export class FileStore implements Store {
       if (f.to) out = out.filter((t) => t.date <= f.to!);
       if (f.type) out = out.filter((t) => t.type === f.type);
       if (f.categoryId) out = out.filter((t) => t.categoryId === f.categoryId);
+      if (f.account !== undefined) out = out.filter((t) => (t.account ?? '') === f.account);
       out.sort((a, b) => (a.date === b.date ? b.createdAt.localeCompare(a.createdAt) : b.date.localeCompare(a.date)));
       if (f.limit) out = out.slice(0, f.limit);
       return out.map(strip);

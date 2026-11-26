@@ -5,16 +5,20 @@ import { z } from 'zod';
 import { addDays, todayIn } from '../lib/dates.js';
 import { badRequest } from '../lib/errors.js';
 import { clearAdviceCache } from '../modules/advice/advisor.js';
-import { analyzeStatement, MAX_ROWS } from '../modules/import/service.js';
+import { normAccount } from '../modules/import/accounts.js';
+import { accountList, analyzeStatement, MAX_ROWS } from '../modules/import/service.js';
 
 const previewInput = z.object({
   kind: z.enum(['csv', 'pdf', 'sheet']),
   content: z.string().min(10),
   useAi: z.boolean().default(false),
   flipSigns: z.boolean().default(false),
+  account: z.string().trim().max(40).optional(),
+  assumeDifferentAccount: z.boolean().default(false),
 });
 
 const commitInput = z.object({
+  account: z.string().trim().max(40).optional(),
   rows: z
     .array(
       z.object({
@@ -40,8 +44,10 @@ export async function importRoutes(app: FastifyInstance): Promise<void> {
     return analyzeStatement(cfg, store, req.user, today, { ...body, useAi: body.useAi && !!cfg.anthropicApiKey });
   });
 
+  app.get('/accounts', auth, async (req) => ({ accounts: accountList(await store.transactions.list(req.user.id, { limit: 50_000 })) }));
+
   app.post('/commit', { ...auth, bodyLimit: 4 * 1024 * 1024, config: { rateLimit: limit } }, async (req) => {
-    const { rows } = commitInput.parse(req.body);
+    const { rows, account } = commitInput.parse(req.body);
     const today = todayIn(req.user.timezone);
     const maxDate = addDays(today, 1);
     if (rows.some((r) => r.date < '2000-01-01' || r.date > maxDate)) throw badRequest('Hay fechas fuera de rango');
@@ -56,6 +62,7 @@ export async function importRoutes(app: FastifyInstance): Promise<void> {
         categoryId: r.categoryId,
         date: r.date,
         note: r.note || undefined,
+        account: normAccount(account) || undefined,
         createdAt: now,
         updatedAt: now,
       };

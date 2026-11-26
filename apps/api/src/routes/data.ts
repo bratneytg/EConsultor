@@ -24,6 +24,7 @@ const listQuery = z.object({
   to: isoDate.optional(),
   type: z.enum(['income', 'expense']).optional(),
   categoryId: z.string().max(40).optional(),
+  account: z.string().max(40).optional(),
   limit: z.coerce.number().int().min(1).max(2000).default(500),
 });
 
@@ -47,6 +48,7 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
     if (body.reminderTime) u.reminderTime = body.reminderTime;
     if (body.uiMode) u.uiMode = body.uiMode;
     if (body.keepSignedIn !== undefined) u.keepSignedIn = body.keepSignedIn;
+    if (body.language !== undefined) { u.language = body.language; clearAdviceCache(u.id); }
     u.updatedAt = new Date().toISOString();
     await store.users.update(u);
     return toPublicUser(u, cfg.premiumForAll);
@@ -96,7 +98,7 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
     const input = transactionInput.parse({ ...(req.body as object), currency: req.user.currency });
     assertSaneDate(input.date, todayIn(req.user.timezone));
     const now = new Date().toISOString();
-    const tx: Transaction = { ...input, currency: req.user.currency, id: randomUUID(), createdAt: now, updatedAt: now };
+    const tx: Transaction = { ...input, account: input.account || undefined, currency: req.user.currency, id: randomUUID(), createdAt: now, updatedAt: now };
     await store.transactions.create(req.user.id, tx);
     return reply.status(201).send(tx);
   });
@@ -107,7 +109,7 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
     if (!existing) throw notFound('Movimiento no encontrado');
     const merged = transactionInput.parse({ ...existing, ...(req.body as object), currency: req.user.currency });
     assertSaneDate(merged.date, todayIn(req.user.timezone));
-    const tx: Transaction = { ...existing, ...merged, currency: req.user.currency, updatedAt: new Date().toISOString() };
+    const tx: Transaction = { ...existing, ...merged, account: merged.account || undefined, currency: req.user.currency, updatedAt: new Date().toISOString() };
     await store.transactions.update(req.user.id, tx);
     return tx;
   });
