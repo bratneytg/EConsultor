@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import vm from 'node:vm';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -78,6 +79,77 @@ describe('evaluación psico-económica', () => {
   it('no incluye notas ni comercios sueltos', () => {
     const txs = MESES.flatMap((m) => [tx(`${m}-01`, 'income', 'salary', 2500), tx(`${m}-03`, 'expense', 'housing', 700), tx(`${m}-04`, 'expense', 'shopping', 80, 'Zalando Pedido 99887766'), tx(`${m}-08`, 'expense', 'groceries', 90), tx(`${m}-09`, 'expense', 'groceries', 70), tx(`${m}-12`, 'expense', 'dining', 30)]);
     expect(JSON.stringify(psico(txs))).not.toMatch(/Zalando|99887766/);
+  });
+});
+
+/** Cinco meses cobrando el día 5, con el gasto discrecional pegado al cobro y el gasto subiendo con el sueldo. */
+function escenarioCobro(): Transaction[] {
+  const txs: Transaction[] = [];
+  MESES.forEach((m, i) => {
+    txs.push(tx(`${m}-05`, 'income', 'salary', 2000 + i * 300, 'DHL Gehalt'), tx(`${m}-01`, 'expense', 'housing', 700, 'Miete'));
+    for (const d of ['06', '08', '10', '12']) txs.push(tx(`${m}-${d}`, 'expense', 'shopping', 70 + i * 40, 'Zalando'), tx(`${m}-${d}`, 'expense', 'dining', 25, 'Lieferando'));
+    for (const d of ['17', '24']) txs.push(tx(`${m}-${d}`, 'expense', 'groceries', 60, 'Rewe'));
+    txs.push(tx(`${m}-02`, 'expense', 'subscriptions', 30, 'Netflix'));
+  });
+  return txs;
+}
+
+describe('evaluación psico-económica: profundidad', () => {
+  it('detecta el efecto día de cobro, la inflación de estilo de vida y mide el ritmo', () => {
+    const p = psico(escenarioCobro());
+    expect(p.disponible).toBe(true);
+    expect(rasgo(p, 'cobro').nivel).toBe('alto');
+    expect(rasgo(p, 'cobro').evidencia.join(' ')).toMatch(/día 5/);
+    expect(rasgo(p, 'inflacion').nivel).not.toBe('bajo');
+    expect(p.ritmo!.diaCobro).toBe(5);
+    expect(p.ritmo!.tercios![0]).toBeGreaterThan(p.ritmo!.tercios![2]!);
+    expect(p.cronologia).toHaveLength(5);
+    expect(p.evolucion!.join(' ')).toMatch(/gasto|ahorro/i);
+    expect(p.retrato!.join(' ')).toMatch(/día de cobro/);
+  });
+
+  it('ofrece palancas en euros al año, hipótesis con su forma de distinguirlas y preguntas para hablarlo', () => {
+    const p = psico(escenarioCobro());
+    expect(p.palancas!.length).toBeGreaterThan(0);
+    expect(p.palancas![0]!.anualMinor).toBeGreaterThan(50_000);
+    expect(p.palancas!.map((x) => x.id)).toContain('compras');
+    expect(p.palancas!.map((x) => x.id)).toContain('domicilio');
+    expect(p.hipotesis!.some((h) => /cobro/i.test(h.observacion))).toBe(true);
+    for (const h of p.hipotesis!) { expect(h.explicaciones.length).toBeGreaterThanOrEqual(2); expect(h.paraDistinguir.length).toBeGreaterThan(10); }
+    expect(p.preguntas!.length).toBeGreaterThan(1);
+    expect(p.titular!.nombre.length).toBeGreaterThan(3);
+  });
+
+  it('los rasgos que dependen del tiempo no aparecen sin historia suficiente', () => {
+    const corto = ['2026-09', '2026-10'].flatMap((m) => [tx(`${m}-05`, 'income', 'salary', 2000), tx(`${m}-01`, 'expense', 'housing', 700), ...['08', '10', '12', '14', '16', '18', '20'].map((d) => tx(`${m}-${d}`, 'expense', 'groceries', 40))]);
+    const p = psico(corto);
+    expect(p.disponible).toBe(true);
+    expect(p.rasgos!.map((r) => r.id)).not.toContain('inflacion');
+    expect(p.rasgos!.map((r) => r.id)).not.toContain('autocorreccion');
+    // Con dos meses, nada se presenta con confianza alta.
+    expect(p.rasgos!.every((r) => r.confianza === 'baja')).toBe(true);
+  });
+
+  it('tratar lo invertido como ahorro: quien invierte mucho no sale «derrochador»', () => {
+    const txs = MESES.flatMap((m) => [tx(`${m}-01`, 'income', 'salary', 3000), tx(`${m}-02`, 'expense', 'housing', 800), tx(`${m}-05`, 'expense', 'investing', 1200, 'Trade Republic'), tx(`${m}-08`, 'expense', 'groceries', 150), tx(`${m}-15`, 'expense', 'groceries', 150), tx(`${m}-20`, 'expense', 'dining', 40)]);
+    const p = psico(txs);
+    expect(rasgo(p, 'tacano-derrochador').nivel).toBe('bajo');
+    expect(rasgo(p, 'planificado').nivel).toBe('alto');
+    expect(p.titular!.nombre).toBe('Constructor');
+  });
+});
+
+describe('el panel pinta la evaluación', () => {
+  it('genera el bloque completo sin valores sueltos', () => {
+    const html = readFileSync(new URL('../src/panel/index.html', import.meta.url), 'utf8');
+    const script = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].pop()![1]!.replace('__NONCE__', 'x');
+    const stub: any = new Proxy(function () {}, { get: (_t, k) => (k === Symbol.toPrimitive ? () => '' : stub), apply: () => stub, construct: () => stub, set: () => true });
+    const ctx: any = vm.createContext({ document: stub, window: stub, navigator: stub, localStorage: stub, sessionStorage: stub, fetch: stub, console, Intl, setInterval: () => 0, setTimeout: () => 0, clearTimeout: () => 0, clearInterval: () => 0, requestAnimationFrame: () => 0, location: stub, matchMedia: () => stub, ResizeObserver: class {}, URL, performance: { now: () => 0 } });
+    ctx.__ps = psico(escenarioCobro());
+    vm.runInContext(`${script}\n;globalThis.__out = tarjetaPsico(__ps, 'EUR', 0).s;`, ctx);
+    const out = String(ctx.__out);
+    for (const t of ['Retrato', 'Cómo evoluciona', 'Hipótesis', 'Dónde está el dinero que se escapa', 'Rasgos medidos', 'Límites de esta lectura']) expect(out).toContain(t);
+    expect(out).not.toMatch(/undefined|NaN|\[object/);
   });
 });
 

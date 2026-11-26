@@ -178,6 +178,11 @@ dl.datos dd { margin: 0; overflow-wrap: anywhere; }
 .perfil .neg { color: var(--bad-ink); }
 .psico { border-top: 1px dashed var(--line); padding-top: 14px; }
 .psico h4 { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.titular-psico { font-size: 17px; font-weight: 550; margin: 4px 0 6px; }
+.matices { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; }
+.hipotesis { display: grid; gap: 10px; }
+.hip { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.hip ul { margin: 6px 0 4px 18px; padding: 0; }
 .aviso-psico { margin: 8px 0; padding: 8px 12px; border: 1px solid var(--warn); border-radius: 10px; color: var(--warn-ink); }
 .lecturas { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 4px; color: var(--ink-2); }
 .aviso-privacidad { border-color: var(--warn); }
@@ -743,18 +748,33 @@ function vReportes(d) {
 const dinero = (minor, moneda = 'EUR') => { try { return new Intl.NumberFormat('es-ES', { style: 'currency', currency: moneda, maximumFractionDigits: 0 }).format((minor || 0) / 100); } catch { return `${nf.format(Math.round((minor || 0) / 100))} ${moneda}`; } };
 const NIVEL_ARQ = { saver: 'bien', balanced: 'bien', tight: 'med', overspender: 'mal', irregular: 'med' };
 
-function tarjetaPsico(ps) {
+function tarjetaPsico(ps, moneda, id) {
   if (!ps.disponible) return html`<div class="psico mt14"><h4>Evaluación psico-económica</h4><p class="muted">${ps.motivo}</p></div>`;
   const nivelCls = { bajo: 'bien', medio: 'med', alto: 'mal' };
-  const lista = (t, xs) => xs.length ? html`<h4 class="mt10">${t}</h4><ul class="lecturas">${xs.map((x) => html`<li>${x}</li>`)}</ul>` : '';
-  return html`<div class="psico mt14"><h4>Evaluación psico-económica <span class="etiqueta med">${ps.guion.nombre}</span></h4>
-    <p class="muted">${ps.base.movimientos} movimientos · ${plural(ps.base.meses, 'mes', 'meses')} de datos. Es una lectura de conducta, no un diagnóstico.</p>
+  const lista = (t, xs) => xs && xs.length ? html`<h4 class="mt10">${t}</h4><ul class="lecturas">${xs.map((x) => html`<li>${x}</li>`)}</ul>` : '';
+  const tit = ps.titular;
+  const rt = ps.ritmo;
+  const DIAS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+  return html`<div class="psico mt14"><h4>Evaluación psico-económica <span class="etiqueta med">${tit.nombre}</span></h4>
+    <p class="titular-psico">${tit.frase}</p>
+    ${tit.matices.length ? html`<p class="matices">${tit.matices.map((m) => html`<span class="etiqueta">${m}</span> `)}</p>` : ''}
+    <p class="muted">${ps.base.movimientos} movimientos · ${plural(ps.base.meses, 'mes', 'meses')} de datos. Guion dominante: ${ps.guion.nombre.toLowerCase()}. Es una lectura de conducta, no un diagnóstico.</p>
     ${ps.restriccion ? html`<p class="aviso-psico"><b>Cuidado:</b> casi todo su gasto es obligado. Lo que se ve es sobre todo restricción, no carácter.</p>` : ''}
     ${lista('Retrato', ps.retrato)}
+    ${lista('Cómo evoluciona', ps.evolucion)}
+    ${ps.cronologia.length >= 3 ? html`<div class="rejilla mt10"><div>${grafico(`psico-ahorro-${id}`, { tipo: 'barras', titulo: 'Ahorro efectivo por mes (%)', col: 'Mes', fmt: (v) => `${v} %`, series: [{ n: 'Ahorro', vals: ps.cronologia.map((c) => c.ahorroPct ?? 0) }], cats: ps.cronologia.map((c) => c.mes) })}</div>
+      <div>${grafico(`psico-disc-${id}`, { tipo: 'barras', titulo: 'Peso del gasto discrecional por mes (%)', col: 'Mes', fmt: (v) => `${v} %`, series: [{ n: 'Discrecional', vals: ps.cronologia.map((c) => c.discrecionalPct) }], cats: ps.cronologia.map((c) => c.mes) })}</div></div>` : ''}
+    <div class="rejilla mt10">
+      <div><h4>Ritmo semanal (gasto cotidiano)</h4>${hbarras(rt.semana.map((v, i) => ({ l: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'][i], v })), (v) => `${v} %`)}</div>
+      <div><h4>Ritmo del ciclo de cobro</h4>${rt.tercios ? html`<p class="muted">Cobra hacia el día ${rt.diaCobro}${rt.efectoCobro != null ? ` · primera semana: ×${rt.efectoCobro} lo esperable en ocio` : ''}.</p>${hbarras([{ l: 'Primeros 10 días', v: rt.tercios[0] }, { l: 'Días 11 a 20', v: rt.tercios[1] }, { l: 'Final del ciclo', v: rt.tercios[2] }], (v) => `${v} %`)}` : html`<p class="muted">Aún no hay datos suficientes para ver el ritmo del ciclo.</p>`}</div></div>
     ${lista('Qué revela su dinero', ps.revela)}
     ${lista('Puntos ciegos', ps.puntosCiegos)}
+    ${lista('Contradicciones', ps.tensiones)}
+    ${ps.hipotesis.length ? html`<h4 class="mt10">Hipótesis (no certezas)</h4><div class="hipotesis">${ps.hipotesis.map((h) => html`<div class="hip"><b>${h.observacion}</b><ul>${h.explicaciones.map((x) => html`<li>${x}</li>`)}</ul><p class="muted">Para distinguirlo: ${h.paraDistinguir}</p></div>`)}</div>` : ''}
+    ${ps.palancas.length ? html`<h4 class="mt10">Dónde está el dinero que se escapa (al año)</h4><div class="tabla"><table><thead><tr><th>Palanca</th><th class="r">Importe</th><th>Qué hacer</th></tr></thead><tbody>${ps.palancas.map((x) => html`<tr><td>${x.nombre}</td><td class="r num">${dinero(x.anualMinor, moneda)}</td><td class="muted">${x.detalle}</td></tr>`)}</tbody></table></div>` : ''}
     ${lista('Sin filtro', ps.sinFiltro)}
-    <h4 class="mt10">Rasgos</h4>
+    ${lista('Para hablarlo con la persona', ps.preguntas)}
+    <h4 class="mt10">Rasgos medidos</h4>
     <div class="tabla"><table><thead><tr><th>Rasgo</th><th>Nivel</th><th class="r">Puntos</th><th>Confianza</th><th>Evidencia</th></tr></thead><tbody>${ps.rasgos.map((r) => html`<tr><td><b>${r.nombre}</b><br><span class="muted">${r.marco}</span><br><span class="muted">${r.lectura}</span></td><td><span class="etiqueta ${nivelCls[r.nivel]}">${r.nivel}</span></td><td class="r num">${r.puntos}</td><td>${r.confianza}</td><td class="muted">${r.evidencia.join(' · ')}</td></tr>`)}</tbody></table></div>
     <h4 class="mt10">En qué nivel se gasta el dinero (Maslow)</h4>${hbarras(ps.necesidades.reparto.map((x) => ({ l: x.nivel, v: x.pct })), (v) => `${v} %`)}
     <details class="mt10"><summary>Límites de esta lectura</summary><ul class="lecturas">${ps.limites.map((x) => html`<li>${x}</li>`)}</ul></details></div>`;
@@ -771,7 +791,7 @@ function tarjetaPerfil(p, i) {
         <dl class="datos"><dt>Tendencia del gasto</dt><dd>${p.tendenciaGasto}</dd><dt>Volatilidad de ingresos</dt><dd class="num">${nf1.format(p.volatilidadIngresos)}${p.volatilidadIngresos > 0.35 ? ' (alta)' : ''}</dd><dt>Fuentes de ingreso</dt><dd class="num">${p.fuentesIngreso}</dd><dt>Suscripciones</dt><dd class="num">${dinero(p.suscripciones, p.moneda)} / mes</dd><dt>Gasto fin de semana</dt><dd class="num">×${nf1.format(p.sesgoFinDeSemana)} vs. laborables</dd></dl></div>
       <div>${grafico(`perfil-${i}`, { tipo: 'barras', titulo: 'Gasto de los últimos meses', col: 'Mes', fmt: (v) => dinero(v * 100, p.moneda), series: [{ n: 'Gasto', vals: p.meses12.map((m) => Math.round(m.gastos / 100)) }], cats: p.meses12.map((m) => m.mes) })}
         <div class="prevision"><b>Previsión de este mes</b><p>Lleva ${dinero(p.mesActual.ingresos, p.moneda)} ingresados y ${dinero(p.mesActual.gastos, p.moneda)} gastados. ${quedan > 0 && pv.diasTranscurridos > 0 ? html`Al ritmo de ${dinero(pv.ritmoDiario, p.moneda)} al día, cerraría con <b class="${pv.cierreProyectado < 0 ? 'neg' : ''}">${dinero(pv.cierreProyectado, p.moneda)}</b>.` : 'El mes ya ha terminado.'}</p></div></div></div>
-    ${p.lecturas.length ? html`<h4 class="mt14">Cómo leerlo</h4><ul class="lecturas">${p.lecturas.map((l) => html`<li>${l}</li>`)}</ul>` : ''}${p.psico ? tarjetaPsico(p.psico) : ''}</article>`;
+    ${p.lecturas.length ? html`<h4 class="mt14">Cómo leerlo</h4><ul class="lecturas">${p.lecturas.map((l) => html`<li>${l}</li>`)}</ul>` : ''}${p.psico ? tarjetaPsico(p.psico, p.moneda, i) : ''}</article>`;
 }
 
 function vPerfiles(d) {
