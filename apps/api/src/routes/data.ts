@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { isoDate, monthStr, settingsInput, transactionInput, type Transaction } from '@econsultor/shared';
+import { CATEGORIES, categoryPrefsInput, isoDate, monthStr, registerCategories, settingsInput, transactionInput, type CustomCategory, type Transaction } from '@econsultor/shared';
 import { addDays, monthOf, todayIn } from '../lib/dates.js';
 import { badRequest, conflict, forbidden, notFound, unauthorized } from '../lib/errors.js';
 import { getAdvice, getDetailedAdvice, clearAdviceCache } from '../modules/advice/advisor.js';
@@ -11,6 +11,8 @@ import { effectivePlan } from '../lib/plan.js';
 import { verifyPassword } from '../security/password.js';
 import { toPublicUser } from './auth.js';
 import { tk } from '../lib/i18n.js';
+import { assertCategory, categoryLabelFor, fallbackCategory, newCustomId, prefsOf, unregisterAll, visibleLabels } from '../lib/categories.js';
+import { syncRecurring } from '../modules/recurring/service.js';
 
 /** Fecha de calendario real (rechaza 2026-02-31) y no más de 1 día en el futuro. */
 function assertSaneDate(date: string, today: string): void {
@@ -62,9 +64,10 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
 
   /** Portabilidad de datos (RGPD art. 20). Nunca incluye secretos ni hashes. */
   app.get('/me/export', auth, async (req, reply) => {
+    await syncRecurring(store, req.user);
     const txs = await store.transactions.list(req.user.id);
     reply.header('content-disposition', 'attachment; filename="econsultor-export.json"');
-    return { exportedAt: new Date().toISOString(), user: toPublicUser(req.user, cfg.premiumForAll), transactions: txs };
+    return { exportedAt: new Date().toISOString(), user: toPublicUser(req.user, cfg.premiumForAll), recurring: req.user.recurring ?? [], transactions: txs };
   });
 
   /** Derecho de supresión (RGPD art. 17). */
@@ -89,15 +92,73 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
     return { ok: true };
   });
 
+  // ───────── Categorías propias ─────────
+  /** Sustituye la personalización de categorías: propias, nombres cambiados y ocultas. Lo que se quita pasa a «Otros». */
+  app.put('/me/categories', auth, async (req) => {
+    const body = categoryPrefsInput.parse(req.body);
+    const u = req.user;
+    const old = prefsOf(u);
+    const oldById = new Map(old.custom.map((c) => [c.id, c]));
+    const builtin = new Map(CATEGORIES.map((c) => [c.id, c]));
+
+    const custom: CustomCategory[] = body.custom.map((c) => {
+      const prev = c.id ? oldById.get(c.id) : undefined;
+      return {
+        id: prev?.id ?? newCustomId(),
+        label: c.label,
+        type: prev?.type ?? c.type, // el tipo de una categoría con movimientos no cambia
+        family: c.family,
+        fixed: c.fixed || undefined,
+        discretionary: c.discretionary || undefined,
+      };
+    });
+    const renamed: Record<string, string> = {};
+    for (const [id, label] of Object.entries(body.renamed)) if (builtin.has(id)) renamed[id] = label;
+    // «Otros gastos» y «Otros ingresos» siempre se pueden elegir: ahí caen los movimientos de lo que se borra.
+    const hidden = [...new Set(body.hidden)].filter((id) => builtin.has(id) && id !== 'other_expense' && id !== 'other_income');
+
+    // Un nombre no puede repetirse dentro de gastos ni de ingresos: se confundiría al elegir.
+    for (const type of ['expense', 'income'] as const) {
+      const seen = new Set<string>();
+      for (const name of visibleLabels({ custom, renamed, hidden }, type)) {
+        const key = name.trim().toLocaleLowerCase();
+        if (seen.has(key)) throw badRequest('Ya hay una categoría con ese nombre', 'duplicate_category');
+        seen.add(key);
+      }
+    }
+
+    // Lo que ya no existe: sus movimientos y periódicos pasan a «Otros gastos / Otros ingresos».
+    const removed = old.custom.filter((c) => !custom.some((n) => n.id === c.id));
+    if (removed.length) {
+      const gone = new Map(removed.map((c) => [c.id, c]));
+      const now = new Date().toISOString();
+      for (const t of await store.transactions.list(u.id)) {
+        const c = gone.get(t.categoryId);
+        if (c) await store.transactions.update(u.id, { ...t, categoryId: fallbackCategory(c.type), updatedAt: now });
+      }
+      for (const r of u.recurring ?? []) { const c = gone.get(r.categoryId); if (c) r.categoryId = fallbackCategory(c.type); }
+      unregisterAll(removed.map((c) => c.id));
+    }
+
+    u.categoryPrefs = { custom, renamed, hidden };
+    registerCategories(custom);
+    u.updatedAt = new Date().toISOString();
+    await store.users.update(u);
+    clearAdviceCache(u.id);
+    return toPublicUser(u, cfg.premiumForAll);
+  });
+
   // ───────── Movimientos ─────────
   app.get('/transactions', auth, async (req) => {
     const q = listQuery.parse(req.query);
+    await syncRecurring(store, req.user);
     return { items: await store.transactions.list(req.user.id, q) };
   });
 
   app.post('/transactions', auth, async (req, reply) => {
     const input = transactionInput.parse({ ...(req.body as object), currency: req.user.currency });
     assertSaneDate(input.date, todayIn(req.user.timezone));
+    assertCategory(req.user, input.categoryId, input.type);
     const now = new Date().toISOString();
     const tx: Transaction = { ...input, account: input.account || undefined, currency: req.user.currency, id: randomUUID(), createdAt: now, updatedAt: now };
     await store.transactions.create(req.user.id, tx);
@@ -110,6 +171,7 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
     if (!existing) throw notFound('Movimiento no encontrado');
     const merged = transactionInput.parse({ ...existing, ...(req.body as object), currency: req.user.currency });
     assertSaneDate(merged.date, todayIn(req.user.timezone));
+    assertCategory(req.user, merged.categoryId, merged.type);
     const tx: Transaction = { ...existing, ...merged, account: merged.account || undefined, currency: req.user.currency, updatedAt: new Date().toISOString() };
     await store.transactions.update(req.user.id, tx);
     return tx;
@@ -125,12 +187,14 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
   app.get('/analytics/overview', auth, async (req) => {
     const q = z.object({ month: monthStr.optional() }).parse(req.query);
     const today = todayIn(req.user.timezone);
+    await syncRecurring(store, req.user);
     const txs = await store.transactions.list(req.user.id);
     return buildOverview(txs, { month: q.month ?? monthOf(today), today, currency: req.user.currency });
   });
 
   app.get('/advice', { ...auth, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req) => {
     const q = z.object({ refresh: z.enum(['1', '0']).optional() }).parse(req.query);
+    await syncRecurring(store, req.user);
     const txs = await store.transactions.list(req.user.id);
     return getAdvice(cfg, {
       userId: req.user.id, plan: effectivePlan(cfg, req.user.plan), currency: req.user.currency,
@@ -141,6 +205,7 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
   /** Consejos a fondo sobre tus gastos habituales. `ai=1` = la persona acepta enviar el resumen (comercios incluidos, saneados) a la IA. */
   app.get('/advice/detailed', { ...auth, config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req) => {
     const q = z.object({ refresh: z.enum(['1', '0']).optional(), ai: z.enum(['1', '0']).optional() }).parse(req.query);
+    await syncRecurring(store, req.user);
     const txs = await store.transactions.list(req.user.id);
     return getDetailedAdvice(cfg, {
       userId: req.user.id, plan: effectivePlan(cfg, req.user.plan), currency: req.user.currency,

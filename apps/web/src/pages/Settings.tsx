@@ -6,6 +6,9 @@ import { useEffect, useState } from 'react';
 import { LanguagePicker } from '../components/LanguagePicker';
 import { Icon } from '../components/Icon';
 import { ModeSwitch } from '../components/ModeSwitch';
+import { CategoriesCard } from '../components/CategoriesCard';
+import { RecurringCard } from '../components/RecurringCard';
+import { ReportCard } from '../components/ReportCard';
 import { useShell } from '../components/Shell';
 import { Card, Switch } from '../components/ui';
 import { Link } from 'react-router-dom';
@@ -89,6 +92,12 @@ export function Settings() {
             </div>
           </div>
         </Card>
+
+        <RecurringCard />
+
+        <CategoriesCard />
+
+        <ReportCard />
 
         <Card title={t('Recordatorio diario')} subtitle={t('Un aviso al final del día para anotar tus movimientos. Solo si aún no has anotado nada.')}>
           <div className="setting">

@@ -1,4 +1,4 @@
-import { CATEGORIES, categoryById, type Category } from '@econsultor/shared';
+import { CATEGORIES, categoryById, categoryFamily, registerCategories, type Category, type CategoryPrefs } from '@econsultor/shared';
 import { t } from './i18n';
 
 /**
@@ -19,27 +19,39 @@ export const FAMILIES: Family[] = [
   { id: 'other', get label() { return t('Otros'); }, color: 'var(--s-other)' },
 ];
 
-const FAMILY_OF: Record<string, string> = {
-  housing: 'home', utilities: 'home', insurance: 'home', debt: 'home',
-  groceries: 'food', dining: 'food',
-  transport: 'move',
-  subscriptions: 'subs',
-  leisure: 'fun', travel: 'fun',
-  shopping: 'shop',
-  health: 'care', education: 'care',
-  investing: 'other',
-  other_expense: 'other',
-};
-
 export const familyOf = (categoryId: string): Family =>
-  FAMILIES.find((f) => f.id === FAMILY_OF[categoryId]) ?? FAMILIES[FAMILIES.length - 1]!;
+  FAMILIES.find((f) => f.id === categoryFamily(categoryId)) ?? FAMILIES[FAMILIES.length - 1]!;
 
-/** Nombre de la categoría en el idioma de la app (el original está en español). */
-export const categoryLabel = (id: string): string => t(categoryById(id)?.label ?? id);
+// ───────── Personalización de la cuenta (categorías propias, nombres cambiados, ocultas) ─────────
+let prefs: CategoryPrefs = { custom: [], renamed: {}, hidden: [] };
+
+/** Se llama cada vez que cambia el usuario: así las etiquetas, colores y listas siempre están al día. */
+export function applyCategoryPrefs(p: CategoryPrefs | undefined): void {
+  prefs = { custom: p?.custom ?? [], renamed: p?.renamed ?? {}, hidden: p?.hidden ?? [] };
+  registerCategories(prefs.custom, true);
+}
+export const categoryPrefs = (): CategoryPrefs => prefs;
+
+/** Nombre de la categoría: el que puso la persona o, si no, el de serie en el idioma de la app. */
+export const categoryLabel = (id: string): string => prefs.renamed[id] ?? prefs.custom.find((c) => c.id === id)?.label ?? t(categoryById(id)?.label ?? id);
+
+/** ¿Existe esta categoría para la persona? (las de serie y las suyas). */
+export const knownCategory = (id: string): boolean => !!categoryById(id);
 
 /** Color de un movimiento: ingresos siempre en el color de "ingreso", gastos en el de su familia. */
 export const categoryColor = (id: string): string =>
   categoryById(id)?.type === 'income' ? 'var(--income)' : familyOf(id).color;
 
-export const EXPENSE_CATEGORIES: Category[] = CATEGORIES.filter((c) => c.type === 'expense') as Category[];
-export const INCOME_CATEGORIES: Category[] = CATEGORIES.filter((c) => c.type === 'income') as Category[];
+const listFor = (type: 'expense' | 'income', keep: string[]): Category[] => {
+  const serie = CATEGORIES.filter((c) => c.type === type && (!prefs.hidden.includes(c.id) || keep.includes(c.id)));
+  const own = prefs.custom.filter((c) => c.type === type).map((c) => categoryById(c.id)!).filter(Boolean);
+  // «Otros» siempre al final.
+  const other = type === 'expense' ? 'other_expense' : 'other_income';
+  return [...serie.filter((c) => c.id !== other), ...own, ...serie.filter((c) => c.id === other)] as Category[];
+};
+/** Categorías que se pueden elegir. `keep`: las que se muestran aunque estén ocultas (p. ej. la de un movimiento que se edita). */
+export const expenseCategories = (keep: string[] = []): Category[] => listFor('expense', keep);
+export const incomeCategories = (keep: string[] = []): Category[] => listFor('income', keep);
+/** Todas, sin ocultar ninguna (filtros y listas de revisión). */
+export const allExpenseCategories = (): Category[] => listFor('expense', CATEGORIES.map((c) => c.id));
+export const allIncomeCategories = (): Category[] => listFor('income', CATEGORIES.map((c) => c.id));

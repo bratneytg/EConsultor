@@ -1,4 +1,4 @@
-import type { Lang, Plan, Transaction, UiMode } from '@econsultor/shared';
+import type { CategoryPrefs, Lang, Plan, Recurring, Transaction, UiMode } from '@econsultor/shared';
 
 /** Llave de acceso (huella, cara o PIN del dispositivo). Solo guardamos la clave PÚBLICA. */
 export interface PasskeyRecord {
@@ -38,6 +38,10 @@ export interface UserRecord {
   keepSignedIn?: boolean;
   /** Idioma de la app y de los textos que genera el servidor. Ausente → inglés. */
   language?: Lang;
+  /** Categorías propias, nombres cambiados y categorías de serie ocultas al añadir. */
+  categoryPrefs?: CategoryPrefs;
+  /** Gastos e ingresos que se repiten cada mes. */
+  recurring?: Recurring[];
   passkeys?: PasskeyRecord[];
   /** Dispositivos de la app de Android con huella nativa (el WebView no admite WebAuthn). Solo se guarda un hash del secreto. */
   appBiometrics?: AppBiometricRecord[];

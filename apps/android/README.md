@@ -24,6 +24,6 @@ El APK se firma con la clave de instalación personal de `signing/econsultor-sid
 
 ## Cómo está hecha
 
-`MainActivity` (WebView que solo navega por el dominio de tu servidor; todo lo demás se abre en el navegador) + `Reminders`/`ReminderReceiver`/`BootReceiver` (AlarmManager). La web habla con la app mediante `window.EConsultorAndroid` (`apps/web/src/lib/native.ts`): `setReminder`, `saveTextFile`, `setBars`, `appVersion`. Requiere Android 8+.
+`MainActivity` (WebView que solo navega por el dominio de tu servidor; todo lo demás se abre en el navegador) + `Reminders`/`ReminderReceiver`/`BootReceiver` (AlarmManager). La web habla con la app mediante `window.EConsultorAndroid` (`apps/web/src/lib/native.ts`): `setReminder`, `saveTextFile`, `saveBinaryFile` (PDF), `setBars`, `appVersion`. Requiere Android 8+.
 
 > Nota: este código se escribió sin poder compilar en el entorno de desarrollo (sin Android SDK); la primera compilación en GitHub es la que lo valida.

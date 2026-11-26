@@ -16,6 +16,10 @@ export interface Category {
   fixed?: boolean;
   /** Gasto discrecional (ocio, restaurantes…). */
   discretionary?: boolean;
+  /** Categoría creada por la persona (id `c_…`). */
+  custom?: boolean;
+  /** Familia de color (solo categorías propias; las de serie ya tienen la suya). */
+  family?: string;
 }
 
 export const CATEGORIES: readonly Category[] = [
@@ -43,7 +47,84 @@ export const CATEGORIES: readonly Category[] = [
 ] as const;
 
 export const CATEGORY_IDS = CATEGORIES.map((c) => c.id) as [string, ...string[]];
-export const categoryById = (id: string): Category | undefined => CATEGORIES.find((c) => c.id === id);
+
+/**
+ * Categorías propias. Sus ids son aleatorios (`c_…`) y únicos, así que un registro compartido no mezcla
+ * a unas personas con otras: en la web solo hay una persona; en el servidor se registran las de todas
+ * y cada petición solo acepta las ids de su propia cuenta (ver `userHasCategory`).
+ */
+const customRegistry = new Map<string, Category>();
+export const FAMILY_IDS = ['home', 'food', 'move', 'subs', 'fun', 'shop', 'care', 'other'] as const;
+export const CUSTOM_ID = /^c_[a-z0-9]{8}$/;
+export const MAX_CUSTOM_CATEGORIES = 40;
+export const CATEGORY_LABEL_MAX = 30;
+
+export interface CustomCategory {
+  id: string;
+  label: string;
+  type: TxType;
+  family?: (typeof FAMILY_IDS)[number];
+  fixed?: boolean;
+  discretionary?: boolean;
+}
+/** Personalización de categorías de una cuenta: propias, nombres cambiados a las de serie y las que se ocultan al añadir. */
+export interface CategoryPrefs {
+  custom: CustomCategory[];
+  renamed: Record<string, string>;
+  hidden: string[];
+}
+export const EMPTY_CATEGORY_PREFS: CategoryPrefs = { custom: [], renamed: {}, hidden: [] };
+
+/** Sustituye las categorías propias que se conocen de una cuenta (o las añade al registro del servidor). */
+export function registerCategories(list: readonly CustomCategory[] | undefined, replaceAll = false): void {
+  if (replaceAll) customRegistry.clear();
+  for (const c of list ?? []) customRegistry.set(c.id, { id: c.id, label: c.label, type: c.type, fixed: c.fixed, discretionary: c.discretionary, custom: true, family: c.family });
+}
+export const unregisterCategory = (id: string): void => { customRegistry.delete(id); };
+
+/** Familia de color de las categorías de serie (el color sigue a la entidad, nunca al puesto en un ranking). */
+const FAMILY_OF: Record<string, (typeof FAMILY_IDS)[number]> = {
+  housing: 'home', utilities: 'home', insurance: 'home', debt: 'home',
+  groceries: 'food', dining: 'food',
+  transport: 'move',
+  subscriptions: 'subs',
+  leisure: 'fun', travel: 'fun',
+  shopping: 'shop',
+  health: 'care', education: 'care',
+  investing: 'other',
+  other_expense: 'other',
+};
+/** Familia de una categoría: la de serie, la que eligió la persona para la suya o «other». */
+export const categoryFamily = (id: string): (typeof FAMILY_IDS)[number] => {
+  const f = FAMILY_OF[id] ?? customRegistry.get(id)?.family;
+  return (FAMILY_IDS as readonly string[]).includes(f ?? '') ? (f as (typeof FAMILY_IDS)[number]) : 'other';
+};
+
+export const categoryById = (id: string): Category | undefined => CATEGORIES.find((c) => c.id === id) ?? customRegistry.get(id);
+/** ¿La cuenta puede usar esta categoría? De serie, siempre; las propias, solo las suyas. */
+export const userHasCategory = (prefs: CategoryPrefs | undefined, id: string): Category | undefined =>
+  CATEGORIES.find((c) => c.id === id) ??
+  (prefs?.custom.find((c) => c.id === id) ? categoryById(id) : undefined);
+
+const categoryLabelText = z.string().trim().min(1, 'Escribe un nombre').max(CATEGORY_LABEL_MAX, 'Máximo 30 letras');
+export const categoryPrefsInput = z.object({
+  custom: z
+    .array(
+      z.object({
+        id: z.string().regex(CUSTOM_ID).optional(),
+        label: categoryLabelText,
+        type: z.enum(['income', 'expense']),
+        family: z.enum(FAMILY_IDS).optional(),
+        fixed: z.boolean().optional(),
+        discretionary: z.boolean().optional(),
+      }),
+    )
+    .max(MAX_CUSTOM_CATEGORIES, 'Demasiadas categorías propias')
+    .default([]),
+  renamed: z.record(z.string().max(40), categoryLabelText).default({}),
+  hidden: z.array(z.string().max(40)).max(60).default([]),
+});
+export type CategoryPrefsInput = z.infer<typeof categoryPrefsInput>;
 
 // ───────────────────────────── Esquemas ─────────────────────────────
 
@@ -55,13 +136,14 @@ export const transactionInput = z
     type: z.enum(['income', 'expense']),
     amountMinor: z.number().int().positive().max(10_000_000_000),
     currency: z.string().length(3).toUpperCase().default('EUR'),
-    categoryId: z.enum(CATEGORY_IDS),
+    categoryId: z.string().min(1).max(40),
     note: z.string().trim().max(200).optional(),
     date: isoDate,
     /** Cuenta o tarjeta de origen («Nexi», «Ahorro»…). Ausente = cuenta principal. */
     account: z.string().trim().max(40).optional(),
   })
   .superRefine((v, ctx) => {
+    // Si no se conoce (puede ser propia de la cuenta), la ruta la valida con `userHasCategory`.
     const cat = categoryById(v.categoryId);
     if (cat && cat.type !== v.type) {
       ctx.addIssue({ code: 'custom', path: ['categoryId'], message: 'La categoría no corresponde al tipo' });
@@ -73,6 +155,53 @@ export interface Transaction extends TransactionInput {
   id: string;
   createdAt: string;
   updatedAt: string;
+  /** Si lo generó un gasto o ingreso periódico, el id de este. */
+  recurringId?: string;
+}
+
+// ───────────────────────────── Periódicos ─────────────────────────────
+
+export const MAX_RECURRING = 60;
+
+/** Gasto o ingreso que se repite cada mes (alquiler, transporte, Netflix, nómina…). */
+export const recurringInput = z
+  .object({
+    type: z.enum(['income', 'expense']),
+    amountMinor: z.number().int().positive().max(10_000_000_000),
+    categoryId: z.string().min(1).max(40),
+    name: z.string().trim().min(1, 'Escribe un nombre').max(60),
+    /** Día del mes en que se cobra o se paga. Si el mes es más corto, el último día. */
+    day: z.number().int().min(1).max(31),
+    /** Primer mes en que se anota. Ausente: este mes si el día aún no ha pasado, o el próximo. */
+    startMonth: monthStr.optional(),
+    /** Último mes (opcional): para cuotas o contratos que terminan. */
+    endMonth: monthStr.optional().nullable(),
+    account: z.string().trim().max(40).optional(),
+    active: z.boolean().optional(),
+  })
+  .superRefine((v, ctx) => {
+    const cat = categoryById(v.categoryId);
+    if (cat && cat.type !== v.type) ctx.addIssue({ code: 'custom', path: ['categoryId'], message: 'La categoría no corresponde al tipo' });
+    if (v.startMonth && v.endMonth && v.endMonth < v.startMonth) ctx.addIssue({ code: 'custom', path: ['endMonth'], message: 'El último mes no puede ser anterior al primero' });
+  });
+export type RecurringInput = z.infer<typeof recurringInput>;
+
+export interface Recurring {
+  id: string;
+  type: TxType;
+  amountMinor: number;
+  categoryId: string;
+  name: string;
+  day: number;
+  startMonth: string;
+  endMonth?: string;
+  account?: string;
+  active: boolean;
+  /** Último mes ya anotado (YYYY-MM). */
+  lastGenerated?: string;
+  createdAt: string;
+  /** Próxima fecha de cargo (solo en las respuestas de la API). */
+  nextDate?: string;
 }
 
 export const emailSchema = z.string().trim().toLowerCase().email().max(254);
@@ -154,6 +283,8 @@ export interface PublicUser {
   /** Dispositivos con huella: `passkey` = llave del navegador (WebAuthn); `app` = huella nativa de la app de Android. */
   /** Idioma elegido; las cuentas antiguas que aún no lo han elegido reciben `en`. */
   language: Lang;
+  /** Categorías propias, nombres cambiados y categorías ocultas. */
+  categoryPrefs: CategoryPrefs;
   passkeys: { id: string; name: string; kind: 'passkey' | 'app'; createdAt: string; lastUsedAt?: string }[];
   mfaEnabled: boolean;
   hasPassword: boolean;

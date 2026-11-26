@@ -31,6 +31,7 @@ export function toPublicUser(u: UserRecord, premiumForAll = false): PublicUser {
     uiMode: u.uiMode ?? 'simple',
     keepSignedIn: !!u.keepSignedIn,
     language: u.language ?? 'en',
+    categoryPrefs: { custom: u.categoryPrefs?.custom ?? [], renamed: u.categoryPrefs?.renamed ?? {}, hidden: u.categoryPrefs?.hidden ?? [] },
     passkeys: [
       ...(u.passkeys ?? []).map((k) => ({ id: k.id, name: k.name, kind: 'passkey' as const, createdAt: k.createdAt, lastUsedAt: k.lastUsedAt })),
       ...(u.appBiometrics ?? []).map((k) => ({ id: k.id, name: k.name, kind: 'app' as const, createdAt: k.createdAt, lastUsedAt: k.lastUsedAt })),

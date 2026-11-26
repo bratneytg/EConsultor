@@ -32,7 +32,7 @@ Los datos financieros son sensibles. Esta es la superficie de ataque y cómo se 
 | Idioma como vector de inyección | `X-Lang` solo se acepta si es uno de `en/es/it/de`; el idioma nunca se usa como ruta ni como clave de caché sin esa comprobación | `lib/i18n.ts`, `server.ts` |
 | Consejos «a fondo» e IA | El análisis detallado es local. Solo con el botón de consentimiento se envía a la IA un resumen de comercios e importes (sin fechas ni notas; IBAN, correos y números largos eliminados); requiere Premium, clave y ≥ 15 movimientos | `advice/detailed.ts`, `advice/claude.ts` |
 | Premium para todos | `PREMIUM_FOR_ALL` solo cambia el plan efectivo; no abre ninguna ruta de pruebas (`ALLOW_DEMO_DATA` sigue en `false`) | `lib/plan.ts` |
-| Derechos RGPD | Exportar (art. 20) y eliminar la cuenta (art. 17) con confirmación | `/me/export`, `DELETE /me` |
+| Derechos RGPD | Exportar (art. 20) y eliminar la cuenta (art. 17) con confirmación | `/me/export` (incluye periódicos y categorías propias), `DELETE /me` |
 
 ## Cuenta de pruebas `admin/admin`
 

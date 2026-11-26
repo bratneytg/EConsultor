@@ -33,7 +33,8 @@ for (const file of walk(SRC)) {
 // Mensajes de validación de `shared`, categorías y los que llegan por una variable.
 for (const k of [
   'No autenticado', 'Acción no permitida', 'Datos no válidos', 'Fecha inválida (YYYY-MM-DD)', 'Mes inválido (YYYY-MM)',
-  'La categoría no corresponde al tipo', 'Mínimo 10 caracteres', 'Introduce un email válido', 'Indica code o recoveryCode',
+  'La categoría no corresponde al tipo', 'Escribe un nombre', 'Máximo 30 letras', 'Demasiadas categorías propias',
+  'El último mes no puede ser anterior al primero', 'Excelente', 'Sólida', 'En construcción', 'Atención', 'Mínimo 10 caracteres', 'Introduce un email válido', 'Indica code o recoveryCode',
   ...CATEGORIES.map((c) => c.label),
 ]) used.add(k);
 // Fragmentos que solo existen como argumento de otra llamada o los gestiona el mismo código.

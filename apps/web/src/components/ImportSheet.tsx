@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useUser } from '../lib/auth';
 import { ApiError, api } from '../lib/api';
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, categoryColor, categoryLabel } from '../lib/categories';
+import { allExpenseCategories, allIncomeCategories, categoryColor, categoryLabel } from '../lib/categories';
 import { dayShort, money } from '../lib/format';
 import { t } from '../lib/i18n';
 import { useAppConfig, useInvalidateData } from '../lib/queries';
@@ -165,7 +165,7 @@ export function ImportSheet({ open, onClose, onDone }: Props) {
 
   const setRow = (id: string, patch: Partial<Draft>) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   const setCategory = (id: string, categoryId: string) =>
-    setRow(id, { categoryId, type: INCOME_CATEGORIES.some((c) => c.id === categoryId) ? 'income' : 'expense', confidence: 'high' });
+    setRow(id, { categoryId, type: allIncomeCategories().some((c) => c.id === categoryId) ? 'income' : 'expense', confidence: 'high' });
 
   const commit = async () => {
     if (!chosen.length) return;
@@ -307,8 +307,8 @@ export function ImportSheet({ open, onClose, onDone }: Props) {
                             className="imp-cat" value={r.categoryId} disabled={step === 'importing'} aria-label={t('Categoría')}
                             style={{ ['--tile-c' as string]: categoryColor(r.categoryId) }} onChange={(e) => setCategory(r.id, e.target.value)}
                           >
-                            <optgroup label={t('Gastos')}>{EXPENSE_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{categoryLabel(c.id)}</option>)}</optgroup>
-                            <optgroup label={t('Ingresos')}>{INCOME_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{categoryLabel(c.id)}</option>)}</optgroup>
+                            <optgroup label={t('Gastos')}>{allExpenseCategories().map((c) => <option key={c.id} value={c.id}>{categoryLabel(c.id)}</option>)}</optgroup>
+                            <optgroup label={t('Ingresos')}>{allIncomeCategories().map((c) => <option key={c.id} value={c.id}>{categoryLabel(c.id)}</option>)}</optgroup>
                           </select>
                         </div>
                       </div>

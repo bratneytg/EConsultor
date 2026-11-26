@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { CATEGORY_IDS, categoryById, isoDate, type Transaction } from '@econsultor/shared';
+import { isoDate, type Transaction } from '@econsultor/shared';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { addDays, todayIn } from '../lib/dates.js';
 import { badRequest } from '../lib/errors.js';
+import { userHasCategory } from '@econsultor/shared';
+import { prefsOf } from '../lib/categories.js';
 import { clearAdviceCache } from '../modules/advice/advisor.js';
 import { normAccount } from '../modules/import/accounts.js';
 import { accountList, analyzeStatement, MAX_ROWS } from '../modules/import/service.js';
@@ -23,7 +25,7 @@ const commitInput = z.object({
     .array(
       z.object({
         date: isoDate,
-        categoryId: z.enum(CATEGORY_IDS),
+        categoryId: z.string().min(1).max(40),
         amountMinor: z.number().int().positive().max(10_000_000_000),
         note: z.string().trim().max(200).optional(),
       }),
@@ -52,11 +54,15 @@ export async function importRoutes(app: FastifyInstance): Promise<void> {
     const maxDate = addDays(today, 1);
     if (rows.some((r) => r.date < '2000-01-01' || r.date > maxDate)) throw badRequest('Hay fechas fuera de rango');
 
+    // Cada fila debe llevar una categoría que exista para esta cuenta (de serie o propia).
+    const prefs = prefsOf(req.user);
+    if (rows.some((r) => !userHasCategory(prefs, r.categoryId))) throw badRequest('Esa categoría no existe', 'unknown_category');
+
     const now = new Date().toISOString();
     for (const r of rows) {
       const t: Transaction = {
         id: randomUUID(),
-        type: categoryById(r.categoryId)!.type,
+        type: userHasCategory(prefs, r.categoryId)!.type,
         amountMinor: r.amountMinor,
         currency: req.user.currency,
         categoryId: r.categoryId,

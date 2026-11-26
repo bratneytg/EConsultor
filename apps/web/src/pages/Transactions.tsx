@@ -5,8 +5,7 @@ import { useShell } from '../components/Shell';
 import { CatTile } from '../components/ui';
 import { useUser } from '../lib/auth';
 import { api } from '../lib/api';
-import { CATEGORY_IDS } from '@econsultor/shared';
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, categoryLabel } from '../lib/categories';
+import { allExpenseCategories, allIncomeCategories, categoryLabel, knownCategory } from '../lib/categories';
 import { money, monthLabel, relativeDay, shiftMonth } from '../lib/format';
 import { t } from '../lib/i18n';
 import { useAppConfig, useInvalidateData, useMonthTransactions } from '../lib/queries';
@@ -24,7 +23,7 @@ export function Transactions() {
   const [acc, setAcc] = useState<string | null>(null);
   // Categorías filtradas: viven en la dirección (?cat=housing,utilities) para poder enlazarlas desde «En qué se va».
   const [params, setParams] = useSearchParams();
-  const cats = useMemo(() => (params.get('cat') ?? '').split(',').filter((c) => (CATEGORY_IDS as readonly string[]).includes(c)), [params]);
+  const cats = useMemo(() => (params.get('cat') ?? '').split(',').filter((c) => knownCategory(c)), [params]);
   const setCats = (next: string[]) => {
     const p = new URLSearchParams(params);
     if (next.length) p.set('cat', next.join(',')); else p.delete('cat');
@@ -86,12 +85,12 @@ export function Transactions() {
             <option value="">{cats.length ? t('Añadir otra categoría…') : t('Todas las categorías')}</option>
             {filter !== 'income' && (
               <optgroup label={t('Gastos')}>
-                {EXPENSE_CATEGORIES.filter((c) => !cats.includes(c.id)).map((c) => <option key={c.id} value={c.id}>{categoryLabel(c.id)}</option>)}
+                {allExpenseCategories().filter((c) => !cats.includes(c.id)).map((c) => <option key={c.id} value={c.id}>{categoryLabel(c.id)}</option>)}
               </optgroup>
             )}
             {filter !== 'expense' && (
               <optgroup label={t('Ingresos')}>
-                {INCOME_CATEGORIES.filter((c) => !cats.includes(c.id)).map((c) => <option key={c.id} value={c.id}>{categoryLabel(c.id)}</option>)}
+                {allIncomeCategories().filter((c) => !cats.includes(c.id)).map((c) => <option key={c.id} value={c.id}>{categoryLabel(c.id)}</option>)}
               </optgroup>
             )}
           </select>

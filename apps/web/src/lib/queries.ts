@@ -1,4 +1,4 @@
-import type { AdviceResponse, Overview, Transaction, TransactionInput } from '@econsultor/shared';
+import type { AdviceResponse, Overview, Recurring, RecurringInput, Transaction, TransactionInput } from '@econsultor/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 
@@ -23,7 +23,7 @@ export const useAppConfig = () =>
 
 export function useInvalidateData() {
   const qc = useQueryClient();
-  return () => Promise.all([qc.invalidateQueries({ queryKey: ['overview'] }), qc.invalidateQueries({ queryKey: ['tx'] }), qc.invalidateQueries({ queryKey: ['advice'] }), qc.invalidateQueries({ queryKey: ['accounts'] })]);
+  return () => Promise.all([qc.invalidateQueries({ queryKey: ['overview'] }), qc.invalidateQueries({ queryKey: ['tx'] }), qc.invalidateQueries({ queryKey: ['advice'] }), qc.invalidateQueries({ queryKey: ['accounts'] }), qc.invalidateQueries({ queryKey: ['recurring'] })]);
 }
 
 export function useSaveTransaction() {
@@ -38,4 +38,22 @@ export function useSaveTransaction() {
 export function useDeleteTransaction() {
   const invalidate = useInvalidateData();
   return useMutation({ mutationFn: (id: string) => api<void>(`/transactions/${id}`, { method: 'DELETE' }), onSuccess: invalidate });
+}
+
+export const useRecurring = () =>
+  useQuery({ queryKey: ['recurring'], queryFn: () => api<{ items: Recurring[] }>('/recurring').then((r) => r.items) });
+
+/** Crear o cambiar un gasto/ingreso periódico. Al guardarse puede anotar ya el cargo de este mes, así que se refrescan los datos. */
+export function useSaveRecurring() {
+  const invalidate = useInvalidateData();
+  return useMutation({
+    mutationFn: ({ id, data }: { id?: string; data: Partial<RecurringInput> }) =>
+      id ? api<Recurring>(`/recurring/${id}`, { method: 'PATCH', json: data }) : api<Recurring>('/recurring', { method: 'POST', json: data }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteRecurring() {
+  const invalidate = useInvalidateData();
+  return useMutation({ mutationFn: (id: string) => api<void>(`/recurring/${id}`, { method: 'DELETE' }), onSuccess: invalidate });
 }

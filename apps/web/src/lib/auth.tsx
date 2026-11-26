@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { IDLE_TIMEOUT_MIN } from '@econsultor/shared';
 import { getLang, langChosenHere, useI18n } from './i18n';
+import { applyCategoryPrefs } from './categories';
 import { api, authApi, flagIdle, msSinceInput, refreshSession, setAccessToken, setSessionLostHandler, touchActivity } from './api';
 
 interface AuthState {
@@ -17,8 +18,10 @@ interface AuthState {
 const Ctx = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<PublicUser | null>(null);
+  const [user, setUserRaw] = useState<PublicUser | null>(null);
   const [ready, setReady] = useState(false);
+  // Las categorías propias se conocen en cuanto hay usuario, antes de pintar nada que las use.
+  const setUser = useCallback((u: PublicUser | null) => { if (u) applyCategoryPrefs(u.categoryPrefs); setUserRaw(u); }, []);
   const qc = useQueryClient();
   const { setLang } = useI18n();
 
@@ -30,12 +33,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (langChosenHere()) {
       if (user.language !== getLang()) void api<PublicUser>('/me/settings', { method: 'PATCH', json: { language: getLang() } }).then(setUser).catch(() => undefined);
     } else if (user.language !== getLang()) setLang(user.language, false);
-  }, [user, setLang]);
+  }, [user, setLang, setUser]);
 
   useEffect(() => {
     setSessionLostHandler(() => { setUser(null); qc.clear(); });
     refreshSession(true).then((r) => { setUser(r?.user ?? null); setReady(true); });
-  }, [qc]);
+  }, [qc, setUser]);
 
   // Cierre por inactividad: a los 10 min sin tocar la app (salvo «Mantener conectado»). El servidor lo exige igualmente.
   const idleOn = !!user && !user.keepSignedIn;
@@ -60,23 +63,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [idleOn, qc]);
+  }, [idleOn, qc, setUser]);
 
   const accept = useCallback((res: AuthResponse) => {
     if (res.mfaRequired) return res.mfaToken;
     setAccessToken(res.accessToken);
     setUser(res.user);
     return null;
-  }, []);
+  }, [setUser]);
 
   const logout = useCallback(async () => {
     try { await authApi.logout(); } catch { /* ya sin sesión */ }
     setAccessToken(null);
     setUser(null);
     qc.clear();
-  }, [qc]);
+  }, [qc, setUser]);
 
-  const value = useMemo(() => ({ user, ready, accept, setUser, logout }), [user, ready, accept, logout]);
+  const value = useMemo(() => ({ user, ready, accept, setUser, logout }), [user, ready, accept, setUser, logout]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

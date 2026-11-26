@@ -62,6 +62,10 @@ Al abrir la app tras una actualización aparece una ventana con las funciones nu
 | Importación de CSV, Excel (.xlsx), LibreOffice (.ods) y PDF; entiende extractos de cuenta y de tarjeta (gastos en positivo, p. ej. Nexi), fechas/números de ES-DE-IT, con botón «Invertir gastos e ingresos» | ✅ |
 | Importación con categorización por reglas, aprendizaje de tu historial y detección de comercios tras PayPal | ✅ |
 | Plan gratis / Premium (interruptor de demostración; falta pasarela de pago) | 🟡 |
+| Gastos e ingresos periódicos (alquiler, transporte, Netflix, nómina…): el servidor los anota solo cada mes en el día elegido (también si no abres la app); idempotente, con pausa, fin opcional y día ajustado a meses cortos | ✅ |
+| Categorías propias: crear, renombrar (también las de serie), ocultar y eliminar (sus movimientos pasan a «Otros»); con color y naturaleza fija/variable/discrecional | ✅ |
+| «En qué gastas» en barras o en tarta (se recuerda por dispositivo) | ✅ |
+| Informe mensual en PDF (`GET /api/report/monthly?month=AAAA-MM`): resumen escrito del análisis del mes y «qué hacer», gasto por categorías, evolución, gasto diario, mayores gastos, ingresos y periódicos; en el idioma del usuario. En la app de Android necesita la APK nueva (`saveBinaryFile`) | ✅ |
 | Exportar y eliminar la cuenta (RGPD) | ✅ |
 | Base de datos | ⏳ Archivo cifrado por ahora; el puerto `Store` está listo para Postgres |
 

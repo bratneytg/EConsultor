@@ -8,6 +8,8 @@ interface AndroidBridge {
   appVersion(): string;
   setBars?(dark: boolean): void;
   saveTextFile?(name: string, mime: string, content: string): void;
+  /** Guarda un archivo binario (PDF) en Descargas; `base64` es su contenido. Solo en versiones nuevas de la app. */
+  saveBinaryFile?(name: string, mime: string, base64: string): void;
   /** Huella nativa (BiometricPrompt + Keystore). Solo en versiones nuevas de la app. */
   biometricAvailable?(): boolean;
   biometricInfo?(): string;
@@ -39,6 +41,24 @@ export function saveTextFile(name: string, mime: string, content: string): void 
   const url = URL.createObjectURL(new Blob([content], { type: mime }));
   Object.assign(document.createElement('a'), { href: url, download: name }).click();
   URL.revokeObjectURL(url);
+}
+
+/** Guarda un archivo binario (el informe en PDF): en la app de Android va a Descargas; en el navegador, descarga normal. */
+export async function saveBlobFile(name: string, blob: Blob): Promise<void> {
+  const n = native();
+  if (n?.saveBinaryFile) {
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result).split(',')[1] ?? '');
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(blob);
+    });
+    n.saveBinaryFile(name, blob.type || 'application/pdf', base64);
+    return;
+  }
+  const url = URL.createObjectURL(blob);
+  Object.assign(document.createElement('a'), { href: url, download: name }).click();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 /** Mantiene las barras del sistema de Android a juego con el tema claro/oscuro de la web. */

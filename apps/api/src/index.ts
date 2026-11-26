@@ -1,6 +1,7 @@
 import { loadConfig } from './config.js';
 import { ensureMasterUser } from './modules/demo/master.js';
 import { startReminderScheduler } from './modules/notifications/scheduler.js';
+import { startRecurringScheduler } from './modules/recurring/service.js';
 import { buildApp } from './server.js';
 import { FileStore } from './store/file-store.js';
 
@@ -16,11 +17,17 @@ const stopReminders = startReminderScheduler(cfg, store, {
   error: (e) => app.log.error(e),
 });
 
+const stopRecurring = startRecurringScheduler(store, {
+  info: (m) => app.log.info(m),
+  error: (e) => app.log.error(e),
+});
+
 // Apagado ordenado: dejar de aceptar tráfico y volcar los datos a disco.
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, async () => {
     app.log.info(`${signal} recibido, cerrando…`);
     stopReminders();
+    stopRecurring();
     await app.close();
     await store.flush();
     process.exit(0);

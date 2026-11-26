@@ -387,3 +387,20 @@ textarea.input { resize: vertical; min-height: 110px; font: inherit; }
 .lang-picker.compact { position: absolute; top: 14px; right: 16px; z-index: 2; }
 .auth-form { position: relative; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+/* Reparto del gasto: selector de vista y tarta */
+.view-toggle { width: max-content; margin: 0 0 12px auto; }
+.view-toggle button { padding: 5px 14px; font-size: 12.5px; }
+.pie-wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px 28px; margin: 4px 0 14px; }
+.pie { width: min(100%, 230px); height: auto; flex: 0 0 auto; }
+.pie-slice { cursor: pointer; outline: none; transition: opacity 0.15s; }
+.pie-slice:hover, .pie-slice:focus-visible { opacity: 0.85; }
+.pie-slice:focus-visible { stroke: var(--ink); }
+.pie-label { fill: #fff; font-size: 12px; font-weight: 700; }
+.pie-label.dark { fill: #1b1b1a; }
+.pie-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; flex: 1 1 200px; max-width: 320px; }
+.pie-legend a { display: grid; grid-template-columns: 10px 1fr auto auto; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; font-size: 13px; }
+.pie-legend a:hover, .pie-legend a:focus-visible { background: var(--surface-2); }
+.pie-legend .sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.pie-legend .pl-pct { color: var(--ink-3); min-width: 3ch; text-align: right; }
+@media (prefers-reduced-motion: reduce) { .pie-slice { transition: none; } }

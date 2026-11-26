@@ -82,6 +82,21 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
   return body as T;
 }
 
+/** Descarga un archivo (p. ej. el informe en PDF) con la sesión actual. */
+export async function apiBlob(path: string): Promise<Blob> {
+  let res = await raw(path, {});
+  if (res.status === 401) {
+    const ok = await refreshSession();
+    if (ok) res = await raw(path, {});
+    else onSessionLost?.();
+  }
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+    throw new ApiError(res.status, body.error ?? 'error', body.message ?? t('Algo ha salido mal'));
+  }
+  return res.blob();
+}
+
 export const authApi = {
   login: (identifier: string, password: string) => api<AuthResponse>('/auth/login', { method: 'POST', json: { identifier, password } }),
   register: (d: { email: string; password: string; displayName: string }) =>

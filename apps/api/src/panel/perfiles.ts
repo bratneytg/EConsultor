@@ -6,7 +6,7 @@
  * sale del servidor por la API: aquí lo lee un proceso aparte, solo desde la red privada y solo si la
  * persona que administra lo activa expresamente. Ver docs/SECURITY.md.
  */
-import { categoryById, type Transaction } from '@econsultor/shared';
+import { categoryById, registerCategories, type Transaction } from '@econsultor/shared';
 import { monthOf, todayIn } from '../lib/dates.js';
 import { buildOverview, streakDays } from '../modules/analytics/analytics.js';
 import { buildFinancialProfile, type FinancialProfile } from '../modules/profile/engine.js';
@@ -54,6 +54,9 @@ function lecturas(p: FinancialProfile, racha: number): string[] {
 export function construirPerfiles(users: UserRecord[], txs: TxPanel[], ahora: number, conPsico = false): Libre {
   const porUsuario = new Map<string, Transaction[]>();
   for (const { userId, ...t } of txs) (porUsuario.get(userId) ?? porUsuario.set(userId, []).get(userId)!).push(t as Transaction);
+
+  // El panel es otro proceso: las categorías propias de cada cuenta se registran aquí para entender sus movimientos.
+  for (const u of users) registerCategories(u.categoryPrefs?.custom);
 
   const perfiles: Libre[] = [];
   const sinDatos: { email: string; movimientos: number }[] = [];

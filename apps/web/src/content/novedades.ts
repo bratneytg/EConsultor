@@ -11,6 +11,17 @@ export interface Release { version: string; title: string; changes: Change[] }
  */
 export const RELEASES: Release[] = [
   {
+    version: '1.4.0',
+    title: tk('Gastos periódicos, categorías propias e informe en PDF'),
+    changes: [
+      { kind: 'new', text: tk('Gastos e ingresos periódicos: el alquiler, el transporte, Netflix o la nómina se anotan solos cada mes, el día que elijas (Ajustes › Gastos periódicos).') },
+      { kind: 'new', text: tk('Informe mensual en PDF: un resumen escrito del mes, con lo que ha cambiado y qué hacer el siguiente, y todos tus gastos (Ajustes › Informe mensual).') },
+      { kind: 'new', text: tk('Categorías propias: crea las tuyas, cambia el nombre de las que hay y oculta las que no uses (Ajustes › Categorías).') },
+      { kind: 'feature', text: tk('«En qué se va» ahora se puede ver como barras o como tarta.') },
+      { kind: 'feature', text: tk('Al anotar un movimiento puedes activar «Repetir cada mes».') },
+    ],
+  },
+  {
     version: '1.3.0',
     title: tk('Filtros por categoría y PDF escaneados'),
     changes: [

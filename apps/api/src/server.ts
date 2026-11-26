@@ -13,6 +13,9 @@ import { isLang, runWithLang, tr } from './lib/i18n.js';
 import { authRoutes } from './routes/auth.js';
 import { dataRoutes } from './routes/data.js';
 import { importRoutes } from './routes/import.js';
+import { recurringRoutes } from './routes/recurring.js';
+import { reportRoutes } from './routes/report.js';
+import { registerUserCategories } from './lib/categories.js';
 import { notificationRoutes } from './routes/notifications.js';
 import { idleExpired, noteActivity } from './security/idle.js';
 import { verifyAccess } from './security/tokens.js';
@@ -103,6 +106,7 @@ export async function buildApp(cfg: Config, store: Store): Promise<FastifyInstan
     if (req.headers['x-user-active'] === '1') await noteActivity(store, session);
     req.user = user;
     req.sessionId = claims.sid;
+    registerUserCategories(user);
   });
 
   // Idioma de la petición: lo manda la app en cada llamada (la misma elección que ve la persona).
@@ -130,6 +134,10 @@ export async function buildApp(cfg: Config, store: Store): Promise<FastifyInstan
   await app.register(dataRoutes, { prefix: '/api' });
   await app.register(notificationRoutes, { prefix: '/api/notifications' });
   await app.register(importRoutes, { prefix: '/api/import' });
+  await app.register(recurringRoutes, { prefix: '/api/recurring' });
+  await app.register(reportRoutes, { prefix: '/api/report' });
+  // Las categorías propias de todas las cuentas, para que los consejos y el panel las entiendan.
+  for (const u of await store.users.all()) registerUserCategories(u);
 
   // ── Web compilada (opcional): un único proceso sirve API + PWA en un servidor casero ──
   if (cfg.staticDir && existsSync(cfg.staticDir)) {

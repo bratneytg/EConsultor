@@ -2,11 +2,12 @@ import type { Transaction } from '@econsultor/shared';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { useUser } from '../lib/auth';
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, categoryColor, categoryLabel } from '../lib/categories';
+import { categoryColor, categoryLabel, expenseCategories, incomeCategories } from '../lib/categories';
 import { ApiError } from '../lib/api';
-import { addDays, isoToday, parseAmount, symbol } from '../lib/format';
+import { addDays, isoToday, parseAmount, shiftMonth, symbol } from '../lib/format';
 import { t } from '../lib/i18n';
-import { useAccounts, useDeleteTransaction, useSaveTransaction } from '../lib/queries';
+import { useAccounts, useDeleteTransaction, useSaveRecurring, useSaveTransaction } from '../lib/queries';
+import { Switch } from './ui';
 import { Icon, CATEGORY_ICON } from './Icon';
 
 interface Props {
@@ -25,10 +26,12 @@ export function AddSheet({ open, editing, onClose, onDone }: Props) {
   const [date, setDate] = useState(today);
   const [note, setNote] = useState('');
   const [account, setAccount] = useState('');
+  const [repeat, setRepeat] = useState(false);
   const { data: accounts } = useAccounts(open);
   const [error, setError] = useState('');
   const amountRef = useRef<HTMLInputElement>(null);
   const save = useSaveTransaction();
+  const saveRecurring = useSaveRecurring();
   const del = useDeleteTransaction();
 
   useEffect(() => {
@@ -41,8 +44,9 @@ export function AddSheet({ open, editing, onClose, onDone }: Props) {
       setDate(editing.date);
       setNote(editing.note ?? '');
       setAccount(editing.account ?? '');
+      setRepeat(false);
     } else {
-      setType('expense'); setAmount(''); setCat(''); setDate(isoToday(user.timezone)); setNote(''); setAccount('');
+      setType('expense'); setAmount(''); setCat(''); setDate(isoToday(user.timezone)); setNote(''); setAccount(''); setRepeat(false);
     }
     const timer = setTimeout(() => amountRef.current?.focus(), 250);
     return () => clearTimeout(timer);
@@ -55,7 +59,7 @@ export function AddSheet({ open, editing, onClose, onDone }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  const cats = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+  const cats = type === 'expense' ? expenseCategories(editing ? [editing.categoryId] : []) : incomeCategories(editing ? [editing.categoryId] : []);
 
   const submit = async (another: boolean) => {
     const minor = parseAmount(amount);
@@ -64,8 +68,16 @@ export function AddSheet({ open, editing, onClose, onDone }: Props) {
     setError('');
     try {
       await save.mutateAsync({ id: editing?.id, data: { type, amountMinor: minor, categoryId: cat, date, note: note.trim() || undefined, account: account.trim() } });
-      onDone(editing ? t('Cambios guardados') : type === 'expense' ? t('Gasto guardado') : t('Ingreso guardado'));
-      if (another && !editing) { setAmount(''); setNote(''); setCat(''); amountRef.current?.focus(); } else onClose();
+      let repeated = false;
+      if (repeat && !editing) {
+        // Este movimiento ya está guardado: el periódico empieza el mes siguiente, el mismo día.
+        try {
+          await saveRecurring.mutateAsync({ data: { type, name: note.trim() || categoryLabel(cat), amountMinor: minor, categoryId: cat, day: Number(date.slice(8, 10)), startMonth: shiftMonth(date.slice(0, 7), 1), account: account.trim() || undefined } });
+          repeated = true;
+        } catch { /* el movimiento ya se guardó; se avisa abajo */ }
+      }
+      onDone(editing ? t('Cambios guardados') : repeat ? (repeated ? t('Guardado. Se repetirá cada mes.') : t('Guardado, pero no se pudo repetir cada mes.')) : type === 'expense' ? t('Gasto guardado') : t('Ingreso guardado'));
+      if (another && !editing) { setAmount(''); setNote(''); setCat(''); setRepeat(false); amountRef.current?.focus(); } else onClose();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t('No se pudo guardar. Inténtalo de nuevo.'));
     }
@@ -123,6 +135,13 @@ export function AddSheet({ open, editing, onClose, onDone }: Props) {
               <label htmlFor="note">{t('Nota (opcional)')}</label>
               <input id="note" className="input" maxLength={200} placeholder={t('Ej.: compra semanal')} value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
+
+            {!editing && (
+              <div className="setting" style={{ padding: '4px 0 12px', borderBottom: 0 }}>
+                <div><b>{t('Repetir cada mes')}</b><p>{t('Se anotará solo el día {day} de cada mes.', { day: Number(date.slice(8, 10)) })}</p></div>
+                <Switch label={t('Repetir cada mes')} checked={repeat} onChange={setRepeat} />
+              </div>
+            )}
 
             {((accounts?.length ?? 0) > 0 || account) && (
               <div className="field">

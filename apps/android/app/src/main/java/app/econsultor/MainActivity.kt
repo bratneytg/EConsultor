@@ -261,5 +261,34 @@ class MainActivity : AppCompatActivity() {
                 ).show()
             }
         }
+
+        /** Guarda un archivo binario (el informe mensual en PDF) en Descargas; llega codificado en base64. */
+        @JavascriptInterface
+        fun saveBinaryFile(name: String, mime: String, base64: String) {
+            val safeName = name.replace(Regex("[^A-Za-z0-9._-]"), "_").take(80).ifEmpty { "econsultor.pdf" }
+            val ok = try {
+                val bytes = android.util.Base64.decode(base64, android.util.Base64.DEFAULT)
+                if (Build.VERSION.SDK_INT >= 29) {
+                    val values = ContentValues().apply {
+                        put(MediaStore.Downloads.DISPLAY_NAME, safeName)
+                        put(MediaStore.Downloads.MIME_TYPE, mime)
+                        put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                    }
+                    val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                    uri?.let { contentResolver.openOutputStream(it)?.use { o -> o.write(bytes) } } != null
+                } else {
+                    val dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                    File(dir, safeName).writeBytes(bytes)
+                    true
+                }
+            } catch (_: Exception) { false }
+            runOnUiThread {
+                Toast.makeText(
+                    this@MainActivity,
+                    if (ok) getString(R.string.saved_download, safeName) else getString(R.string.save_failed),
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
     }
 }
