@@ -30,6 +30,16 @@ const envSchema = z.object({
   VAPID_SUBJECT: z.string().default('mailto:admin@localhost'),
   /** Mientras no haya cobro, todas las cuentas tienen las funciones Premium (consejos completos e IA). */
   PREMIUM_FOR_ALL: bool.default('false'),
+  /** Cobro con Stripe. Sin las tres primeras, no hay cobro: la app solo enseña qué incluye Premium. */
+  STRIPE_SECRET_KEY: z.string().min(20).optional(),
+  STRIPE_PRICE_ID: z.string().min(5).optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().min(10).optional(),
+  /** Precio que se enseña si no se puede leer de Stripe (céntimos al mes). */
+  PREMIUM_PRICE_CENTS: z.coerce.number().int().min(100).max(10_000).default(499),
+  /** Días de prueba gratuita al suscribirse (0 = sin prueba). */
+  PREMIUM_TRIAL_DAYS: z.coerce.number().int().min(0).max(60).default(0),
+  /** Que Stripe calcule el IVA según el país (requiere activar Stripe Tax en su panel). */
+  STRIPE_AUTOMATIC_TAX: bool.default('false'),
   /** Clave compartida con el panel del servidor para cambiar el plan de una cuenta. Sin ella, esa ruta no existe. */
   ADMIN_TOKEN: z.string().min(32).optional(),
   /** Dirección de descarga del APK de Android (la web la muestra en Ayuda y Ajustes). */
@@ -59,6 +69,9 @@ export interface Config {
   vapid?: { publicKey: string; privateKey: string; subject: string };
   premiumForAll: boolean;
   adminToken?: string;
+  /** Presente solo si el cobro está del todo configurado. */
+  billing?: { secretKey: string; priceId: string; webhookSecret: string; trialDays: number; automaticTax: boolean };
+  premiumPriceCents: number;
   idleTimeoutMin: number;
   apkUrl?: string;
 }
@@ -117,6 +130,11 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): Config {
     anthropicModel: e.ANTHROPIC_MODEL,
     premiumForAll: e.PREMIUM_FOR_ALL,
     adminToken: e.ADMIN_TOKEN,
+    billing:
+      e.STRIPE_SECRET_KEY && e.STRIPE_PRICE_ID && e.STRIPE_WEBHOOK_SECRET
+        ? { secretKey: e.STRIPE_SECRET_KEY, priceId: e.STRIPE_PRICE_ID, webhookSecret: e.STRIPE_WEBHOOK_SECRET, trialDays: e.PREMIUM_TRIAL_DAYS, automaticTax: e.STRIPE_AUTOMATIC_TAX }
+        : undefined,
+    premiumPriceCents: e.PREMIUM_PRICE_CENTS,
     idleTimeoutMin: e.IDLE_TIMEOUT_MIN,
     apkUrl: e.APK_URL,
     vapid:

@@ -13,6 +13,19 @@ export interface PasskeyRecord {
   lastUsedAt?: string;
 }
 
+/** Datos de cobro de una cuenta (de Stripe). Nunca guardamos números de tarjeta: solo identificadores y el estado. */
+export interface BillingRecord {
+  customerId?: string;
+  subscriptionId?: string;
+  /** Estado en Stripe: active, trialing, past_due, canceled, unpaid, incomplete… */
+  status?: string;
+  /** Fin del periodo ya pagado (ISO). */
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd?: boolean;
+  /** Marca de tiempo (s) del último aviso de Stripe aplicado: los avisos viejos que lleguen tarde se ignoran. */
+  eventAt?: number;
+}
+
 export interface UserRecord {
   id: string;
   email: string;
@@ -22,6 +35,8 @@ export interface UserRecord {
   plan: Plan;
   /** Plan fijado a mano desde el panel del servidor: manda sobre PREMIUM_FOR_ALL. Ausente = automático. */
   planOverride?: Plan;
+  /** Suscripción de pago (Stripe). Ausente = nunca ha pagado. */
+  billing?: BillingRecord;
   currency: string;
   timezone: string;
   reminderEnabled: boolean;

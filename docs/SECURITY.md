@@ -68,6 +68,16 @@ Es una credencial pública a propósito, para probar la interfaz. Se limita así
 - Aviso legal, política de privacidad y base jurídica del tratamiento antes de ofrecerlo al público (RGPD).
 
 
+## Cobro de Premium (Stripe)
+
+- Sin `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID` y `STRIPE_WEBHOOK_SECRET`, el cobro no existe: la app solo enseña qué incluye Premium y `POST /api/billing/webhook` responde 404.
+- El cobro lo hace Stripe en su página (Checkout); la app **no recibe ni guarda datos de tarjeta**, solo el identificador de cliente y de suscripción, el estado y la fecha de fin del periodo (`UserRecord.billing`). La clave secreta vive solo en `.env` (permisos 600) y nunca sale en una respuesta ni en el registro.
+- `POST /api/billing/webhook` no tiene sesión: se autentica **solo con la firma** `Stripe-Signature` (HMAC-SHA256 de `marca.cuerpo` con el secreto del webhook, comparada en tiempo constante). Se rechazan firmas incorrectas, cuerpos alterados y avisos de más de 5 minutos (repetición). Lee el cuerpo en bruto solo en esa ruta; el resto de la API sigue con su analizador JSON normal. Límite de 120 avisos por minuto.
+- El plan sale del **estado de la suscripción**, no de lo que diga el navegador: `active`, `trialing` y `past_due` (cobro fallido, Stripe reintenta) dan Premium; `canceled`, `unpaid` o `incomplete` lo quitan. Los avisos son idempotentes y se ignora uno más viejo que el último aplicado (Stripe no garantiza el orden). Un plan fijado a mano desde el panel sigue mandando.
+- `POST /api/billing/checkout` y `/portal` exigen sesión y tienen límite de 10 por minuto. No se puede abrir un pago si ya se es Premium.
+- Al **borrar la cuenta** se cancela antes la suscripción en Stripe; si Stripe no responde, la cuenta no se borra (así nunca se cobra a quien ya no tiene cuenta).
+- Cada alta o baja de Premium queda en el registro de la cuenta (`subscription_changed`).
+
 ## Cambiar el plan desde el panel
 
 El panel es de solo lectura sobre la base de datos (el volumen se monta `:ro`). Lo único que puede cambiar es el plan (Premium/Gratuita/Automático) de una cuenta, y lo hace **pidiéndoselo a la app**, que es quien gestiona los datos:

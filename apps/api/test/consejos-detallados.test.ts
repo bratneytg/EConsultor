@@ -107,9 +107,12 @@ describe('getDetailedAdvice', () => {
     expect(r.items.length).toBeGreaterThan(4);
   });
 
-  it('gratis ve 2 consejos y el resto bloqueado', async () => {
-    const r = await getDetailedAdvice(cfg, { ...base, userId: 'u2', plan: 'free' });
-    expect(r.items).toHaveLength(2);
-    expect(r.lockedCount).toBeGreaterThan(0);
+  it('gratis ve el análisis local completo, pero sin IA', async () => {
+    const r = await getDetailedAdvice(cfg, { ...base, userId: 'u2', plan: 'free', useAi: true });
+    expect(r.items.length).toBeGreaterThan(4);
+    expect(r.lockedCount).toBe(0);
+    expect(r.source).toBe('rules');
+    expect(r.basis?.aiAvailable).toBe(false);
+    expect(r.aiIssue).toBeUndefined();
   });
 });

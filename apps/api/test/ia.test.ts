@@ -32,6 +32,15 @@ describe('IA de los consejos: dice por qué no responde', () => {
     expect(r.aiIssue).toBeUndefined();
   });
 
+  it('una cuenta gratis no usa la IA aunque el servidor tenga clave', async () => {
+    reply([item()]);
+    const g = await getAdvice(cfg('sk-ant-x'), { ...args, plan: 'free' as never });
+    const d = await getDetailedAdvice(cfg('sk-ant-x'), { ...args, plan: 'free' as never, useAi: true });
+    expect(g.source).toBe('rules');
+    expect(d.source).toBe('rules');
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it.each([
     [401, { error: { type: 'authentication_error', message: 'invalid x-api-key' } }, 'key'],
     [404, { error: { type: 'not_found_error', message: 'model: claude-test' } }, 'model'],

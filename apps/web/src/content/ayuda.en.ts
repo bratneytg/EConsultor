@@ -159,11 +159,24 @@ export const AYUDA_EN: Record<string, Traduccion> = {
     claves: ["advice", "ai", "artificial intelligence", "claude", "recommendations", "save", "premium", "in depth", "detailed", "specific", "merchants", "subscriptions"],
     texto: [
       "The advice comes from your transactions: savings rate, fixed versus variable spending, subscriptions, trend, weekend spending and income regularity. Each tip states the monthly saving you could achieve.",
-      "With enough history (about 10 transactions) and AI enabled on the server, an assistant writes more personalised advice. Only an anonymous summary of figures is sent to the AI, never notes, names or individual transactions.",
-      "The “In depth” tab looks at your last 3 months merchant by merchant: which charges repeat every month, where small expenses eat your money, which categories are rising, how much you spend at the weekend and how much is left unclassified. Each tip comes with a “What to do” section. It's a local analysis; the AI only steps in if you tap “Improve with AI” and accept the notice (a summary without dates or notes is sent). About 15 transactions are needed.",
+      "Every account sees this advice, calculated on the server with nothing sent out. With Premium, and with enough history (about 10 transactions), an AI assistant writes more personalised advice. Only an anonymous summary of figures is sent to the AI, never notes, names or individual transactions.",
+      "The “In depth” tab looks at your last 3 months merchant by merchant: which charges repeat every month, where small expenses eat your money, which categories are rising, how much you spend at the weekend and how much is left unclassified. Each tip comes with a “What to do” section. It's a local analysis; with Premium, the AI only steps in if you tap “Improve with AI” and accept the notice (a summary without dates or notes is sent). About 15 transactions are needed.",
       "It isn't professional financial advice: it's ideas based on your own data.",
     ],
     accion: "See my advice",
+  },
+  "premium": {
+    titulo: "Premium: what it includes and how to manage it",
+    resumen: "The free account includes all the analysis done on the server. Premium adds the AI. It's paid monthly and you can cancel whenever you like.",
+    claves: ["premium", "subscription", "payment", "price", "cancel", "invoice", "card", "free", "ai", "stripe", "how much"],
+    texto: [
+      "The free account has no limit on transactions and includes the summary, charts, recurring payments, your own categories, statement import, the monthly PDF report and all the advice and in-depth analysis calculated on the server.",
+      "Premium adds what uses artificial intelligence: tips written with your own shops and habits, the in-depth analysis enhanced with AI, and the option to refresh the advice whenever you like.",
+      "It's paid monthly, with no lock-in. Stripe handles the payment: EConsultor doesn't store your card details.",
+      "To subscribe, see what each plan includes or cancel, go to Settings › Subscription. From the “Cancel or manage subscription” button you can change your card, download invoices and cancel. When you cancel you keep Premium until the end of the period you've already paid for.",
+      "If you delete your account, the subscription is cancelled too.",
+    ],
+    accion: "See Premium",
   },
   "prevision-fin-de-mes": {
     titulo: "End-of-month forecast",

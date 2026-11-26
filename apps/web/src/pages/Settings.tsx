@@ -9,6 +9,7 @@ import { ModeSwitch } from '../components/ModeSwitch';
 import { CategoriesCard } from '../components/CategoriesCard';
 import { RecurringCard } from '../components/RecurringCard';
 import { ReportCard } from '../components/ReportCard';
+import { SubscriptionCard } from '../components/SubscriptionCard';
 import { useShell } from '../components/Shell';
 import { Card, Switch } from '../components/ui';
 import { Link, Navigate, useParams } from 'react-router-dom';
@@ -98,6 +99,7 @@ export function Settings() {
         </Card>
       </>
     ) },
+    { id: 'suscripcion', icon: 'spark', title: tk('Suscripción'), hint: tk('Tu plan, el pago y cómo cancelar'), body: <SubscriptionCard /> },
     { id: 'periodicos', icon: 'repeat', title: tk('Gastos periódicos'), hint: tk('Alquiler, transporte, suscripciones, nómina…'), body: <RecurringCard /> },
     { id: 'categorias', icon: 'list', title: tk('Categorías'), hint: tk('Crea las tuyas, cambia nombres u oculta las que no uses'), body: <CategoriesCard /> },
     { id: 'informe', icon: 'chart', title: tk('Informe mensual'), hint: tk('Descarga un PDF con el análisis de cada mes'), body: <ReportCard /> },

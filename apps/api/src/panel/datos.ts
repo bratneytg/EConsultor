@@ -86,6 +86,7 @@ export const ETIQUETAS_EVENTO: Record<string, string> = {
   logout_all: 'Cerró todas sus sesiones',
   statement_import: 'Importó un extracto bancario',
   plan_changed: 'Cambiaste su plan desde el panel',
+  subscription_changed: 'Cambió su suscripción Premium',
 };
 
 type Grupo = 'entradas' | 'fallos' | 'altas' | 'seguridad';
@@ -101,6 +102,7 @@ const GRUPO_EVENTO: Record<string, Grupo> = {
   refresh_reuse_detected: 'seguridad',
   logout_all: 'seguridad',
   plan_changed: 'seguridad',
+  subscription_changed: 'altas',
 };
 
 const fechaBerlin = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' });

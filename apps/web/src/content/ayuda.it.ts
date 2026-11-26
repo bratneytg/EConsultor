@@ -159,11 +159,24 @@ export const AYUDA_IT: Record<string, Traduccion> = {
     claves: ["consigli", "ia", "intelligenza artificiale", "claude", "raccomandazioni", "risparmiare", "premium", "approfondito", "dettagliati", "specifici", "esercenti", "abbonamenti"],
     texto: [
       "I consigli nascono dai tuoi movimenti: tasso di risparmio, spese fisse e variabili, abbonamenti, tendenza, spesa del fine settimana e regolarità delle entrate. Ognuno indica il risparmio mensile che potresti ottenere.",
-      "Con abbastanza storico (circa 10 movimenti) e l'IA attiva sul server, un assistente scrive consigli più personalizzati. All'IA viene inviato solo un riepilogo anonimo di cifre, mai note, nomi né movimenti singoli.",
-      "La scheda «Approfondito» guarda gli ultimi 3 mesi esercente per esercente: quali addebiti si ripetono ogni mese, in quali piccole spese se ne va il denaro, quali categorie salgono, quanto spendi nel fine settimana e quanto resta non classificato. Ogni consiglio ha una sezione «Cosa fare». È un'analisi locale; l'IA interviene solo se tocchi «Migliora con l'IA» e accetti l'avviso (viene inviato un riepilogo senza date né note). Servono circa 15 movimenti.",
+      "Tutti gli account vedono questi consigli, calcolati sul server senza inviare nulla all'esterno. Con Premium e con abbastanza storico (circa 10 movimenti), un assistente IA scrive consigli più personalizzati. All'IA viene inviato solo un riepilogo anonimo di cifre, mai note, nomi né movimenti singoli.",
+      "La scheda «Approfondito» guarda gli ultimi 3 mesi esercente per esercente: quali addebiti si ripetono ogni mese, in quali piccole spese se ne va il denaro, quali categorie salgono, quanto spendi nel fine settimana e quanto resta non classificato. Ogni consiglio ha una sezione «Cosa fare». È un'analisi locale; con Premium, l'IA interviene solo se tocchi «Migliora con l'IA» e accetti l'avviso (viene inviato un riepilogo senza date né note). Servono circa 15 movimenti.",
       "Non è consulenza finanziaria professionale: sono idee basate sui tuoi dati.",
     ],
     accion: "Vedi i miei consigli",
+  },
+  "premium": {
+    titulo: "Premium: cosa include e come si gestisce",
+    resumen: "L'account gratuito include tutta l'analisi fatta sul server. Premium aggiunge l'IA. Si paga ogni mese e puoi annullare quando vuoi.",
+    claves: ["premium", "abbonamento", "pagamento", "prezzo", "annullare", "fattura", "carta", "gratis", "gratuito", "ia", "stripe", "quanto costa"],
+    texto: [
+      "L'account gratuito non ha limiti di movimenti e include il riepilogo, i grafici, le spese periodiche, le categorie personalizzate, l'importazione degli estratti conto, il report mensile in PDF e tutti i consigli e l'analisi approfondita calcolati sul server.",
+      "Premium aggiunge ciò che usa l'intelligenza artificiale: consigli scritti con i tuoi negozi e le tue abitudini, l'analisi approfondita migliorata con l'IA e la possibilità di aggiornare i consigli quando vuoi.",
+      "Si paga ogni mese, senza vincoli. Il pagamento è gestito da Stripe: EConsultor non conserva i dati della tua carta.",
+      "Per abbonarti, vedere cosa include ogni piano o annullare, vai in Impostazioni › Abbonamento. Dal pulsante «Annulla o gestisci l'abbonamento» puoi cambiare la carta, scaricare le fatture e annullare. Quando annulli mantieni Premium fino alla fine del periodo già pagato.",
+      "Se elimini il tuo account, anche l'abbonamento viene annullato.",
+    ],
+    accion: "Scopri Premium",
   },
   "prevision-fin-de-mes": {
     titulo: "Previsione di fine mese",

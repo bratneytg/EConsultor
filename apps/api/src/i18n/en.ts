@@ -261,4 +261,9 @@ export const en: Record<string, string> = {
   "Sólida": "Solid",
   "En construcción": "Under construction",
   "Atención": "Needs attention",
+  "El pago todavía no está disponible.": "Payments aren't available yet.",
+  "Ya tienes Premium.": "You already have Premium.",
+  "No se pudo conectar con el sistema de pago. Inténtalo de nuevo en un momento.": "We couldn't reach the payment system. Please try again in a moment.",
+  "Todavía no tienes ninguna suscripción.": "You don't have a subscription yet.",
+  "No hemos podido cancelar tu suscripción. Inténtalo de nuevo en un momento; no se ha borrado nada.": "We couldn't cancel your subscription. Please try again in a moment; nothing has been deleted.",
 };

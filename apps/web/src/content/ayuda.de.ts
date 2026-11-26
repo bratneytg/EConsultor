@@ -159,11 +159,24 @@ export const AYUDA_DE: Record<string, Traduccion> = {
     claves: ["Tipps", "KI", "künstliche Intelligenz", "claude", "Empfehlungen", "sparen", "premium", "im Detail", "ausführlich", "konkret", "Händler", "Abos"],
     texto: [
       "Die Tipps entstehen aus deinen Buchungen: Sparquote, Fixkosten gegenüber variablen Ausgaben, Abos, Trend, Wochenendausgaben und Regelmäßigkeit der Einnahmen. Jeder nennt die monatliche Ersparnis, die du erreichen könntest.",
-      "Mit genug Verlauf (etwa 10 Buchungen) und aktivierter KI auf dem Server schreibt ein Assistent persönlichere Tipps. An die KI geht nur eine anonyme Zusammenfassung von Zahlen, nie Notizen, Namen oder einzelne Buchungen.",
-      "Der Tab „Im Detail“ betrachtet deine letzten 3 Monate Händler für Händler: welche Abbuchungen sich jeden Monat wiederholen, bei welchen Kleinausgaben das Geld verschwindet, welche Kategorien steigen, wie viel du am Wochenende ausgibst und wie viel unklassifiziert bleibt. Jeder Tipp kommt mit einem Abschnitt „Was tun“. Es ist eine lokale Analyse; die KI greift nur ein, wenn du „Mit KI verbessern“ tippst und den Hinweis akzeptierst (es wird eine Zusammenfassung ohne Daten oder Notizen gesendet). Es braucht etwa 15 Buchungen.",
+      "Alle Konten sehen diese Tipps, auf dem Server berechnet und ohne dass etwas nach außen geht. Mit Premium und mit genug Verlauf (etwa 10 Buchungen) schreibt ein KI-Assistent persönlichere Tipps. An die KI geht nur eine anonyme Zusammenfassung von Zahlen, nie Notizen, Namen oder einzelne Buchungen.",
+      "Der Tab „Im Detail“ betrachtet deine letzten 3 Monate Händler für Händler: welche Abbuchungen sich jeden Monat wiederholen, bei welchen Kleinausgaben das Geld verschwindet, welche Kategorien steigen, wie viel du am Wochenende ausgibst und wie viel unklassifiziert bleibt. Jeder Tipp kommt mit einem Abschnitt „Was tun“. Es ist eine lokale Analyse; mit Premium greift die KI nur ein, wenn du „Mit KI verbessern“ tippst und den Hinweis akzeptierst (es wird eine Zusammenfassung ohne Daten oder Notizen gesendet). Es braucht etwa 15 Buchungen.",
       "Das ist keine professionelle Finanzberatung, sondern Ideen auf Grundlage deiner eigenen Daten.",
     ],
     accion: "Meine Tipps ansehen",
+  },
+  "premium": {
+    titulo: "Premium: Was enthalten ist und wie du es verwaltest",
+    resumen: "Das kostenlose Konto enthält die gesamte Analyse auf dem Server. Premium fügt die KI hinzu. Es wird monatlich bezahlt und du kannst jederzeit kündigen.",
+    claves: ["premium", "abo", "abonnement", "zahlung", "preis", "kündigen", "rechnung", "karte", "kostenlos", "ki", "stripe", "was kostet"],
+    texto: [
+      "Das kostenlose Konto hat kein Limit bei den Buchungen und enthält die Übersicht, die Diagramme, wiederkehrende Zahlungen, eigene Kategorien, den Import von Kontoauszügen, den PDF-Monatsbericht sowie alle Tipps und die Detailanalyse, die auf dem Server berechnet werden.",
+      "Premium fügt hinzu, was künstliche Intelligenz nutzt: Tipps mit deinen Geschäften und Gewohnheiten, die mit KI verbesserte Detailanalyse und die Möglichkeit, die Tipps jederzeit zu aktualisieren.",
+      "Es wird monatlich bezahlt, ohne Bindung. Die Zahlung läuft über Stripe: EConsultor speichert deine Kartendaten nicht.",
+      "Zum Abschließen, um zu sehen, was jeder Tarif enthält, oder zum Kündigen gehst du zu Einstellungen › Abo. Über die Schaltfläche «Abo kündigen oder verwalten» kannst du die Karte ändern, Rechnungen herunterladen und kündigen. Wenn du kündigst, behältst du Premium bis zum Ende des bereits bezahlten Zeitraums.",
+      "Wenn du dein Konto löschst, wird auch das Abo gekündigt.",
+    ],
+    accion: "Premium ansehen",
   },
   "prevision-fin-de-mes": {
     titulo: "Prognose zum Monatsende",

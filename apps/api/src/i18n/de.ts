@@ -261,4 +261,9 @@ export const de: Record<string, string> = {
   "Sólida": "Solide",
   "En construcción": "Im Aufbau",
   "Atención": "Achtung",
+  "El pago todavía no está disponible.": "Die Zahlung ist noch nicht verfügbar.",
+  "Ya tienes Premium.": "Du hast bereits Premium.",
+  "No se pudo conectar con el sistema de pago. Inténtalo de nuevo en un momento.": "Das Zahlungssystem ist nicht erreichbar. Bitte versuche es gleich noch einmal.",
+  "Todavía no tienes ninguna suscripción.": "Du hast noch kein Abo.",
+  "No hemos podido cancelar tu suscripción. Inténtalo de nuevo en un momento; no se ha borrado nada.": "Dein Abo konnte nicht gekündigt werden. Bitte versuche es gleich noch einmal; es wurde nichts gelöscht.",
 };

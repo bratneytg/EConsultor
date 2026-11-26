@@ -4,7 +4,9 @@ import type { AdviceResponse, AiIssue } from '@econsultor/shared';
 import { AdviceCard } from '../components/AdviceCard';
 import { Icon } from '../components/Icon';
 import { useShell } from '../components/Shell';
+import { PremiumNudge } from '../components/Premium';
 import { Card } from '../components/ui';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth, useUser } from '../lib/auth';
 import { useAdvice, useAppConfig, useDetailedAdvice } from '../lib/queries';
@@ -54,14 +56,8 @@ export function Advice() {
     toast(t('Premium activado (modo demostración)'));
   };
 
-  const locked = (n: number, text: string) => (
-    <article className="advice-card locked">
-      <Icon name="lock" size={26} />
-      <h3>{n === 1 ? t('1 consejo más con Premium') : t('{n} consejos más con Premium', { n })}</h3>
-      <p>{text}</p>
-      {cfg?.demo ? <button className="btn btn-primary" onClick={goPremium}>{t('Probar Premium (demo)')}</button> : <span className="badge">{t('Próximamente')}</span>}
-    </article>
-  );
+  /** Solo en modo demostración: activa Premium sin pagar para poder probar la IA. */
+  const demoButton = cfg?.demo ? <button className="btn" onClick={goPremium}>{t('Probar Premium (demo)')}</button> : null;
 
   const empty = (
     <Card><div className="empty"><h3>{t('No hemos podido generar tus consejos')}</h3><p>{t('Vuelve a intentarlo en unos segundos.')}</p></div></Card>
@@ -97,7 +93,9 @@ export function Advice() {
           <h1>{t('Consejos')}</h1>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {data && <span className={`badge ${user.plan === 'premium' ? 'premium' : ''}`}>{user.plan === 'premium' ? ((tab === 'general' ? data.source : dd?.source) === 'ai' ? t('Premium · IA') : t('Premium')) : t('Gratis')}</span>}
+          {data && (user.plan === 'premium'
+            ? <span className="badge premium">{(tab === 'general' ? data.source : dd?.source) === 'ai' ? t('Premium · IA') : t('Premium')}</span>
+            : <Link to="/premium" className="badge badge-link">{t('Gratis')} · {t('Mejorar')}</Link>)}
           {user.plan === 'premium' && tab === 'general' && <button className="chip-btn" disabled={busy || isFetching} onClick={refresh}><Icon name="refresh" size={14} /> {t('Actualizar')}</button>}
           {user.plan === 'premium' && tab === 'detailed' && <button className="chip-btn" disabled={busy || detailed.isFetching} onClick={refreshDetailed}><Icon name="refresh" size={14} /> {t('Actualizar')}</button>}
         </div>
@@ -114,7 +112,9 @@ export function Advice() {
             {aiNotice(data.aiIssue)}
             <div className="advice-grid">
               {data.items.map((a) => <AdviceCard key={a.id} a={a} currency={user.currency} />)}
-              {data.lockedCount > 0 && locked(data.lockedCount, t('Consejos con IA sobre cómo ahorrar más y aumentar tus ingresos, ajustados a tu historial.'))}
+              {user.plan !== 'premium' && (
+                <PremiumNudge title={t('Consejos escritos por IA')} text={t('Con Premium, la IA lee tus movimientos y te dice cómo ahorrar más y aumentar tus ingresos, con tus comercios y tus hábitos.')}>{demoButton}</PremiumNudge>
+              )}
             </div>
           </>
         )
@@ -126,6 +126,10 @@ export function Advice() {
           </p>
 
           {aiNotice(dd.aiIssue)}
+
+          {user.plan !== 'premium' && dd.basis && (
+            <PremiumNudge variant="panel" title={t('¿Quieres consejos aún más afinados con IA?')} text={t('Este análisis ya se hace en el servidor, sin enviar nada fuera. Con Premium, la IA redacta consejos todavía más concretos con tus comercios.')}>{demoButton}</PremiumNudge>
+          )}
 
           {dd.basis?.aiAvailable && dd.source !== 'ai' && (
             <div className="ai-consent">
@@ -149,7 +153,6 @@ export function Advice() {
 
           <div className="advice-grid">
             {dd.items.map((a) => <AdviceCard key={a.id} a={a} currency={user.currency} />)}
-            {dd.lockedCount > 0 && locked(dd.lockedCount, t('Análisis a fondo de tus comercios, gastos repetidos y topes semanales, con lo que debes hacer en cada caso.'))}
           </div>
         </>
       )}

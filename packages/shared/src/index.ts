@@ -372,6 +372,29 @@ export interface Advice {
   action?: string;
 }
 
+/** Estado de la suscripción Premium de una cuenta (GET /billing). */
+export interface BillingInfo {
+  /** true si el servidor tiene configurado el cobro (Stripe). Si no, solo se puede ver qué incluye Premium. */
+  enabled: boolean;
+  /** Plan con el que se está tratando la cuenta ahora mismo. */
+  plan: Plan;
+  /** De dónde viene el plan: una suscripción de pago, un ajuste manual del administrador, «Premium para todas» o ninguno. */
+  source: 'subscription' | 'manual' | 'everyone' | 'none';
+  /** Precio mensual en céntimos y su moneda (ISO, minúsculas como en Stripe). */
+  priceCents: number;
+  currency: string;
+  /** Días de prueba gratuita al suscribirse (0 = sin prueba). */
+  trialDays: number;
+  subscription?: {
+    status: string;
+    /** Próximo cobro o, si ya está cancelada, hasta cuándo sigue activa (ISO). */
+    renewsAt?: string;
+    cancelAtPeriodEnd: boolean;
+    /** true si hay un cliente en Stripe al que abrirle el portal de pagos. */
+    canManage: boolean;
+  };
+}
+
 /** Por qué la IA no ha podido responder (solo se muestra a cuentas Premium). */
 export type AiIssue = 'no_key' | 'key' | 'model' | 'limit' | 'busy' | 'network' | 'format';
 

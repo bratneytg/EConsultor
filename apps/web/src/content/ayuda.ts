@@ -257,11 +257,26 @@ export const ARTICULOS: Articulo[] = [
     claves: ['consejos', 'ia', 'inteligencia artificial', 'claude', 'recomendaciones', 'ahorrar', 'premium', 'a fondo', 'detallados', 'específicos', 'comercios', 'suscripciones'],
     texto: [
       'Los consejos salen de tus movimientos: tasa de ahorro, gastos fijos frente a variables, suscripciones, tendencia, gasto de fin de semana y regularidad de ingresos. Cada uno indica el ahorro mensual que podrías conseguir.',
-      'Con suficiente historial (unos 10 movimientos) y la IA activada en el servidor, un asistente redacta consejos más personalizados. A la IA solo se envía un resumen anónimo de cifras, nunca notas, nombres ni movimientos individuales.',
-      'La pestaña «A fondo» mira tus últimos 3 meses comercio por comercio: qué cargos se repiten cada mes, en qué gastos pequeños se te va el dinero, qué categorías suben, cuánto gastas en fin de semana y cuánto queda sin clasificar. Cada consejo trae un apartado «Qué hacer». Es un análisis local; la IA solo interviene si pulsas «Mejorar con IA» y aceptas el aviso (se envía un resumen sin fechas ni notas). Hacen falta unos 15 movimientos.',
+      'Todas las cuentas ven estos consejos, calculados en el servidor sin enviar nada fuera. Con Premium, y con suficiente historial (unos 10 movimientos), un asistente de IA redacta consejos más personalizados. A la IA solo se envía un resumen anónimo de cifras, nunca notas, nombres ni movimientos individuales.',
+      'La pestaña «A fondo» mira tus últimos 3 meses comercio por comercio: qué cargos se repiten cada mes, en qué gastos pequeños se te va el dinero, qué categorías suben, cuánto gastas en fin de semana y cuánto queda sin clasificar. Cada consejo trae un apartado «Qué hacer». Es un análisis local; con Premium, la IA solo interviene si pulsas «Mejorar con IA» y aceptas el aviso (se envía un resumen sin fechas ni notas). Hacen falta unos 15 movimientos.',
       'No son asesoramiento financiero profesional: son ideas basadas en tus propios datos.',
     ],
     accion: { etiqueta: 'Ver mis consejos', to: '/consejos' },
+  },
+  {
+    id: 'premium',
+    tema: 'Ahorro y consejos',
+    titulo: 'Premium: qué incluye y cómo se gestiona',
+    resumen: 'La cuenta gratuita incluye todo el análisis hecho en el servidor. Premium añade la IA. Se paga cada mes y se cancela cuando quieras.',
+    claves: ['premium', 'suscripción', 'pago', 'precio', 'cancelar', 'factura', 'tarjeta', 'gratis', 'gratuita', 'ia', 'stripe', 'cuánto cuesta'],
+    texto: [
+      'La cuenta gratuita no tiene límite de movimientos e incluye el resumen, las gráficas, los gastos periódicos, las categorías propias, la importación de extractos, el informe mensual en PDF y todos los consejos y el análisis a fondo calculados en el servidor.',
+      'Premium añade lo que usa inteligencia artificial: consejos escritos con tus comercios y tus hábitos, el análisis a fondo mejorado con IA y poder actualizar los consejos cuando quieras.',
+      'Se paga cada mes, sin permanencia. El pago lo gestiona Stripe: EConsultor no guarda los datos de tu tarjeta.',
+      'Para suscribirte, ver qué incluye cada plan o cancelar, entra en Ajustes › Suscripción. Desde el botón «Cancelar o gestionar suscripción» puedes cambiar la tarjeta, descargar facturas y cancelar. Al cancelar sigues con Premium hasta el final del periodo que ya has pagado.',
+      'Si borras tu cuenta, la suscripción se cancela también.',
+    ],
+    accion: { etiqueta: 'Ver Premium', to: '/premium' },
   },
   {
     id: 'prevision-fin-de-mes',

@@ -428,3 +428,48 @@ textarea.input { resize: vertical; min-height: 110px; font: inherit; }
 .swatch[aria-checked="true"] { border-color: var(--surface); box-shadow: 0 0 0 2px var(--ink), inset 0 0 0 1px rgba(0,0,0,.12); }
 .swatch:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { .swatch { transition: none; } }
+
+/* ───────── Premium: invitaciones, página de planes y suscripción ───────── */
+.badge-link { text-decoration: none; }
+.badge-link:hover { background: var(--accent-wash); color: var(--accent); }
+.badge-link:focus-visible { outline: 2px solid var(--focus, currentColor); outline-offset: 2px; }
+.nudge-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.premium-nudge.advice-card { grid-column: 1 / -1; }
+
+.premium-page { display: grid; gap: 14px; }
+.plan-hero { display: grid; gap: 16px; background: linear-gradient(135deg, var(--accent-wash), transparent 62%), var(--surface); }
+.plan-lead { font-family: var(--font-display); font-weight: 600; font-size: clamp(19px, 4.6vw, 24px); letter-spacing: -0.02em; line-height: 1.25; max-width: 32ch; }
+.plan-buy, .plan-state { display: grid; gap: 10px; justify-items: start; }
+.plan-buy .btn-block { justify-self: stretch; }
+.plan-price { display: flex; align-items: baseline; gap: 4px; font-family: var(--font-display); line-height: 1; margin: 2px 0 0; }
+.plan-int { font-weight: 700; font-size: 54px; letter-spacing: -0.05em; font-variation-settings: 'wdth' 92; }
+.plan-dec { font-weight: 650; font-size: 22px; letter-spacing: -0.02em; }
+.plan-per { color: var(--ink-3); font-size: 15px; margin-left: 6px; font-weight: 500; }
+.plan-price.skeleton { width: 150px; height: 54px; border-radius: 12px; background: var(--surface-3); }
+.plan-facts { list-style: none; padding: 0; margin: 4px 0 0; display: grid; gap: 8px; }
+.plan-facts li { display: flex; gap: 10px; align-items: flex-start; color: var(--ink-2); font-size: 13.5px; line-height: 1.4; }
+.plan-facts svg { flex: none; margin-top: 1px; color: var(--ink-3); }
+
+.compare { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 14.5px; }
+.compare th, .compare td { padding: 11px 8px; border-bottom: 1px solid var(--grid); vertical-align: middle; }
+.compare tbody tr:last-child > * { border-bottom: 0; }
+.compare thead th { color: var(--ink-3); font-size: 13px; font-weight: 600; text-align: center; width: 66px; padding-top: 0; }
+.compare thead th:first-child { width: auto; }
+.compare tbody th { text-align: left; font-weight: 500; color: var(--ink); line-height: 1.35; padding-left: 0; }
+.compare td { text-align: center; color: var(--ink-3); }
+.compare td svg { vertical-align: middle; }
+.compare .col-premium { background: var(--accent-wash); color: var(--accent); }
+.compare thead .col-premium { color: var(--accent); border-radius: 10px 10px 0 0; padding-top: 8px; }
+.compare tbody tr:last-child .col-premium { border-radius: 0 0 10px 10px; }
+.compare .dash { color: var(--ink-3); opacity: .7; }
+
+.example-pair { display: grid; gap: 10px; }
+@media (min-width: 640px) { .example-pair { grid-template-columns: 1fr 1fr; } }
+.example { display: grid; gap: 8px; justify-items: start; padding: 14px 16px; border-radius: 16px; background: var(--surface-2); }
+.example.ai { background: var(--accent-wash); }
+.example h3 { font-family: var(--font-display); font-weight: 650; font-size: 16px; letter-spacing: -0.015em; line-height: 1.25; }
+.example p { color: var(--ink-2); font-size: 14px; line-height: 1.45; }
+
+.sub-status { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0 12px; font-size: 14.5px; line-height: 1.4; color: var(--ink); }
+.sub-status svg { flex: none; margin-top: 2px; color: var(--ink-3); }
+.sub-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 4px; }

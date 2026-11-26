@@ -11,6 +11,15 @@ export interface Release { version: string; title: string; changes: Change[] }
  */
 export const RELEASES: Release[] = [
   {
+    version: '1.5.0',
+    title: tk('Premium: la IA, por suscripción'),
+    changes: [
+      { kind: 'new', text: tk('Premium: consejos escritos por IA con tus comercios y tus hábitos, y análisis a fondo mejorado. Se paga cada mes y se cancela cuando quieras (Ajustes › Suscripción).') },
+      { kind: 'improvement', text: tk('La cuenta gratuita ya no recorta los consejos: ves todo el análisis hecho en el servidor, sin límite de movimientos.') },
+      { kind: 'feature', text: tk('Una página con lo que incluye cada plan y, en Ajustes, tu suscripción: próximo cobro, facturas, cambio de tarjeta y cancelación.') },
+    ],
+  },
+  {
     version: '1.4.2',
     title: tk('Elegir el color de una categoría'),
     changes: [

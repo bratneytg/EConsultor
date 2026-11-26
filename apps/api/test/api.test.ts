@@ -229,16 +229,18 @@ describe('analítica, perfil oculto y consejos', () => {
     }
   });
 
-  it('plan free limita los consejos; premium los desbloquea', async () => {
+  it('la cuenta gratuita ve todo el análisis local; Premium añade la IA', async () => {
     const { token } = await register();
     await app.inject({ method: 'POST', url: '/api/dev/demo-data', headers: authed(token) });
     const free = json(await app.inject({ method: 'GET', url: '/api/advice', headers: authed(token) }));
-    expect(free.items.length).toBeLessThanOrEqual(3);
-    expect(free.lockedCount).toBeGreaterThan(0);
+    expect(free.plan).toBe('free');
+    expect(free.source).toBe('rules');
+    expect(free.lockedCount).toBe(0);
+    expect(free.items.length).toBeGreaterThan(3); // ya no se recorta: todo lo local es gratis
     await app.inject({ method: 'POST', url: '/api/dev/plan', headers: authed(token), payload: { plan: 'premium' } });
     const prem = json(await app.inject({ method: 'GET', url: '/api/advice', headers: authed(token) }));
+    expect(prem.plan).toBe('premium');
     expect(prem.lockedCount).toBe(0);
-    expect(prem.items.length).toBeGreaterThan(free.items.length);
     expect(prem.source).toBe('rules'); // sin ANTHROPIC_API_KEY cae a reglas
   });
 

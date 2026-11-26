@@ -10,6 +10,7 @@ import { Transactions } from './pages/Transactions';
 
 const Advice = lazy(() => importWithRetry(() => import('./pages/Advice')).then((m) => ({ default: m.Advice })));
 const Help = lazy(() => importWithRetry(() => import('./pages/Help')).then((m) => ({ default: m.Help })));
+const Premium = lazy(() => importWithRetry(() => import('./pages/Premium')).then((m) => ({ default: m.Premium })));
 const Settings = lazy(() => importWithRetry(() => import('./pages/Settings')).then((m) => ({ default: m.Settings })));
 const fallback = <div className="loading-screen" style={{ minHeight: 240 }}><div className="pulse-dot" /></div>;
 
@@ -28,6 +29,7 @@ export function App() {
         <Route index element={<HomeRoute />} />
         <Route path="movimientos" element={<Transactions />} />
         <Route path="consejos" element={<Suspense fallback={fallback}><Advice /></Suspense>} />
+        <Route path="premium" element={<Suspense fallback={fallback}><Premium /></Suspense>} />
         <Route path="ayuda" element={<Suspense fallback={fallback}><Help /></Suspense>} />
         <Route path="ajustes" element={<Suspense fallback={fallback}><Settings /></Suspense>} />
         <Route path="ajustes/:section" element={<Suspense fallback={fallback}><Settings /></Suspense>} />

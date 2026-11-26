@@ -3,7 +3,9 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { CATEGORIES, categoryPrefsInput, isoDate, monthStr, registerCategories, settingsInput, transactionInput, type CustomCategory, type Transaction } from '@econsultor/shared';
 import { addDays, monthOf, todayIn } from '../lib/dates.js';
-import { badRequest, conflict, forbidden, notFound, unauthorized } from '../lib/errors.js';
+import { AppError, badRequest, conflict, forbidden, notFound, unauthorized } from '../lib/errors.js';
+import { cancelSubscription } from '../modules/billing/stripe.js';
+import { isActiveStatus } from '../modules/billing/subscription.js';
 import { getAdvice, getDetailedAdvice, clearAdviceCache } from '../modules/advice/advisor.js';
 import { buildOverview } from '../modules/analytics/analytics.js';
 import { generateDemoTransactions } from '../modules/demo/seed.js';
@@ -76,6 +78,11 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
     const u = req.user;
     if (body.confirmEmail.trim().toLowerCase() !== u.email) throw badRequest('El email de confirmación no coincide');
     if (u.passwordHash && !(body.password && (await verifyPassword(body.password, u.passwordHash)))) throw unauthorized('Contraseña incorrecta', 'invalid_credentials');
+    // Si tiene una suscripción de pago, se cancela primero: si Stripe no responde, no se borra la cuenta
+    // (así nunca se sigue cobrando a alguien que ya no tiene cuenta).
+    if (cfg.billing && u.billing?.subscriptionId && isActiveStatus(u.billing.status)) {
+      try { await cancelSubscription(cfg.billing, u.billing.subscriptionId); } catch { throw new AppError(502, 'stripe_error', 'No hemos podido cancelar tu suscripción. Inténtalo de nuevo en un momento; no se ha borrado nada.'); }
+    }
     await store.transactions.deleteAllForUser(u.id);
     for (const s of await store.push.forUser(u.id)) await store.push.remove(u.id, s.endpoint);
     await store.sessions.revokeAllForUser(u.id);
@@ -264,5 +271,5 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
     return reply.status(201).send({ ok: true });
   });
 
-  app.get('/config', async () => ({ googleClientId: cfg.googleClientId ?? null, demo: cfg.allowDemoData, ai: !!cfg.anthropicApiKey, apkUrl: cfg.apkUrl ?? null }));
+  app.get('/config', async () => ({ googleClientId: cfg.googleClientId ?? null, demo: cfg.allowDemoData, ai: !!cfg.anthropicApiKey, billing: !!cfg.billing, apkUrl: cfg.apkUrl ?? null }));
 }

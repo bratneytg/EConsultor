@@ -8,8 +8,6 @@ import { buildSpendingDetail, detailedAdvice, MIN_DETAIL_TX } from './detailed.j
 import { ruleBasedAdvice } from './rules.js';
 import { curLang } from '../../lib/i18n.js';
 
-export const FREE_LIMIT = 3;
-
 interface Cached {
   key: string;
   at: number;
@@ -57,13 +55,13 @@ export async function getAdvice(
     if (issue !== 'busy' && issue !== 'network' && issue !== 'format') cache.set(userId, { key, at, source, items, issue });
   }
 
-  const visible = plan === 'premium' ? items : items.slice(0, FREE_LIMIT);
+  // Todas las cuentas ven el análisis hecho en el propio servidor; la IA es lo que añade Premium.
   return {
     source,
     plan,
     generatedAt: new Date(at).toISOString(),
-    items: visible,
-    lockedCount: items.length - visible.length,
+    items,
+    lockedCount: 0,
     ...(plan === 'premium' && issue ? { aiIssue: issue } : {}),
   };
 }
@@ -76,8 +74,8 @@ export async function getDetailedAdvice(
 ): Promise<AdviceResponse> {
   const { userId, plan, currency, today, txs, refresh } = args;
   const detail = buildSpendingDetail(txs, today, currency);
-  const enough = plan === 'premium' && detail.txCount >= MIN_DETAIL_TX;
-  const aiAvailable = !!cfg.anthropicApiKey && enough;
+  const enough = detail.txCount >= MIN_DETAIL_TX;
+  const aiAvailable = plan === 'premium' && !!cfg.anthropicApiKey && enough;
   const wantAi = !!args.useAi && aiAvailable;
 
   const latest = txs.reduce((m, t) => (t.updatedAt > m ? t.updatedAt : m), '');
@@ -100,12 +98,10 @@ export async function getDetailedAdvice(
     detailedCache.set(userId, { key, at, source, items, issue });
   }
   // Sin clave en el servidor, el botón de IA no existe: se explica por qué.
-  if (enough && !cfg.anthropicApiKey) issue = 'no_key';
+  if (plan === 'premium' && enough && !cfg.anthropicApiKey) issue = 'no_key';
 
-  // Gratis: se ven los 2 primeros; el resto se desbloquea con Premium.
-  const visible = plan === 'premium' ? items : items.slice(0, 2);
   return {
-    source, plan, generatedAt: new Date(at).toISOString(), items: visible, lockedCount: items.length - visible.length,
+    source, plan, generatedAt: new Date(at).toISOString(), items, lockedCount: 0,
     basis: { periodDays: detail.periodDays, txCount: detail.txCount, merchants: detail.merchants.length, aiAvailable },
     ...(plan === 'premium' && issue ? { aiIssue: issue } : {}),
   };

@@ -18,6 +18,7 @@
 #   bash scripts/servidor.sh direccion        Tras cambiar el nombre del equipo o de la red en Tailscale: actualiza todo
 #   bash scripts/servidor.sh activar          Activa Premium para todos, la IA y los avisos push (genera las claves VAPID)
 #   bash scripts/servidor.sh ia [cambiar]     Activa la IA de los consejos: pide la clave de Anthropic, la prueba y la guarda (o prueba la que ya hay)
+#   bash scripts/servidor.sh cobros [cambiar] Activa el cobro de Premium con Stripe: pide las claves, las prueba y las guarda; las cuentas nuevas son gratuitas
 #   bash scripts/servidor.sh perfiles on|off  Muestra u oculta la pestaña «Perfiles» del panel (apagado por defecto)
 #   bash scripts/servidor.sh psico on|off     Añade a «Perfiles» la evaluación psico-económica (apagado por defecto)
 #   bash scripts/servidor.sh apk URL          Pone el enlace de descarga de la app de Android en la web
@@ -776,6 +777,87 @@ ia() {
   echo "Los consejos con IA se piden en la pestaña «Consejos» (Generales usa la IA sola; «A fondo» te pide permiso)."
 }
 
+# Comprueba contra Stripe la clave y el precio. Escribe en $PRECIO_INFO lo que encuentra.
+cobros_probar() {
+  local clave="$1" precio="$2" cab cuerpo codigo
+  cab="$(mktemp)"; cuerpo="$(mktemp)"
+  ( umask 077; printf 'Authorization: Bearer %s\n' "$clave" > "$cab" )   # la clave va en un archivo temporal, no en la lista de procesos
+  codigo="$(curl -sS -m 30 -o "$cuerpo" -w '%{http_code}' "https://api.stripe.com/v1/prices/${precio}" -H "@${cab}" 2>/dev/null || echo 000)"
+  case "$codigo" in
+    200)
+      python3 - "$cuerpo" <<'PY' || { rm -f "$cab" "$cuerpo"; return 1; }
+import json, sys
+p = json.load(open(sys.argv[1]))
+cents, cur = p.get("unit_amount"), (p.get("currency") or "").upper()
+rec = p.get("recurring") or {}
+print("  Precio: %s %s cada %s" % ("%.2f" % (cents / 100) if cents else "?", cur, rec.get("interval", "¿no es recurrente?")))
+modo = "LIVE (cobra de verdad)" if p.get("livemode") else "PRUEBA (no cobra de verdad)"
+print("  Modo: " + modo)
+ok = True
+if rec.get("interval") != "month" or rec.get("interval_count", 1) != 1:
+    print("  ⚠ El precio debe ser recurrente y MENSUAL (cada 1 mes)."); ok = False
+if p.get("tax_behavior") != "inclusive":
+    print("  ⚠ Conviene que el precio lleve el IVA INCLUIDO (en Stripe: «Impuestos incluidos» al crear el precio): en Alemania se debe mostrar el precio final al consumidor.")
+if not p.get("active", True):
+    print("  ⚠ Ese precio está archivado."); ok = False
+sys.exit(0 if ok else 1)
+PY
+      local r=$?; rm -f "$cab" "$cuerpo"; return $r ;;
+    401) alerta "Stripe no acepta esa clave (401)." ;;
+    404) alerta "Stripe no encuentra ese precio (404). ¿Es del mismo modo, prueba o live, que la clave?" ;;
+    000) alerta "Este servidor no consigue conectar con api.stripe.com. Revisa su conexión a internet." ;;
+    *) alerta "Stripe respondió ${codigo}." ;;
+  esac
+  rm -f "$cab" "$cuerpo"; return 1
+}
+
+cobros() {
+  [ -f "${DIR}/.env" ] || { alerta "No encuentro el archivo .env en ${DIR}."; exit 1; }
+  command -v python3 >/dev/null || { alerta "Falta python3 (sudo apt install python3)."; exit 1; }
+  titulo "COBRO DE PREMIUM (Stripe)"
+  local clave precio secreto origen
+  clave="$(env_leer "${DIR}/.env" STRIPE_SECRET_KEY)"; precio="$(env_leer "${DIR}/.env" STRIPE_PRICE_ID)"; secreto="$(env_leer "${DIR}/.env" STRIPE_WEBHOOK_SECRET)"
+  origen="$(env_leer "${DIR}/.env" PUBLIC_ORIGIN)"
+
+  if [ -n "$clave" ] && [ -n "$precio" ] && [ -n "$secreto" ] && [ "${1:-}" != "cambiar" ]; then
+    ok "Ya hay un cobro configurado. Lo compruebo:"
+    cobros_probar "$clave" "$precio" || { echo "Para cambiarlo: bash scripts/servidor.sh cobros cambiar"; exit 1; }
+  else
+    echo "Antes de seguir, en https://dashboard.stripe.com haz esto (una sola vez):"
+    echo "  1. Productos › Añadir producto «EConsultor Premium» con un precio RECURRENTE, MENSUAL, con los impuestos INCLUIDOS."
+    echo "  2. Desarrolladores › Webhooks › Añadir endpoint:  ${origen:-https://TU-DIRECCION}/api/billing/webhook"
+    echo "     Eventos: checkout.session.completed, customer.subscription.created, customer.subscription.updated, customer.subscription.deleted"
+    echo "  3. Ajustes › Facturación › Portal de clientes: actívalo y permite «cancelar suscripciones» y cambiar el método de pago."
+    echo "  4. Usa primero el MODO PRUEBA (claves sk_test_…): puedes pagar con la tarjeta 4242 4242 4242 4242 sin gastar nada."
+    echo "Las claves no se verán al escribirlas y solo se guardan en ${DIR}/.env."
+    echo
+    read -r -s -p "Clave secreta de Stripe (sk_… o rk_…): " clave; echo; clave="$(printf '%s' "$clave" | tr -d '[:space:]')"
+    case "$clave" in sk_*|rk_*) ;; *) alerta "Esa clave no empieza por sk_ ni rk_."; exit 1 ;; esac
+    read -r -p "ID del precio (price_…): " precio; precio="$(printf '%s' "$precio" | tr -d '[:space:]')"
+    case "$precio" in price_*) ;; *) alerta "El ID del precio empieza por price_."; exit 1 ;; esac
+    read -r -s -p "Secreto del webhook (whsec_…): " secreto; echo; secreto="$(printf '%s' "$secreto" | tr -d '[:space:]')"
+    case "$secreto" in whsec_*) ;; *) alerta "El secreto del webhook empieza por whsec_."; exit 1 ;; esac
+    cobros_probar "$clave" "$precio" || { alerta "No he guardado nada."; exit 1; }
+    cp -p "${DIR}/.env" "${DIR}/.env.antes-de-cobros"; chmod 600 "${DIR}/.env.antes-de-cobros"
+    env_poner "${DIR}/.env" STRIPE_SECRET_KEY "$clave"
+    env_poner "${DIR}/.env" STRIPE_PRICE_ID "$precio"
+    env_poner "${DIR}/.env" STRIPE_WEBHOOK_SECRET "$secreto"
+    ok "Claves guardadas en .env."
+  fi
+
+  if [ "$(env_leer "${DIR}/.env" PREMIUM_FOR_ALL)" = "true" ]; then
+    env_poner "${DIR}/.env" PREMIUM_FOR_ALL false
+    ok "Quito «Premium para todas»: ahora Premium solo lo tiene quien paga (o quien actives a mano en el panel)."
+    aviso "Las cuentas que ya existían pasan a ser gratuitas, salvo las que fijes como Premium en el panel."
+  fi
+  echo "Reiniciando la app..."
+  compose up -d --force-recreate app
+  local i; for i in $(seq 1 30); do curl -fsS "http://127.0.0.1:${PUERTO}/healthz" >/dev/null 2>&1 && break; sleep 2; done
+  if curl -fsS "http://127.0.0.1:${PUERTO}/api/config" 2>/dev/null | grep -q '"billing":true'; then ok "La app tiene el cobro activo."; else alerta "La app no ve la configuración de cobro. Mira: docker compose logs app"; fi
+  if [ -n "$origen" ]; then echo "Comprueba que Stripe llega a la app: en Stripe › Webhooks › tu endpoint › «Enviar evento de prueba»; debe responder 200."; fi
+  aviso "Antes de cobrar de verdad (claves live): Impressum y política de privacidad en la web, condiciones y derecho de desistimiento, y alta de la actividad / IVA (consulta a un Steuerberater)."
+}
+
 perfiles() {
   [ -f "${DIR}/.env.panel" ] || { alerta "El panel aún no está instalado: bash scripts/servidor.sh panel"; exit 1; }
   case "${1:-estado}" in
@@ -846,10 +928,11 @@ case "${1:-ayuda}" in
   panel-parar) panel_parar ;;
   activar) activar ;;
   ia) ia "${2:-}" ;;
+  cobros) cobros "${2:-}" ;;
   perfiles) perfiles "${2:-estado}" ;;
   psico) psico "${2:-estado}" ;;
   apk) apk "${2:-}" ;;
   tapa) tapa "${2:-}" ;;
   bareglass) bareglass "${2:-estado}" ;;
-  *) sed -n '2,24p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
+  *) sed -n '2,25p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
 esac
