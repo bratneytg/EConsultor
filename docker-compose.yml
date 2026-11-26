@@ -33,6 +33,9 @@ services:
     environment:
       DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:-}
       DATA_FILE: /data/store.json
+      # Para cambiar el plan de una cuenta el panel se lo pide a la app (ADMIN_TOKEN está en .env.panel).
+      APP_URL: http://app:8787
+      PREMIUM_FOR_ALL: ${PREMIUM_FOR_ALL:-false}
       HOST_STATE: /estado/host.json
       HOST_HISTORY: /estado/historial.jsonl
     ports:

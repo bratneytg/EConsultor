@@ -588,4 +588,5 @@ export const en: Record<string, string> = {
   "El servidor no consigue conectar con la IA. Revisa su conexión a internet.": "The server can't reach the AI. Check its internet connection.",
   "La IA respondió algo que no he podido leer. Pulsa «Actualizar» para intentarlo otra vez.": "The AI replied with something I couldn't read. Tap “Update” to try again.",
   "Mostrando consejos sin IA": "Showing tips without AI",
+  "Plan cambiado por el administrador": "Plan changed by the administrator",
 };

@@ -158,6 +158,7 @@ Limitaciones del plan gratuito: el servicio se duerme tras ~15 min sin uso (la p
 | `bash scripts/servidor.sh direccion` | Tras renombrar el equipo o la red en Tailscale: rehace las asignaciones, actualiza `PUBLIC_ORIGIN` y reinicia la app |
 | `bash scripts/servidor.sh activar` | Activa Premium para todos (`PREMIUM_FOR_ALL`), genera las claves de avisos push (VAPID) y avisa de lo que aún falta (clave de IA, Google) |
 | `bash scripts/servidor.sh perfiles on\|off` | Muestra u oculta la pestaña «Perfiles financieros» del panel (apagada por defecto; pide confirmar) |
+| Panel → «Usuarios» | Cada cuenta tiene un selector de plan: **Automático** (sigue `PREMIUM_FOR_ALL`), **Premium** o **Gratuita**. Se activa solo al ejecutar `bash scripts/servidor.sh panel` (crea `ADMIN_TOKEN` y reinicia la app); ver `docs/SECURITY.md` |
 | `bash scripts/servidor.sh ia [cambiar]` | Activa la IA de los consejos: pide la clave de Anthropic (oculta al escribir), la prueba contra la API y solo entonces la guarda y reinicia. Sin argumentos, prueba la clave que ya hay. En «Consejos» la app explica por qué la IA no responde (sin clave, clave inválida, modelo, saldo, saturación, red) |
 | `bash scripts/servidor.sh psico on\|off` | Añade a «Perfiles» la evaluación psico-económica (apagada por defecto; pide confirmar; solo en el panel, nunca en la app) |
 | `bash scripts/servidor.sh apk URL` | Pone el enlace de descarga de la app de Android en Ajustes y Ayuda |

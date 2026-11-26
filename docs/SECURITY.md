@@ -66,3 +66,14 @@ Es una credencial pública a propósito, para probar la interfaz. Se limita así
 - Sesiones listadas por dispositivo con revocación individual.
 - Revisión externa / prueba de penetración antes de abrirlo a terceros.
 - Aviso legal, política de privacidad y base jurídica del tratamiento antes de ofrecerlo al público (RGPD).
+
+
+## Cambiar el plan desde el panel
+
+El panel es de solo lectura sobre la base de datos (el volumen se monta `:ro`). Lo único que puede cambiar es el plan (Premium/Gratuita/Automático) de una cuenta, y lo hace **pidiéndoselo a la app**, que es quien gestiona los datos:
+
+- `POST /api/admin/plan` solo existe si `ADMIN_TOKEN` (≥ 32 caracteres, `openssl rand -hex 32`) está definido. Exige la cabecera `x-admin-token`, comparada en tiempo constante, con límite de 20 intentos por minuto; un fallo se registra y responde 401.
+- El panel la llama por la red interna de Docker (`http://app:8787`). La clave vive solo en `.env` y `.env.panel` (permisos 600); no sale en ninguna respuesta.
+- `POST /api/plan` del panel exige la sesión del panel y la cabecera `X-Panel: 1` (defensa extra frente a peticiones de otras webs, además de la cookie `SameSite=Strict`).
+- Cada cambio queda en el registro de seguridad de la cuenta (`plan_changed`, con el plan anterior y el nuevo).
+- Un plan fijado a mano manda sobre `PREMIUM_FOR_ALL`; «Automático» lo quita.

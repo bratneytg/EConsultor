@@ -1,3 +1,4 @@
+import { effectivePlan } from '../lib/plan.js';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
@@ -23,7 +24,7 @@ export function toPublicUser(u: UserRecord, premiumForAll = false): PublicUser {
     id: u.id,
     email: u.email,
     displayName: u.displayName,
-    plan: premiumForAll ? 'premium' : u.plan,
+    plan: effectivePlan({ premiumForAll }, u),
     currency: u.currency,
     timezone: u.timezone,
     reminderEnabled: u.reminderEnabled,

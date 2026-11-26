@@ -197,7 +197,7 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
     await syncRecurring(store, req.user);
     const txs = await store.transactions.list(req.user.id);
     return getAdvice(cfg, {
-      userId: req.user.id, plan: effectivePlan(cfg, req.user.plan), currency: req.user.currency,
+      userId: req.user.id, plan: effectivePlan(cfg, req.user), currency: req.user.currency,
       today: todayIn(req.user.timezone), txs, refresh: q.refresh === '1',
     });
   });
@@ -208,7 +208,7 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
     await syncRecurring(store, req.user);
     const txs = await store.transactions.list(req.user.id);
     return getDetailedAdvice(cfg, {
-      userId: req.user.id, plan: effectivePlan(cfg, req.user.plan), currency: req.user.currency,
+      userId: req.user.id, plan: effectivePlan(cfg, req.user), currency: req.user.currency,
       today: todayIn(req.user.timezone), txs, refresh: q.refresh === '1', useAi: q.ai === '1',
     });
   });

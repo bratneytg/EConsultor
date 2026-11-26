@@ -62,6 +62,10 @@ export interface OpcionesPanel {
   /** Evaluación psico-económica dentro de «Perfiles» (necesita también verPerfiles). */
   verPsico?: boolean;
   puertoPanel: number;
+  /** La app da Premium a todas las cuentas (PREMIUM_FOR_ALL), salvo las que se hayan fijado a mano. */
+  premiumParaTodos?: boolean;
+  /** El panel tiene la clave para pedirle a la app que cambie el plan de una cuenta. */
+  puedeCambiarPlan?: boolean;
   ahora?: number;
 }
 
@@ -81,6 +85,7 @@ export const ETIQUETAS_EVENTO: Record<string, string> = {
   refresh_reuse_detected: 'Sesión reutilizada (posible robo de sesión)',
   logout_all: 'Cerró todas sus sesiones',
   statement_import: 'Importó un extracto bancario',
+  plan_changed: 'Cambiaste su plan desde el panel',
 };
 
 type Grupo = 'entradas' | 'fallos' | 'altas' | 'seguridad';
@@ -95,6 +100,7 @@ const GRUPO_EVENTO: Record<string, Grupo> = {
   recovery_code_used: 'seguridad',
   refresh_reuse_detected: 'seguridad',
   logout_all: 'seguridad',
+  plan_changed: 'seguridad',
 };
 
 const fechaBerlin = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -229,6 +235,8 @@ function resumirHistorial(filas: Fila[], desde: number, cubo: number): Libre[] {
 export interface DatosPanel {
   generadoEn: number;
   verImportes: boolean;
+  puedeCambiarPlan: boolean;
+  premiumParaTodos: boolean;
   resumen: { nivel: Nivel; frase: string; alertas: Alerta[] };
   host: Libre | null;
   hostAntiguedadS: number | null;
@@ -300,7 +308,8 @@ export function construirDatos(o: OpcionesPanel): DatosPanel {
         id: u.id.slice(0, 8),
         email: u.email,
         nombre: u.displayName,
-        plan: u.plan,
+        plan: u.planOverride ?? (o.premiumParaTodos ? 'premium' : u.plan),
+        ajustePlan: u.planOverride ?? null,
         google: Boolean(u.googleSub),
         dosPasos: Boolean(u.mfa?.enabled),
         creada: u.createdAt,
@@ -337,8 +346,8 @@ export function construirDatos(o: OpcionesPanel): DatosPanel {
     baseInfo = {
       archivo,
       cuentas: snap.users.length,
-      gratuitas: snap.users.filter((u) => u.plan === 'free').length,
-      depago: snap.users.filter((u) => u.plan !== 'free').length,
+      gratuitas: usuarios.filter((u) => u.plan === 'free').length,
+      depago: usuarios.filter((u) => u.plan !== 'free').length,
       conGoogle: snap.users.filter((u) => u.googleSub).length,
       conDosPasos: snap.users.filter((u) => u.mfa?.enabled).length,
       bloqueadas: snap.users.filter((u) => u.lockedUntil && u.lockedUntil > ahora).length,
@@ -554,6 +563,8 @@ export function construirDatos(o: OpcionesPanel): DatosPanel {
   return {
     generadoEn: ahora,
     verImportes: o.verImportes,
+    puedeCambiarPlan: !!o.puedeCambiarPlan,
+    premiumParaTodos: !!o.premiumParaTodos,
     resumen: { nivel, frase, alertas },
     host,
     hostAntiguedadS,

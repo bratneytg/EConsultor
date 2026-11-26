@@ -27,7 +27,7 @@ const EVENT_LABEL: Record<string, string> = {
   login: tk('Inicio de sesión'), login_failed: tk('Intento de acceso fallido'), register: tk('Cuenta creada'), mfa_enabled: tk('Verificación en dos pasos activada'),
   passkey_added: tk('Huella añadida'), passkey_removed: tk('Huella eliminada'),
   mfa_disabled: tk('Verificación en dos pasos desactivada'), mfa_failed: tk('Código de verificación incorrecto'), recovery_code_used: tk('Código de recuperación usado'),
-  logout_all: tk('Sesiones cerradas en todos los dispositivos'), refresh_reuse_detected: tk('Sesión sospechosa bloqueada'),
+  plan_changed: tk('Plan cambiado por el administrador'), logout_all: tk('Sesiones cerradas en todos los dispositivos'), refresh_reuse_detected: tk('Sesión sospechosa bloqueada'),
 };
 
 export function Settings() {

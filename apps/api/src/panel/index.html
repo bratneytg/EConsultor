@@ -213,6 +213,8 @@ td.nw { white-space: nowrap; }
 .barra-filtros { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .barra-filtros input, .barra-filtros select { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; min-width: 0; }
 .barra-filtros input { flex: 1 1 220px; }
+.sel-plan { margin-top: 6px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 3px 6px; font: inherit; font-size: 12px; }
+.sel-plan:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 pre.registro { margin: 0; max-height: 440px; overflow: auto; background: var(--sunken); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font: 12.5px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 pre.registro .e { color: var(--bad-ink); } pre.registro .w { color: var(--warn-ink); }
 
@@ -702,10 +704,10 @@ function vBase(d) {
 function vUsuarios(d) {
   const q = S.filtros.usuarios.toLowerCase();
   const lista = d.usuarios.filter((u) => !q || `${u.email} ${u.nombre} ${u.plan}`.toLowerCase().includes(q));
-  return html`<section class="bloque">${cabecera('Cuentas', 'Todas las personas registradas. «Sesiones» son los móviles u ordenadores donde tienen la sesión abierta ahora.')}
+  return html`<section class="bloque">${cabecera('Cuentas', 'Todas las personas registradas. «Sesiones» son los móviles u ordenadores donde tienen la sesión abierta ahora.' + (d.puedeCambiarPlan ? ' En «Plan» puedes fijar a mano Premium o Gratuita; «Automático» sigue la configuración del servidor (' + (d.premiumParaTodos ? 'ahora: Premium para todas las cuentas' : 'ahora: cada cuenta tiene su plan') + ').' : ''))}
     <div class="barra-filtros"><input id="f-usuarios" type="search" placeholder="Buscar por correo, nombre o plan" value="${S.filtros.usuarios}" aria-label="Buscar cuentas"></div>
     ${lista.length ? html`<div class="tabla"><table><thead><tr><th>Cuenta</th><th>Plan</th><th>2 pasos</th><th>Registrada</th><th>Última entrada</th><th class="r">Entradas (30 d)</th><th class="r">Movim.</th><th class="r">Sesiones</th><th class="r">Móviles</th><th>Estado</th>${d.verImportes ? html`<th class="r">Ingresos / gastos</th>` : ''}</tr></thead><tbody>
-      ${lista.map((u) => html`<tr><td>${u.email}${u.google ? html` <span class="etiqueta">Google</span>` : ''}<div class="muted">${u.nombre}</div></td><td><span class="etiqueta ${u.plan === 'free' ? '' : 'bien'}">${u.plan === 'free' ? 'Gratuita' : 'De pago'}</span></td><td>${u.dosPasos ? html`<span class="etiqueta bien">Activada</span>` : html`<span class="etiqueta">No</span>`}</td><td class="nw num">${fecha(u.creada)}</td><td class="nw num">${u.ultimaEntrada ? fecha(u.ultimaEntrada) : '—'}</td><td class="r num">${u.entradas30d}</td><td class="r num">${u.movimientos}</td><td class="r num">${u.sesiones}</td><td class="r num">${u.dispositivosPush}</td><td>${u.bloqueadaHasta ? html`<span class="etiqueta mal">Bloqueada hasta ${fecha(u.bloqueadaHasta)}</span>` : u.intentosFallidos ? html`<span class="etiqueta med">${u.intentosFallidos} fallos seguidos</span>` : html`<span class="etiqueta bien">Normal</span>`}</td>${d.verImportes ? html`<td class="r num nw">${Object.entries(u.importes ?? {}).map(([m, v]) => `${nf1.format(v.ingresos / 100)} / ${nf1.format(v.gastos / 100)} ${m}`).join(' · ') || '—'}</td>` : ''}</tr>`)}</tbody></table></div>` : html`<p class="vacio muted">Ninguna cuenta coincide.</p>`}</section>`;
+      ${lista.map((u) => html`<tr><td>${u.email}${u.google ? html` <span class="etiqueta">Google</span>` : ''}<div class="muted">${u.nombre}</div></td><td><span class="etiqueta ${u.plan === 'free' ? '' : 'bien'}">${u.plan === 'free' ? 'Gratuita' : 'De pago'}</span>${d.puedeCambiarPlan ? html`<div><select class="sel-plan" data-email="${u.email}" aria-label="Plan de ${u.email}"><option value="auto" ${u.ajustePlan === null ? raw('selected') : ''}>Automático</option><option value="premium" ${u.ajustePlan === 'premium' ? raw('selected') : ''}>Premium</option><option value="free" ${u.ajustePlan === 'free' ? raw('selected') : ''}>Gratuita</option></select></div>` : ''}</td><td>${u.dosPasos ? html`<span class="etiqueta bien">Activada</span>` : html`<span class="etiqueta">No</span>`}</td><td class="nw num">${fecha(u.creada)}</td><td class="nw num">${u.ultimaEntrada ? fecha(u.ultimaEntrada) : '—'}</td><td class="r num">${u.entradas30d}</td><td class="r num">${u.movimientos}</td><td class="r num">${u.sesiones}</td><td class="r num">${u.dispositivosPush}</td><td>${u.bloqueadaHasta ? html`<span class="etiqueta mal">Bloqueada hasta ${fecha(u.bloqueadaHasta)}</span>` : u.intentosFallidos ? html`<span class="etiqueta med">${u.intentosFallidos} fallos seguidos</span>` : html`<span class="etiqueta bien">Normal</span>`}</td>${d.verImportes ? html`<td class="r num nw">${Object.entries(u.importes ?? {}).map(([m, v]) => `${nf1.format(v.ingresos / 100)} / ${nf1.format(v.gastos / 100)} ${m}`).join(' · ') || '—'}</td>` : ''}</tr>`)}</tbody></table></div>` : html`<p class="vacio muted">Ninguna cuenta coincide.</p>`}</section>`;
 }
 
 function vActividad(d) {
@@ -879,6 +881,18 @@ function conectar() {
   $('#f-tipo-rep')?.addEventListener('change', (e) => { S.filtros.tipoReporte = e.target.value; S.filtros.limiteReportes = 30; pintar(); });
   $('#mas-reportes')?.addEventListener('click', () => { S.filtros.limiteReportes += 30; pintar(); });
   $('#f-err')?.addEventListener('change', (e) => { S.filtros.soloErrores = e.target.checked; pintar(); });
+  document.querySelectorAll('.sel-plan').forEach((el) => el.addEventListener('change', () => cambiarPlan(el)));
+}
+/* Cambia el plan de una cuenta: el panel se lo pide a la app (no toca la base de datos). */
+async function cambiarPlan(el) {
+  const email = el.dataset.email; const plan = el.value;
+  const texto = { auto: 'Automático (sigue la configuración del servidor)', premium: 'Premium', free: 'Gratuita' }[plan];
+  if (!confirm(`¿Cambiar el plan de ${email} a «${texto}»?`)) { pintar(); return; }
+  el.disabled = true;
+  try {
+    await pedir('/api/plan', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Panel': '1' }, body: JSON.stringify({ email, plan }) });
+  } catch (e) { alert(`No se pudo cambiar el plan: ${e.message}`); }
+  S.cargando = false; await cargar(true);
 }
 /* Al escribir en un buscador se repinta sin perder el foco ni la posición del cursor. */
 function repintarTabla(selector) {

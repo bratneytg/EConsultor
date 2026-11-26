@@ -422,11 +422,13 @@ env_poner() {
 env_leer() { grep "^$2=" "$1" 2>/dev/null | head -1 | cut -d= -f2- || true; }
 
 panel_clave_nueva() {
-  local nueva ver="${1:-false}" perfiles psico
+  local nueva ver="${1:-false}" perfiles psico admin
   perfiles="$(env_leer "${DIR}/.env.panel" PANEL_VER_PERFILES)"
   psico="$(env_leer "${DIR}/.env.panel" PANEL_VER_PSICO)"
+  admin="$(env_leer "${DIR}/.env.panel" ADMIN_TOKEN)"
   nueva="$(openssl rand -hex 16)"
-  ( umask 077; printf 'PANEL_PASSWORD=%s\nPANEL_VER_IMPORTES=%s\nPANEL_VER_PERFILES=%s\nPANEL_VER_PSICO=%s\n' "$nueva" "$ver" "${perfiles:-false}" "${psico:-false}" > "${DIR}/.env.panel" )
+  ( umask 077; printf 'PANEL_PASSWORD=%s\nPANEL_VER_IMPORTES=%s\nPANEL_VER_PERFILES=%s\nPANEL_VER_PSICO=%s\n' "$nueva" "$ver" "${perfiles:-false}" "${psico:-false}" > "${DIR}/.env.panel"
+    [ -z "$admin" ] || printf 'ADMIN_TOKEN=%s\n' "$admin" >> "${DIR}/.env.panel" )
   chmod 600 "${DIR}/.env.panel"
   echo "$nueva"
 }
@@ -446,6 +448,18 @@ panel() {
 
   ( crontab -l 2>/dev/null | grep -v 'panel-recolector.py' || true; echo "$CRON_PANEL" ) | crontab -
   python3 "${DIR}/scripts/panel-recolector.py" || aviso "El recolector falló; mira ${DIR}/estado/recolector.log"
+
+  # Enlace seguro panel ↔ app: permite cambiar el plan (Premium/Gratis) de una cuenta desde el panel.
+  # La clave vive solo en .env (app) y .env.panel (panel), ambos con permisos 600.
+  local token; token="$(env_leer "${DIR}/.env" ADMIN_TOKEN)"
+  if [ -z "$token" ]; then
+    token="$(openssl rand -hex 32)"
+    env_poner "${DIR}/.env" ADMIN_TOKEN "$token"
+    echo "Actualizando la app para activar el enlace con el panel (puede tardar un par de minutos)..."
+    compose up -d --build app
+    local j; for j in $(seq 1 30); do curl -fsS "http://127.0.0.1:${PUERTO}/healthz" >/dev/null 2>&1 && break; sleep 2; done
+  fi
+  env_poner "${DIR}/.env.panel" ADMIN_TOKEN "$token"; chmod 600 "${DIR}/.env.panel"
 
   echo "Construyendo y arrancando el panel (la primera vez tarda un par de minutos)..."
   compose up -d --build panel
@@ -473,6 +487,7 @@ panel() {
     echo "La contraseña es la que ya tenías. Para cambiarla: bash scripts/servidor.sh panel-clave"
   fi
   echo
+  echo "En la pestaña «Usuarios» del panel puedes cambiar cada cuenta entre Premium y Gratuita (o «Automático»)."
   avisar_si_panel_expuesto
 }
 

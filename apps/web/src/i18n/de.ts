@@ -588,4 +588,5 @@ export const de: Record<string, string> = {
   "El servidor no consigue conectar con la IA. Revisa su conexión a internet.": "Der Server erreicht die KI nicht. Prüfe seine Internetverbindung.",
   "La IA respondió algo que no he podido leer. Pulsa «Actualizar» para intentarlo otra vez.": "Die KI hat etwas geantwortet, das ich nicht lesen konnte. Tippe auf „Aktualisieren“, um es erneut zu versuchen.",
   "Mostrando consejos sin IA": "Tipps werden ohne KI angezeigt",
+  "Plan cambiado por el administrador": "Tarif vom Administrator geändert",
 };

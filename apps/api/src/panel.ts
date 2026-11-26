@@ -1,10 +1,11 @@
 /**
- * Panel personal de administración de EConsultor (solo lectura).
+ * Panel personal de administración de EConsultor.
  *
  *   node dist/panel.js
  *
  * Un servidor web mínimo, SEPARADO de la app, que enseña en una sola página el estado del servidor y de
- * la base de datos. No tiene ningún botón que cambie nada y no recibe órdenes.
+ * la base de datos. Lo único que puede cambiar es el plan (Premium/Gratis) de una cuenta, y no escribe
+ * en la base de datos: se lo pide a la app, que es quien la gestiona. Sin ADMIN_TOKEN es de solo lectura.
  *
  * Seguridad (imprescindible: ve datos de todos los usuarios):
  *  - Escucha solo en el puerto 127.0.0.1:8788 del servidor (docker-compose) y se publica ÚNICAMENTE con
@@ -26,6 +27,8 @@ export interface ConfigPanel {
   /** Solo para pruebas: permite la cookie sin HTTPS. */
   cookieSegura: boolean;
   html: string;
+  /** Para cambiar el plan de una cuenta el panel se lo pide a la app (red interna de Docker) con esta clave. */
+  app?: { url: string; token: string };
 }
 
 const SESION_MS = 12 * 60 * 60 * 1000;
@@ -165,8 +168,37 @@ export function crearPanel(cfg: ConfigPanel) {
       if (ruta === '/api/datos' && req.method === 'GET') {
         if (!autenticado(req)) return json(res, 401, { error: 'Sesión no iniciada.' });
         const usuarioTailscale = req.headers['tailscale-user-login'];
-        const datos = construirDatos({ ...cfg.datos });
+        const datos = construirDatos({ ...cfg.datos, puedeCambiarPlan: !!cfg.app });
         return json(res, 200, { ...datos, conectadoComo: Array.isArray(usuarioTailscale) ? usuarioTailscale[0] : usuarioTailscale ?? null });
+      }
+
+      if (ruta === '/api/plan' && req.method === 'POST') {
+        if (!autenticado(req)) return json(res, 401, { error: 'Sesión no iniciada.' });
+        // Defensa extra contra peticiones desde otras webs: solo el JS del propio panel manda esta cabecera.
+        if (req.headers['x-panel'] !== '1') return json(res, 400, { error: 'Petición no válida.' });
+        if (!cfg.app) return json(res, 409, { error: 'El panel no está enlazado con la app. Ejecuta: bash scripts/servidor.sh panel' });
+        let datos: { email?: unknown; plan?: unknown } = {};
+        try { datos = JSON.parse(await cuerpo(req)) as typeof datos; } catch { return json(res, 400, { error: 'Petición no válida.' }); }
+        if (typeof datos.email !== 'string' || !datos.email || (datos.plan !== 'free' && datos.plan !== 'premium' && datos.plan !== 'auto')) {
+          return json(res, 400, { error: 'Petición no válida.' });
+        }
+        try {
+          const r = await fetch(`${cfg.app.url}/api/admin/plan`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-admin-token': cfg.app.token },
+            body: JSON.stringify({ email: datos.email, plan: datos.plan }),
+            signal: AbortSignal.timeout(8000),
+          });
+          const salida = (await r.json().catch(() => ({}))) as { error?: string };
+          if (!r.ok) {
+            console.warn(`[panel] cambio de plan rechazado por la app (${r.status})`);
+            return json(res, r.status === 401 ? 502 : r.status, { error: r.status === 401 ? 'La app no acepta la clave del panel. Ejecuta: bash scripts/servidor.sh panel' : salida.error ?? 'La app no pudo cambiar el plan.' });
+          }
+          console.log(`[panel] plan de una cuenta cambiado a ${String(datos.plan)} (desde ${ipDe(req)})`);
+          return json(res, 200, salida);
+        } catch {
+          return json(res, 502, { error: 'No consigo hablar con la app. ¿Está encendida?' });
+        }
       }
 
       json(res, 404, { error: 'No existe.' });
@@ -195,6 +227,7 @@ export function configDesdeEntorno(env: NodeJS.ProcessEnv = process.env): Config
     host: env.PANEL_HOST ?? '0.0.0.0',
     cookieSegura: env.PANEL_COOKIE_SEGURA !== 'false',
     html: readFileSync(paginas, 'utf8'),
+    app: env.ADMIN_TOKEN && env.ADMIN_TOKEN.length >= 32 ? { url: (env.APP_URL ?? 'http://app:8787').replace(/\/$/, ''), token: env.ADMIN_TOKEN } : undefined,
     datos: {
       archivoDatos: env.DATA_FILE ?? './data/store.json',
       claveDatos: clave,
@@ -203,6 +236,7 @@ export function configDesdeEntorno(env: NodeJS.ProcessEnv = process.env): Config
       verImportes: env.PANEL_VER_IMPORTES === 'true',
       verPerfiles: env.PANEL_VER_PERFILES === 'true',
       verPsico: env.PANEL_VER_PSICO === 'true',
+      premiumParaTodos: env.PREMIUM_FOR_ALL === 'true',
       puertoPanel: Number(env.PANEL_PORT ?? 8788),
     },
   };

@@ -588,4 +588,5 @@ export const it: Record<string, string> = {
   "El servidor no consigue conectar con la IA. Revisa su conexión a internet.": "Il server non riesce a collegarsi all'IA. Controlla la sua connessione a internet.",
   "La IA respondió algo que no he podido leer. Pulsa «Actualizar» para intentarlo otra vez.": "L'IA ha risposto con qualcosa che non sono riuscito a leggere. Tocca «Aggiorna» per riprovare.",
   "Mostrando consejos sin IA": "Consigli mostrati senza IA",
+  "Plan cambiado por el administrador": "Piano cambiato dall'amministratore",
 };

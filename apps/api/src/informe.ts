@@ -127,7 +127,8 @@ function base(): void {
   );
 
   titulo('USUARIOS');
-  const gratis = users.filter((u) => u.plan === 'free').length;
+  const paraTodos = process.env.PREMIUM_FOR_ALL === 'true';
+  const gratis = users.filter((u) => (u.planOverride ?? (paraTodos ? 'premium' : u.plan)) === 'free').length;
   const premium = users.length - gratis;
   console.log(`Cuentas en total: ${users.length} (${plural(gratis, 'gratuita', 'gratuitas')}, ${premium} de pago)`);
   const nuevos7 = users.filter((u) => ahora - Date.parse(u.createdAt) < 7 * DAY).length;

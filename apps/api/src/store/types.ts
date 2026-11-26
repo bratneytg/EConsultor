@@ -20,6 +20,8 @@ export interface UserRecord {
   passwordHash?: string;
   googleSub?: string;
   plan: Plan;
+  /** Plan fijado a mano desde el panel del servidor: manda sobre PREMIUM_FOR_ALL. Ausente = automático. */
+  planOverride?: Plan;
   currency: string;
   timezone: string;
   reminderEnabled: boolean;

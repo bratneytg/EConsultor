@@ -30,6 +30,8 @@ const envSchema = z.object({
   VAPID_SUBJECT: z.string().default('mailto:admin@localhost'),
   /** Mientras no haya cobro, todas las cuentas tienen las funciones Premium (consejos completos e IA). */
   PREMIUM_FOR_ALL: bool.default('false'),
+  /** Clave compartida con el panel del servidor para cambiar el plan de una cuenta. Sin ella, esa ruta no existe. */
+  ADMIN_TOKEN: z.string().min(32).optional(),
   /** Dirección de descarga del APK de Android (la web la muestra en Ayuda y Ajustes). */
   APK_URL: z.string().url().optional(),
   /** Minutos sin actividad tras los que se cierra la sesión (0 = nunca). Cada persona puede activar «Mantener conectado». */
@@ -56,6 +58,7 @@ export interface Config {
   anthropicModel: string;
   vapid?: { publicKey: string; privateKey: string; subject: string };
   premiumForAll: boolean;
+  adminToken?: string;
   idleTimeoutMin: number;
   apkUrl?: string;
 }
@@ -113,6 +116,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): Config {
     anthropicApiKey: e.ANTHROPIC_API_KEY,
     anthropicModel: e.ANTHROPIC_MODEL,
     premiumForAll: e.PREMIUM_FOR_ALL,
+    adminToken: e.ADMIN_TOKEN,
     idleTimeoutMin: e.IDLE_TIMEOUT_MIN,
     apkUrl: e.APK_URL,
     vapid:
