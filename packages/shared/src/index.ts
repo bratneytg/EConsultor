@@ -439,9 +439,13 @@ export interface IanStatus {
   /** Mensajes que se pueden enviar al día y los que quedan hoy. */
   limit: number;
   remaining: number;
+  /** Gastos que siguen en «Otros» y que Ian puede ayudar a clasificar (0 si no hay o no se pueden cambiar). */
+  unclassified: number;
 }
 
 export interface IanReply {
   reply: string;
   remaining: number;
+  /** Ian ha cambiado la categoría de algún movimiento: hay que recargar los datos. */
+  changed?: boolean;
 }

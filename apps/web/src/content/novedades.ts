@@ -11,6 +11,14 @@ export interface Release { version: string; title: string; changes: Change[] }
  */
 export const RELEASES: Release[] = [
   {
+    version: '1.8.0',
+    title: tk('Ian te ayuda a ordenar tus gastos'),
+    changes: [
+      { kind: 'new', text: tk('Ian te pregunta, de vez en cuando y sin agobiar, por los gastos que están en «Otros» y los clasifica cuando tú se lo confirmas.') },
+      { kind: 'feature', text: tk('También puedes pedírselo cuando quieras con «Ayúdame a clasificar mis gastos sin categoría». Los cambios se ven al momento en Movimientos y en las gráficas.') },
+    ],
+  },
+  {
     version: '1.7.0',
     title: tk('Importar extractos: más inteligente y sin cortes'),
     changes: [

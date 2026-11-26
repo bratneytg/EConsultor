@@ -1,4 +1,4 @@
-import type { Transaction } from '@econsultor/shared';
+import { CATEGORIES, type Transaction } from '@econsultor/shared';
 import { z } from 'zod';
 import { monthOf } from '../../lib/dates.js';
 import { categoryLabelFor, prefsOf } from '../../lib/categories.js';
@@ -6,6 +6,7 @@ import type { UserRecord } from '../../store/types.js';
 import { buildOverview } from '../analytics/analytics.js';
 import { buildSpendingDetail } from '../advice/detailed.js';
 import { scrub } from '../import/ai.js';
+import { exactKey, UNCLASSIFIED, unclassifiedGroups } from './unclassified.js';
 
 /**
  * Herramientas que Ian puede usar para consultar los datos de LA PERSONA que le habla.
@@ -17,6 +18,10 @@ export interface IanContext {
   user: Pick<UserRecord, 'currency' | 'categoryPrefs' | 'recurring'>;
   txs: Transaction[];
   today: string;
+  /** Guarda la nueva categoría de esos movimientos. Sin esto, la herramienta de reclasificar no está disponible. */
+  reclassify?: (txs: Transaction[], categoryId: string) => Promise<void>;
+  /** Este mensaje puede sacar el tema de los gastos sin clasificar (como mucho una vez al día). */
+  nudge?: boolean;
 }
 
 /** Importe en unidades de la moneda (12,5 y no 1250 céntimos): así el modelo no se equivoca de escala. */
@@ -76,7 +81,27 @@ export const TOOLS = [
     description: 'Dónde se va el dinero en los últimos 90 días: comercios con más gasto, cargos que se repiten y gastos pequeños frecuentes. Los comercios salen de las notas de los movimientos.',
     input_schema: { type: 'object', properties: {} },
   },
+  {
+    name: 'gastos_sin_clasificar',
+    description: 'Gastos que están en «Otros» (sin clasificar), agrupados por comercio y de mayor a menor importe, más las categorías de gasto entre las que se puede elegir. Úsala para preguntar a la persona de qué es un comercio.',
+    input_schema: { type: 'object', properties: { limite: { type: 'integer', minimum: 1, maximum: 8, description: 'Cuántos comercios devolver. Por defecto, 5.' } } },
+  },
+  {
+    name: 'reclasificar_comercio',
+    description: 'Pasa a otra categoría TODOS los gastos sin clasificar («Otros») de un comercio. Solo úsala cuando la persona haya indicado o confirmado la categoría en su último mensaje. No toca gastos que ya tengan categoría.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        comercio: { type: 'string', description: 'El nombre del comercio tal como lo devolvió gastos_sin_clasificar.' },
+        categoria: { type: 'string', description: 'Nombre de la categoría de gasto elegida (una de las que devolvió gastos_sin_clasificar).' },
+      },
+      required: ['comercio', 'categoria'],
+    },
+  },
 ] as const;
+
+/** Las herramientas que cada conversación puede usar: reclasificar solo existe si hay forma de guardar el cambio. */
+export const toolsFor = (ctx: Pick<IanContext, 'reclassify'>) => TOOLS.filter((t) => ctx.reclassify || t.name !== 'reclasificar_comercio');
 
 const periodo = z.object({ desde: date.optional(), hasta: date.optional() });
 
@@ -86,7 +111,7 @@ function inRange(t: Transaction, desde?: string, hasta?: string): boolean {
 const kind = (v?: string): 'income' | 'expense' | undefined => (v === 'ingreso' ? 'income' : v === 'gasto' ? 'expense' : undefined);
 
 /** Ejecuta una herramienta. Lanza un Error con un mensaje útil si los datos de entrada no valen; el bucle se lo devuelve al modelo. */
-export function runTool(name: string, input: unknown, ctx: IanContext): unknown {
+export function runTool(name: string, input: unknown, ctx: IanContext): unknown | Promise<unknown> {
   const { user, txs, today } = ctx;
   const currency = user.currency;
   const prefs = prefsOf(user);
@@ -189,7 +214,54 @@ export function runTool(name: string, input: unknown, ctx: IanContext): unknown 
       };
     }
 
+    case 'gastos_sin_clasificar': {
+      const { limite } = z.object({ limite: z.number().int().min(1).max(8).optional() }).parse(input ?? {});
+      const u = unclassifiedGroups(txs);
+      return {
+        moneda: currency,
+        total_sin_clasificar: { movimientos: u.count, importe: amt(u.totalMinor), comercios: u.groups.length, sin_nombre_de_comercio: u.noNote },
+        comercios: u.groups.slice(0, limite ?? 5).map((g) => ({
+          comercio: g.label, pagos: g.txs.length, importe_total: amt(g.totalMinor), importe_medio: amt(g.totalMinor / g.txs.length), ultimo_pago: g.lastDate,
+        })),
+        categorias_de_gasto: expenseChoices(user).map((c) => label(c)),
+      };
+    }
+
+    case 'reclasificar_comercio': {
+      if (!ctx.reclassify) throw new Error('No se pueden cambiar categorías ahora mismo.');
+      const q = z.object({ comercio: z.string().min(2).max(60), categoria: z.string().min(2).max(60) }).parse(input ?? {});
+      const target = resolveExpenseCategory(user, q.categoria);
+      if (!target) throw new Error(`No existe esa categoría de gasto. Elige una de: ${expenseChoices(user).map((c) => label(c)).join(', ')}.`);
+      const key = exactKey(q.comercio);
+      if (key.length < 3) throw new Error('Indica el nombre del comercio.');
+      // Solo gastos que siguen en «Otros»: nunca se pisa una categoría que la persona o las reglas ya eligieron.
+      const hit = txs.filter((t) => t.type === 'expense' && t.categoryId === UNCLASSIFIED && exactKey(t.note) === key).slice(0, 300);
+      if (!hit.length) throw new Error('No hay gastos sin clasificar de ese comercio. Consulta gastos_sin_clasificar para ver los nombres exactos.');
+      return ctx.reclassify(hit, target).then(() => {
+        for (const t of hit) t.categoryId = target;
+        return { cambiados: hit.length, importe_total: amt(hit.reduce((s, t) => s + t.amountMinor, 0)), categoria: label(target), comercio: q.comercio };
+      });
+    }
+
     default:
       throw new Error(`Herramienta desconocida: ${name}`);
   }
+}
+
+/** Categorías de gasto que la persona ve, sin «Otros» (reclasificar a «Otros» no aclara nada). */
+function expenseChoices(user: Pick<UserRecord, 'categoryPrefs'>): string[] {
+  const prefs = prefsOf(user);
+  const hidden = new Set(prefs.hidden);
+  return [...CATEGORIES.filter((c) => c.type === 'expense' && c.id !== UNCLASSIFIED && !hidden.has(c.id)).map((c) => c.id), ...prefs.custom.filter((c) => c.type === 'expense').map((c) => c.id)];
+}
+
+/** Acepta el nombre que la persona ve («Ocio», «Supermercado») o el id; con coincidencia parcial solo si es única. */
+function resolveExpenseCategory(user: Pick<UserRecord, 'categoryPrefs'>, wanted: string): string | null {
+  const prefs = prefsOf(user);
+  const n = norm(wanted).trim();
+  const ids = expenseChoices(user);
+  const exact = ids.filter((id) => norm(id) === n || norm(categoryLabelFor(prefs, id)) === n);
+  if (exact.length === 1) return exact[0]!;
+  const part = ids.filter((id) => norm(categoryLabelFor(prefs, id)).includes(n));
+  return part.length === 1 ? part[0]! : null;
 }

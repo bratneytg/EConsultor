@@ -7,7 +7,7 @@ import { PremiumNudge } from '../components/Premium';
 import { api } from '../lib/api';
 import { useUser } from '../lib/auth';
 import { t, tk } from '../lib/i18n';
-import { useIanStatus } from '../lib/queries';
+import { useIanStatus, useInvalidateData } from '../lib/queries';
 
 interface Msg { role: 'user' | 'assistant'; content: string; error?: boolean }
 
@@ -17,6 +17,9 @@ const SUGGESTIONS = [
   tk('¿Qué cargos se repiten cada mes?'),
   tk('¿Cuánto me sobrará a fin de mes?'),
 ];
+
+/** Aparece solo si hay gastos en «Otros»: Ian los repasa de uno en uno y los reclasifica cuando la persona lo confirma. */
+const CLASSIFY = tk('Ayúdame a clasificar mis gastos sin categoría');
 
 function Avatar({ size = 36 }: { size?: number }) {
   return <span className="ian-avatar" style={{ width: size, height: size, fontSize: size * 0.5 }} aria-hidden="true">I</span>;
@@ -53,6 +56,7 @@ export function Ian() {
   const user = useUser();
   const nav = useNavigate();
   const qc = useQueryClient();
+  const invalidate = useInvalidateData();
   const premium = user.plan === 'premium';
   const { data: status } = useIanStatus();
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -72,6 +76,8 @@ export function Ian() {
       const r = await api<IanReply>('/ian/chat', { method: 'POST', json: { messages: sent } });
       setMsgs([...history, { role: 'assistant', content: r.reply }]);
       setLeft(r.remaining);
+      // Si Ian ha cambiado categorías, Movimientos, gráficas y consejos deben verlo ya.
+      if (r.changed) { void invalidate(); void qc.invalidateQueries({ queryKey: ['ian'] }); }
     } catch (e) {
       setMsgs([...history, { role: 'assistant', content: (e as Error).message || t('Ian no ha podido responder ahora. Inténtalo de nuevo en un momento.'), error: true }]);
       void qc.invalidateQueries({ queryKey: ['ian'] });
@@ -126,6 +132,7 @@ export function Ian() {
           <div className="ian-empty">
             <p className="sub">{t('Pregúntame lo que quieras sobre tus números: gastos, ingresos, categorías o cargos que se repiten. Te contesto con lo que has anotado.')}</p>
             <div className="ian-suggestions">
+              {(status?.unclassified ?? 0) > 0 && <button className="chip-btn" disabled={busy || noneLeft} onClick={() => send(t(CLASSIFY))}>{t(CLASSIFY)}</button>}
               {SUGGESTIONS.map((s) => <button key={s} className="chip-btn" disabled={busy || noneLeft} onClick={() => send(t(s))}>{t(s)}</button>)}
             </div>
           </div>
@@ -156,6 +163,7 @@ export function Ian() {
 
       <p className="ian-fine">
         {t('Para contestar, Ian consulta tus movimientos en tu servidor y envía a la IA (Claude, de Anthropic) solo los datos que necesita para esa pregunta: importes, categorías y notas sin IBAN ni correos. La conversación no se guarda.')}{' '}
+        {t('Ian también puede ayudarte a clasificar gastos que están en «Otros»: te pregunta por un comercio y, solo si tú se lo confirmas, cambia su categoría. Puedes corregirlo después en Movimientos.')}{' '}
         {t('Ian no es un asesor financiero: es una ayuda para entender tus números.')}
         {remaining !== null && <> <span className="ian-left">{t('Mensajes que te quedan hoy: {n}', { n: remaining })}</span></>}
       </p>
