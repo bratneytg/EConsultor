@@ -580,4 +580,12 @@ export const it: Record<string, string> = {
   "Puedes crear una categoría nueva al anotar un gasto o un ingreso, sin salir de esa ventana.": "Puoi creare una nuova categoria mentre registri una spesa o un'entrata, senza uscire da quella finestra.",
   "El botón «Atrás» del móvil cierra primero la ventana abierta, en lugar de salir de la pantalla.": "Il pulsante «Indietro» del telefono chiude prima la finestra aperta, invece di uscire dalla schermata.",
   "Al cambiar de idioma, «Sencilla / Profesional» y el tema también se traducen.": "Quando cambi lingua, anche «Semplice / Professionale» e il tema vengono tradotti.",
+  "La IA no está activada en tu servidor: falta la clave de Anthropic. En el servidor ejecuta «bash scripts/servidor.sh ia» y pega la clave cuando te la pida.": "L'IA non è attiva sul tuo server: manca la chiave di Anthropic. Sul server esegui «bash scripts/servidor.sh ia» e incolla la chiave quando te la chiede.",
+  "La clave de IA del servidor no es válida o ha caducado. Cámbiala en el servidor con «bash scripts/servidor.sh ia cambiar».": "La chiave IA del server non è valida o è scaduta. Cambiala sul server con «bash scripts/servidor.sh ia cambiar».",
+  "El modelo de IA indicado en el servidor no está disponible. Revisa ANTHROPIC_MODEL en el archivo .env o ejecuta «bash scripts/servidor.sh ia».": "Il modello IA indicato sul server non è disponibile. Controlla ANTHROPIC_MODEL nel file .env o esegui «bash scripts/servidor.sh ia».",
+  "La cuenta de Anthropic no tiene saldo o ha llegado a su límite. Revísalo en console.anthropic.com.": "L'account Anthropic non ha credito o ha raggiunto il limite. Controllalo su console.anthropic.com.",
+  "La IA está saturada en este momento. Inténtalo de nuevo en unos minutos.": "L'IA è sovraccarica in questo momento. Riprova tra qualche minuto.",
+  "El servidor no consigue conectar con la IA. Revisa su conexión a internet.": "Il server non riesce a collegarsi all'IA. Controlla la sua connessione a internet.",
+  "La IA respondió algo que no he podido leer. Pulsa «Actualizar» para intentarlo otra vez.": "L'IA ha risposto con qualcosa che non sono riuscito a leggere. Tocca «Aggiorna» per riprovare.",
+  "Mostrando consejos sin IA": "Consigli mostrati senza IA",
 };

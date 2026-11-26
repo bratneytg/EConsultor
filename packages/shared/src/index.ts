@@ -372,8 +372,13 @@ export interface Advice {
   action?: string;
 }
 
+/** Por qué la IA no ha podido responder (solo se muestra a cuentas Premium). */
+export type AiIssue = 'no_key' | 'key' | 'model' | 'limit' | 'busy' | 'network' | 'format';
+
 export interface AdviceResponse {
   source: 'rules' | 'ai';
+  /** Si la IA debía responder y no lo ha hecho: el motivo, para poder arreglarlo. */
+  aiIssue?: AiIssue;
   plan: Plan;
   generatedAt: string;
   items: Advice[];

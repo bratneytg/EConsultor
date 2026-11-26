@@ -580,4 +580,12 @@ export const de: Record<string, string> = {
   "Puedes crear una categoría nueva al anotar un gasto o un ingreso, sin salir de esa ventana.": "Du kannst beim Eintragen einer Ausgabe oder Einnahme eine neue Kategorie anlegen, ohne das Fenster zu verlassen.",
   "El botón «Atrás» del móvil cierra primero la ventana abierta, en lugar de salir de la pantalla.": "Die „Zurück“-Taste des Handys schließt zuerst das geöffnete Fenster, statt den Bildschirm zu verlassen.",
   "Al cambiar de idioma, «Sencilla / Profesional» y el tema también se traducen.": "Beim Sprachwechsel werden auch „Einfach / Professionell“ und das Design übersetzt.",
+  "La IA no está activada en tu servidor: falta la clave de Anthropic. En el servidor ejecuta «bash scripts/servidor.sh ia» y pega la clave cuando te la pida.": "Die KI ist auf deinem Server nicht aktiviert: Der Anthropic-Schlüssel fehlt. Führe auf dem Server „bash scripts/servidor.sh ia“ aus und füge den Schlüssel ein, wenn danach gefragt wird.",
+  "La clave de IA del servidor no es válida o ha caducado. Cámbiala en el servidor con «bash scripts/servidor.sh ia cambiar».": "Der KI-Schlüssel des Servers ist ungültig oder abgelaufen. Ändere ihn auf dem Server mit „bash scripts/servidor.sh ia cambiar“.",
+  "El modelo de IA indicado en el servidor no está disponible. Revisa ANTHROPIC_MODEL en el archivo .env o ejecuta «bash scripts/servidor.sh ia».": "Das auf dem Server eingestellte KI-Modell ist nicht verfügbar. Prüfe ANTHROPIC_MODEL in der .env-Datei oder führe „bash scripts/servidor.sh ia“ aus.",
+  "La cuenta de Anthropic no tiene saldo o ha llegado a su límite. Revísalo en console.anthropic.com.": "Das Anthropic-Konto hat kein Guthaben mehr oder sein Limit erreicht. Prüfe es unter console.anthropic.com.",
+  "La IA está saturada en este momento. Inténtalo de nuevo en unos minutos.": "Die KI ist gerade überlastet. Versuche es in ein paar Minuten erneut.",
+  "El servidor no consigue conectar con la IA. Revisa su conexión a internet.": "Der Server erreicht die KI nicht. Prüfe seine Internetverbindung.",
+  "La IA respondió algo que no he podido leer. Pulsa «Actualizar» para intentarlo otra vez.": "Die KI hat etwas geantwortet, das ich nicht lesen konnte. Tippe auf „Aktualisieren“, um es erneut zu versuchen.",
+  "Mostrando consejos sin IA": "Tipps werden ohne KI angezeigt",
 };

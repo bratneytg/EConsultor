@@ -580,4 +580,12 @@ export const en: Record<string, string> = {
   "Puedes crear una categoría nueva al anotar un gasto o un ingreso, sin salir de esa ventana.": "You can create a new category while logging an expense or income, without leaving that window.",
   "El botón «Atrás» del móvil cierra primero la ventana abierta, en lugar de salir de la pantalla.": "The phone's “Back” button now closes the open window first, instead of leaving the screen.",
   "Al cambiar de idioma, «Sencilla / Profesional» y el tema también se traducen.": "When you change language, “Simple / Professional” and the theme are translated too.",
+  "La IA no está activada en tu servidor: falta la clave de Anthropic. En el servidor ejecuta «bash scripts/servidor.sh ia» y pega la clave cuando te la pida.": "AI isn't turned on in your server: the Anthropic key is missing. On the server run “bash scripts/servidor.sh ia” and paste the key when asked.",
+  "La clave de IA del servidor no es válida o ha caducado. Cámbiala en el servidor con «bash scripts/servidor.sh ia cambiar».": "The server's AI key isn't valid or has expired. Change it on the server with “bash scripts/servidor.sh ia cambiar”.",
+  "El modelo de IA indicado en el servidor no está disponible. Revisa ANTHROPIC_MODEL en el archivo .env o ejecuta «bash scripts/servidor.sh ia».": "The AI model set on the server isn't available. Check ANTHROPIC_MODEL in the .env file or run “bash scripts/servidor.sh ia”.",
+  "La cuenta de Anthropic no tiene saldo o ha llegado a su límite. Revísalo en console.anthropic.com.": "The Anthropic account has no credit or has reached its limit. Check it at console.anthropic.com.",
+  "La IA está saturada en este momento. Inténtalo de nuevo en unos minutos.": "The AI is overloaded right now. Try again in a few minutes.",
+  "El servidor no consigue conectar con la IA. Revisa su conexión a internet.": "The server can't reach the AI. Check its internet connection.",
+  "La IA respondió algo que no he podido leer. Pulsa «Actualizar» para intentarlo otra vez.": "The AI replied with something I couldn't read. Tap “Update” to try again.",
+  "Mostrando consejos sin IA": "Showing tips without AI",
 };

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Advice, Overview } from '@econsultor/shared';
+import type { Advice, AiIssue, Overview } from '@econsultor/shared';
 import { categoryById } from '@econsultor/shared';
 import type { Config } from '../../config.js';
 import { scrub } from '../import/ai.js';
@@ -7,16 +7,19 @@ import type { FinancialProfile } from '../profile/engine.js';
 import type { SpendingDetail } from './detailed.js';
 import { LANG_NAME_ES, curLang } from '../../lib/i18n.js';
 
+/** Los modelos a veces se pasan unos caracteres: se recorta en vez de descartar toda la respuesta. */
+const cut = (max: number) => z.string().min(3).transform((s) => (s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s));
 const itemSchema = z.object({
   kind: z.enum(['saving', 'spending', 'income', 'habit', 'risk', 'win']),
   severity: z.enum(['info', 'tip', 'warn', 'win']),
-  title: z.string().min(3).max(90),
-  body: z.string().min(10).max(500),
-  impactMinor: z.number().int().nonnegative().max(1_000_000_00).optional(),
+  title: cut(90),
+  body: cut(500),
+  // Un entero positivo razonable; si viene con decimales o desmedido, se ajusta.
+  impactMinor: z.number().nonnegative().max(1_000_000_00).transform((n) => Math.round(n)).optional(),
 });
 const responseSchema = z.array(itemSchema).min(1).max(8);
 
-const detailedItemSchema = itemSchema.extend({ action: z.string().min(10).max(320) });
+const detailedItemSchema = itemSchema.extend({ action: cut(320) });
 const detailedResponseSchema = z.array(detailedItemSchema).min(3).max(9);
 
 /** Añade al final del prompt el idioma en el que debe redactar la IA (el de la persona). */
@@ -63,34 +66,46 @@ function digest(p: FinancialProfile, o: Overview) {
   };
 }
 
-/** Asesor con IA (Claude). Devuelve `null` ante cualquier fallo para que el llamador use las reglas. */
-export async function claudeAdvice(cfg: Config, p: FinancialProfile, o: Overview, signal?: AbortSignal): Promise<Advice[] | null> {
-  if (!cfg.anthropicApiKey) return null;
+export type AiResult<T> = { items: T } | { issue: AiIssue };
+
+/** Llama a Claude y, si falla, dice POR QUÉ (se apunta en el registro del servidor, nunca la clave). */
+async function callClaude(cfg: Config, system: string, content: string, maxTokens: number, timeoutMs: number, signal?: AbortSignal): Promise<{ text: string } | { issue: AiIssue }> {
+  if (!cfg.anthropicApiKey) return { issue: 'no_key' };
+  const fail = (issue: AiIssue, detail: string): { issue: AiIssue } => { console.error(`[IA] no ha respondido: ${issue} (${detail}) · modelo ${cfg.anthropicModel}`); return { issue }; };
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': cfg.anthropicApiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: cfg.anthropicModel,
-        max_tokens: 1500,
-        system: withLang(SYSTEM),
-        messages: [{ role: 'user', content: JSON.stringify(digest(p, o)) }],
-      }),
-      signal: signal ?? AbortSignal.timeout(25_000),
+      headers: { 'content-type': 'application/json', 'x-api-key': cfg.anthropicApiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: cfg.anthropicModel, max_tokens: maxTokens, system, messages: [{ role: 'user', content }] }),
+      signal: signal ?? AbortSignal.timeout(timeoutMs),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const body = (await res.json().catch(() => null)) as { error?: { type?: string; message?: string } } | null;
+      const msg = body?.error?.message ?? '';
+      const detail = `HTTP ${res.status}${msg ? `: ${msg.slice(0, 160)}` : ''}`;
+      if (res.status === 401 || res.status === 403) return fail('key', detail);
+      if (res.status === 404 || (res.status === 400 && /model/i.test(msg))) return fail('model', detail);
+      if (res.status === 429 || (res.status === 400 && /credit|balance|billing/i.test(msg))) return fail('limit', detail);
+      return fail('busy', detail);
+    }
     const data = (await res.json()) as { content?: { type: string; text?: string }[] };
-    const text = data.content?.find((c) => c.type === 'text')?.text ?? '';
-    const json = text.slice(text.indexOf('['), text.lastIndexOf(']') + 1);
-    const items = responseSchema.parse(JSON.parse(json));
-    return items.map((it, i) => ({ id: `ai-${i}`, scope: 'specific' as const, ...it }));
-  } catch {
-    return null;
+    return { text: data.content?.find((c) => c.type === 'text')?.text ?? '' };
+  } catch (e) {
+    return fail('network', e instanceof Error ? e.message : 'error');
   }
+}
+
+const parseList = <T>(text: string, schema: z.ZodType<T[], z.ZodTypeDef, unknown>): T[] | null => {
+  try { return schema.parse(JSON.parse(text.slice(text.indexOf('['), text.lastIndexOf(']') + 1))); }
+  catch (e) { console.error(`[IA] respuesta ilegible: ${e instanceof Error ? e.message.slice(0, 200) : 'error'}`); return null; }
+};
+
+/** Asesor con IA (Claude). Si falla devuelve el motivo y el llamador usa las reglas. */
+export async function claudeAdvice(cfg: Config, p: FinancialProfile, o: Overview, signal?: AbortSignal): Promise<AiResult<Advice[]>> {
+  const r = await callClaude(cfg, withLang(SYSTEM), JSON.stringify(digest(p, o)), 1500, 25_000, signal);
+  if ('issue' in r) return r;
+  const items = parseList(r.text, responseSchema);
+  return items ? { items: items.map((it, i) => ({ id: `ai-${i}`, scope: 'specific' as const, ...it })) } : { issue: 'format' };
 }
 
 
@@ -127,27 +142,10 @@ export function detailedDigest(d: SpendingDetail) {
   };
 }
 
-/** Consejos detallados con IA. `null` ante cualquier fallo: el llamador usa el análisis local. */
-export async function claudeDetailedAdvice(cfg: Config, d: SpendingDetail, signal?: AbortSignal): Promise<Advice[] | null> {
-  if (!cfg.anthropicApiKey) return null;
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': cfg.anthropicApiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        model: cfg.anthropicModel,
-        max_tokens: 3000,
-        system: withLang(DETAILED_SYSTEM),
-        messages: [{ role: 'user', content: JSON.stringify(detailedDigest(d)) }],
-      }),
-      signal: signal ?? AbortSignal.timeout(40_000),
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { content?: { type: string; text?: string }[] };
-    const text = data.content?.find((c) => c.type === 'text')?.text ?? '';
-    const items = detailedResponseSchema.parse(JSON.parse(text.slice(text.indexOf('['), text.lastIndexOf(']') + 1)));
-    return items.map((it, i) => ({ id: `dai-${i}`, scope: 'specific' as const, ...it }));
-  } catch {
-    return null;
-  }
+/** Consejos detallados con IA. Si falla devuelve el motivo y el llamador usa el análisis local. */
+export async function claudeDetailedAdvice(cfg: Config, d: SpendingDetail, signal?: AbortSignal): Promise<AiResult<Advice[]>> {
+  const r = await callClaude(cfg, withLang(DETAILED_SYSTEM), JSON.stringify(detailedDigest(d)), 3000, 40_000, signal);
+  if ('issue' in r) return r;
+  const items = parseList(r.text, detailedResponseSchema);
+  return items ? { items: items.map((it, i) => ({ id: `dai-${i}`, scope: 'specific' as const, ...it })) } : { issue: 'format' };
 }

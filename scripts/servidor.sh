@@ -17,6 +17,7 @@
 #   bash scripts/servidor.sh panel-parar      Apaga el panel y lo quita de Tailscale
 #   bash scripts/servidor.sh direccion        Tras cambiar el nombre del equipo o de la red en Tailscale: actualiza todo
 #   bash scripts/servidor.sh activar          Activa Premium para todos, la IA y los avisos push (genera las claves VAPID)
+#   bash scripts/servidor.sh ia [cambiar]     Activa la IA de los consejos: pide la clave de Anthropic, la prueba y la guarda (o prueba la que ya hay)
 #   bash scripts/servidor.sh perfiles on|off  Muestra u oculta la pestaña «Perfiles» del panel (apagado por defecto)
 #   bash scripts/servidor.sh psico on|off     Añade a «Perfiles» la evaluación psico-económica (apagado por defecto)
 #   bash scripts/servidor.sh apk URL          Pone el enlace de descarga de la app de Android en la web
@@ -79,6 +80,8 @@ informe() {
   if curl -fs -m 5 -o /dev/null "http://127.0.0.1:${PUERTO}/healthz"; then ok "La app responde correctamente."
   else alerta "La app no responde en el puerto ${PUERTO}."; fi
   echo "Versión instalada: $(git log -1 --format='%h «%s», %cr')"
+  if curl -fs -m 5 "http://127.0.0.1:${PUERTO}/api/config" 2>/dev/null | grep -q '"ai":true'; then ok "La IA de los consejos está activa (clave puesta). Para probarla: bash scripts/servidor.sh ia"
+  else aviso "La IA de los consejos NO está activa: falta la clave de Anthropic. Actívala con: bash scripts/servidor.sh ia"; fi
 
   git fetch -q origin 2>/dev/null || true
   local rama
@@ -695,6 +698,60 @@ activar() {
   if echo "$cfg" | grep -q '"apkUrl":"'; then ok "Enlace de la app de Android puesto."; else aviso "Sin enlace de la app de Android todavía: bash scripts/servidor.sh apk <URL del APK>"; fi
 }
 
+# Prueba una clave de Anthropic con una petición mínima. Imprime el resultado y devuelve 0 si funciona.
+ia_probar() {
+  local clave="$1" modelo="$2" cab cuerpo codigo msg
+  cab="$(mktemp)"; cuerpo="$(mktemp)"
+  ( umask 077; printf 'x-api-key: %s\n' "$clave" > "$cab" )   # la clave va en un archivo temporal: no aparece en la lista de procesos
+  codigo="$(curl -sS -m 40 -o "$cuerpo" -w '%{http_code}' https://api.anthropic.com/v1/messages \
+    -H "@${cab}" -H 'anthropic-version: 2023-06-01' -H 'content-type: application/json' \
+    -d "{\"model\":\"${modelo}\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Responde solo: ok\"}]}" 2>/dev/null || echo 000)"
+  msg="$(sed -n 's/.*"message":"\([^"]*\)".*/\1/p' "$cuerpo" | head -1)"
+  rm -f "$cab" "$cuerpo"
+  case "$codigo" in
+    200) ok "Anthropic responde con el modelo ${modelo}."; return 0 ;;
+    401|403) alerta "La clave no es válida o no tiene permiso (${codigo}). ${msg}" ;;
+    404) alerta "El modelo «${modelo}» no existe o no está disponible para esta clave. ${msg}" ;;
+    400) alerta "Anthropic rechazó la petición (400): ${msg}"; echo "Si habla de saldo o crédito, añade crédito en https://console.anthropic.com (Plans & Billing)." ;;
+    429) alerta "Demasiadas peticiones o límite de la cuenta (429). ${msg}" ;;
+    000) alerta "Este servidor no consigue conectar con api.anthropic.com. Revisa su conexión a internet." ;;
+    *) alerta "Anthropic respondió ${codigo}. ${msg}" ;;
+  esac
+  return 1
+}
+
+ia() {
+  [ -f "${DIR}/.env" ] || { alerta "No encuentro el archivo .env en ${DIR}."; exit 1; }
+  titulo "IA DE LOS CONSEJOS"
+  local clave modelo nueva
+  clave="$(env_leer "${DIR}/.env" ANTHROPIC_API_KEY)"
+  modelo="$(env_leer "${DIR}/.env" ANTHROPIC_MODEL)"; modelo="${modelo:-claude-sonnet-5-5}"
+
+  if [ -z "$clave" ] || [ "${1:-}" = "cambiar" ]; then
+    echo "Pega tu clave de Anthropic (empieza por sk-ant-). Se crea en https://console.anthropic.com → API keys."
+    echo "No se verá al escribirla ni se guarda en ningún sitio más que en ${DIR}/.env."
+    read -r -s -p "Clave: " nueva; echo
+    nueva="$(printf '%s' "$nueva" | tr -d '[:space:]')"
+    [ -n "$nueva" ] || { alerta "No has escrito ninguna clave."; exit 1; }
+    case "$nueva" in sk-ant-*) ;; *) aviso "Las claves de Anthropic empiezan por sk-ant-. Compruebo igualmente." ;; esac
+    ia_probar "$nueva" "$modelo" || { alerta "No he guardado la clave porque no funciona."; exit 1; }
+    cp -p "${DIR}/.env" "${DIR}/.env.antes-de-ia"; chmod 600 "${DIR}/.env.antes-de-ia"
+    env_poner "${DIR}/.env" ANTHROPIC_API_KEY "$nueva"
+    ok "Clave guardada en .env."
+    echo "Reiniciando la app..."
+    compose up -d app
+    local i; for i in $(seq 1 30); do curl -fsS "http://127.0.0.1:${PUERTO}/healthz" >/dev/null 2>&1 && break; sleep 2; done
+  else
+    ok "Ya hay una clave guardada en .env. La pruebo:"
+    ia_probar "$clave" "$modelo" || { echo "Para poner otra: bash scripts/servidor.sh ia cambiar"; exit 1; }
+  fi
+
+  local cfg; cfg="$(curl -fsS "http://127.0.0.1:${PUERTO}/api/config" 2>/dev/null || true)"
+  if echo "$cfg" | grep -q '"ai":true'; then ok "La app tiene la IA activa."; else alerta "La app sigue sin ver la clave. Mira: docker compose logs app"; fi
+  if [ "$(env_leer "${DIR}/.env" PREMIUM_FOR_ALL)" != "true" ]; then aviso "Las cuentas gratis no usan la IA. Para dársela a todas mientras no haya cobro: bash scripts/servidor.sh activar"; fi
+  echo "Los consejos con IA se piden en la pestaña «Consejos» (Generales usa la IA sola; «A fondo» te pide permiso)."
+}
+
 perfiles() {
   [ -f "${DIR}/.env.panel" ] || { alerta "El panel aún no está instalado: bash scripts/servidor.sh panel"; exit 1; }
   case "${1:-estado}" in
@@ -764,10 +821,11 @@ case "${1:-ayuda}" in
   panel-clave) panel_clave ;;
   panel-parar) panel_parar ;;
   activar) activar ;;
+  ia) ia "${2:-}" ;;
   perfiles) perfiles "${2:-estado}" ;;
   psico) psico "${2:-estado}" ;;
   apk) apk "${2:-}" ;;
   tapa) tapa "${2:-}" ;;
   bareglass) bareglass "${2:-estado}" ;;
-  *) sed -n '2,23p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
+  *) sed -n '2,24p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
 esac

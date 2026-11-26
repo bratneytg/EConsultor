@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import type { AdviceResponse } from '@econsultor/shared';
+import type { AdviceResponse, AiIssue } from '@econsultor/shared';
 import { AdviceCard } from '../components/AdviceCard';
 import { Icon } from '../components/Icon';
 import { useShell } from '../components/Shell';
@@ -69,6 +69,26 @@ export function Advice() {
   const loading = <div className="loading-screen" style={{ minHeight: 240 }}><div className="pulse-dot" /></div>;
   const dd = detailed.data;
 
+  /** Si la IA debía responder y no lo ha hecho, se explica por qué y qué hacer. */
+  const aiNotice = (issue: AiIssue | undefined) => {
+    if (!issue) return null;
+    const text: Record<AiIssue, string> = {
+      no_key: t('La IA no está activada en tu servidor: falta la clave de Anthropic. En el servidor ejecuta «bash scripts/servidor.sh ia» y pega la clave cuando te la pida.'),
+      key: t('La clave de IA del servidor no es válida o ha caducado. Cámbiala en el servidor con «bash scripts/servidor.sh ia cambiar».'),
+      model: t('El modelo de IA indicado en el servidor no está disponible. Revisa ANTHROPIC_MODEL en el archivo .env o ejecuta «bash scripts/servidor.sh ia».'),
+      limit: t('La cuenta de Anthropic no tiene saldo o ha llegado a su límite. Revísalo en console.anthropic.com.'),
+      busy: t('La IA está saturada en este momento. Inténtalo de nuevo en unos minutos.'),
+      network: t('El servidor no consigue conectar con la IA. Revisa su conexión a internet.'),
+      format: t('La IA respondió algo que no he podido leer. Pulsa «Actualizar» para intentarlo otra vez.'),
+    };
+    return (
+      <div className="ai-consent" role="status" style={{ marginBottom: 14 }}>
+        <b><Icon name="warn" size={16} /> {t('Mostrando consejos sin IA')}</b>
+        <p>{text[issue]}</p>
+      </div>
+    );
+  };
+
   return (
     <div>
       <header className="page-head">
@@ -90,10 +110,13 @@ export function Advice() {
 
       {tab === 'general' ? (
         isPending ? loading : isError || !data ? empty : (
-          <div className="advice-grid">
-            {data.items.map((a) => <AdviceCard key={a.id} a={a} currency={user.currency} />)}
-            {data.lockedCount > 0 && locked(data.lockedCount, t('Consejos con IA sobre cómo ahorrar más y aumentar tus ingresos, ajustados a tu historial.'))}
-          </div>
+          <>
+            {aiNotice(data.aiIssue)}
+            <div className="advice-grid">
+              {data.items.map((a) => <AdviceCard key={a.id} a={a} currency={user.currency} />)}
+              {data.lockedCount > 0 && locked(data.lockedCount, t('Consejos con IA sobre cómo ahorrar más y aumentar tus ingresos, ajustados a tu historial.'))}
+            </div>
+          </>
         )
       ) : detailed.isPending ? loading : detailed.isError || !dd ? empty : (
         <>
@@ -101,6 +124,8 @@ export function Advice() {
             {t('Mira en qué gastas de verdad: comercios, cuántas veces pagas, cuánto de media y qué cargos se repiten.')}
             {dd.basis && <> {tx('Basado en <b>{count}</b> gastos de los últimos {days} días.', { count: dd.basis.txCount, days: dd.basis.periodDays })}</>}
           </p>
+
+          {aiNotice(dd.aiIssue)}
 
           {dd.basis?.aiAvailable && dd.source !== 'ai' && (
             <div className="ai-consent">
