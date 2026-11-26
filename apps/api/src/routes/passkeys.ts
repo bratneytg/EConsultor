@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { AppError, badRequest, unauthorized } from '../lib/errors.js';
 import { randomToken } from '../security/crypto.js';
 import type { AppBiometricRecord, PasskeyRecord, UserRecord } from '../store/types.js';
+import { tr } from '../lib/i18n.js';
 
 export interface PasskeyDeps {
   complete: (req: FastifyRequest, reply: FastifyReply, user: UserRecord, method: string) => Promise<AuthResponse>;
@@ -67,7 +68,7 @@ export async function passkeyRoutes(app: FastifyInstance, deps: PasskeyDeps): Pr
   app.post('/register/options', { ...auth, ...strict }, async (req) => {
     const user = req.user;
     const existing = user.passkeys ?? [];
-    if (existing.length >= MAX_PASSKEYS) throw badRequest(`Máximo ${MAX_PASSKEYS} dispositivos. Elimina alguno primero.`, 'too_many_passkeys');
+    if (existing.length >= MAX_PASSKEYS) throw badRequest(tr('Máximo {max} dispositivos. Elimina alguno primero.', { max: MAX_PASSKEYS }), 'too_many_passkeys');
     const options = await generateRegistrationOptions({
       rpName: 'EConsultor',
       rpID,
@@ -188,7 +189,7 @@ export async function passkeyRoutes(app: FastifyInstance, deps: PasskeyDeps): Pr
   app.post('/biometric/register', { ...auth, ...strict }, async (req) => {
     const body = z.object({ name: z.string().trim().max(40).optional() }).parse(req.body ?? {});
     const user = req.user;
-    if ((user.appBiometrics ?? []).length >= MAX_PASSKEYS) throw badRequest(`Máximo ${MAX_PASSKEYS} dispositivos. Elimina alguno primero.`, 'too_many_passkeys');
+    if ((user.appBiometrics ?? []).length >= MAX_PASSKEYS) throw badRequest(tr('Máximo {max} dispositivos. Elimina alguno primero.', { max: MAX_PASSKEYS }), 'too_many_passkeys');
     const secret = randomToken(32);
     const rec: AppBiometricRecord = {
       id: randomToken(12),

@@ -3,15 +3,16 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { useShell } from '../components/Shell';
 import { Card } from '../components/ui';
-import { ARTICULOS, TEMAS, buscar, type Articulo } from '../content/ayuda';
+import { TEMAS, articulosEn, buscar, type Articulo } from '../content/ayuda';
 import { useAppConfig } from '../lib/queries';
 import { isAndroidApp } from '../lib/native';
+import { t, useI18n } from '../lib/i18n';
 
 function Cuerpo({ a }: { a: Articulo }) {
   const bloques: React.ReactNode[] = [];
   let items: string[] = [];
   const cierraLista = () => {
-    if (items.length) bloques.push(<ul key={`u${bloques.length}`} className="help-list">{items.map((t, i) => <li key={i}>{t}</li>)}</ul>);
+    if (items.length) bloques.push(<ul key={`u${bloques.length}`} className="help-list">{items.map((x, i) => <li key={i}>{x}</li>)}</ul>);
     items = [];
   };
   for (const linea of a.texto) {
@@ -30,8 +31,10 @@ export function Help() {
   const { openReport } = useShell();
   const { data: cfg } = useAppConfig();
   const refs = useRef<Record<string, HTMLElement | null>>({});
+  const { lang } = useI18n();
+  const todos = useMemo(() => articulosEn(lang), [lang]);
 
-  const lista = useMemo(() => buscar(q).filter((a) => !tema || a.tema === tema), [q, tema]);
+  const lista = useMemo(() => buscar(q, todos).filter((a) => !tema || a.tema === tema), [q, tema, todos]);
 
   // Al llegar con ?a=id se abre y se muestra ese artículo.
   useEffect(() => {
@@ -49,26 +52,26 @@ export function Help() {
 
   return (
     <div>
-      <header className="page-head"><h1>Ayuda</h1></header>
+      <header className="page-head"><h1>{t('Ayuda')}</h1></header>
       <div className="stack">
         <div className="help-search">
           <Icon name="search" size={18} />
           <input
-            type="search" className="input" aria-label="Buscar en la ayuda" placeholder="Busca: extracto, racha, recordatorio, 2FA…"
+            type="search" className="input" aria-label={t('Buscar en la ayuda')} placeholder={t('Busca: extracto, racha, recordatorio, 2FA…')}
             value={q} onChange={(e) => setQ(e.target.value)}
           />
         </div>
-        <div className="help-topics" role="group" aria-label="Temas">
-          <button className="chip-btn" aria-pressed={!tema} onClick={() => setTema(null)}>Todo</button>
-          {TEMAS.map((t) => <button key={t} className="chip-btn" aria-pressed={tema === t} onClick={() => setTema(tema === t ? null : t)}>{t}</button>)}
+        <div className="help-topics" role="group" aria-label={t('Temas')}>
+          <button className="chip-btn" aria-pressed={!tema} onClick={() => setTema(null)}>{t('Todo')}</button>
+          {TEMAS.map((x) => <button key={x} className="chip-btn" aria-pressed={tema === x} onClick={() => setTema(tema === x ? null : x)}>{t(x)}</button>)}
         </div>
 
         {lista.length === 0 ? (
           <Card>
             <div className="empty">
-              <h3>No hemos encontrado «{q}»</h3>
-              <p>Prueba con otra palabra, o cuéntanos qué te falta y lo añadimos.</p>
-              <button className="btn" onClick={openReport}><Icon name="bug" size={18} />Contárnoslo</button>
+              <h3>{t('No hemos encontrado «{q}»', { q })}</h3>
+              <p>{t('Prueba con otra palabra, o cuéntanos qué te falta y lo añadimos.')}</p>
+              <button className="btn" onClick={openReport}><Icon name="bug" size={18} />{t('Cuéntanoslo')}</button>
             </div>
           </Card>
         ) : (
@@ -80,7 +83,7 @@ export function Help() {
                   <button className="help-q" aria-expanded={abiertoAhora} aria-controls={`${a.id}-c`} onClick={() => alternar(a.id)}>
                     <span>
                       <b>{a.titulo}</b>
-                      <small>{a.tema}</small>
+                      <small>{t(a.tema)}</small>
                     </span>
                     <Icon name="right" size={18} className={abiertoAhora ? 'turn' : ''} />
                   </button>
@@ -89,7 +92,7 @@ export function Help() {
                       <p className="help-resumen">{a.resumen}</p>
                       <Cuerpo a={a} />
                       {a.id === 'app-android' && cfg?.apkUrl && !isAndroidApp() && (
-                        <p><a className="btn btn-primary" href={cfg.apkUrl}><Icon name="phone" size={18} />Descargar para Android</a></p>
+                        <p><a className="btn btn-primary" href={cfg.apkUrl}><Icon name="phone" size={18} />{t('Descargar para Android')}</a></p>
                       )}
                       {a.accion && <p><Link className="btn" to={a.accion.to}>{a.accion.etiqueta}</Link></p>}
                     </div>
@@ -101,8 +104,8 @@ export function Help() {
         )}
 
         <p className="hint" style={{ textAlign: 'center' }}>
-          ¿No encuentras lo que buscas? <button className="link-btn" onClick={openReport}>Cuéntanoslo</button>
-          {' · '}{ARTICULOS.length} artículos
+          {t('¿No encuentras lo que buscas?')} <button className="link-btn" onClick={openReport}>{t('Cuéntanoslo')}</button>
+          {' · '}{t('{n} artículos', { n: todos.length })}
         </p>
       </div>
     </div>

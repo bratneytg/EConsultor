@@ -40,6 +40,12 @@ export function t(key: string, params?: Record<string, string | number>): string
   return params ? s.replace(/\{(\w+)\}/g, (m, k: string) => (k in params ? String(params[k]) : m)) : s;
 }
 
+/** Como `t()`, pero entiende `<b>…</b>` y devuelve JSX: para frases con una palabra resaltada, sin partirlas en trozos. */
+export function tx(key: string, params?: Record<string, string | number>): ReactNode {
+  const parts = t(key, params).split(/(<b>.*?<\/b>)/g);
+  return <>{parts.map((p, i) => (p.startsWith('<b>') ? <b key={i}>{p.slice(3, -4)}</b> : p))}</>;
+}
+
 /** Marca un texto para traducir más tarde (datos estáticos): devuelve el mismo texto y `t()` lo traduce al mostrarlo. */
 export const tk = (key: string): string => key;
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { addDays, parseAmount, relativeDay, shiftMonth } from './format';
 import { categoryColor, familyOf } from './categories';
+import { setLangNow } from './i18n';
 
 describe('parseAmount', () => {
   it('acepta formatos europeos y anglosajones', () => {
@@ -28,9 +29,13 @@ describe('fechas', () => {
     expect(shiftMonth('2026-11', 3)).toBe('2027-02');
   });
 
-  it('etiqueta hoy y ayer', () => {
-    expect(relativeDay('2026-11-24', '2026-11-24')).toBe('Hoy');
-    expect(relativeDay('2026-11-23', '2026-11-24')).toBe('Ayer');
+  it('etiqueta hoy y ayer en cada idioma', () => {
+    for (const [lang, hoy, ayer] of [['es', 'Hoy', 'Ayer'], ['en', 'Today', 'Yesterday'], ['it', 'Oggi', 'Ieri'], ['de', 'Heute', 'Gestern']] as const) {
+      setLangNow(lang);
+      expect(relativeDay('2026-11-24', '2026-11-24')).toBe(hoy);
+      expect(relativeDay('2026-11-23', '2026-11-24')).toBe(ayer);
+    }
+    setLangNow('en');
   });
 });
 

@@ -1,0 +1,267 @@
+import type { Traduccion } from './ayuda';
+
+export const AYUDA_DE: Record<string, Traduccion> = {
+  "modos-de-uso": {
+    titulo: "Zwei Arten, EConsultor zu nutzen: täglich oder einmal im Monat",
+    resumen: "Du kannst jede Ausgabe sofort eintragen oder einmal im Monat den Kontoauszug hochladen. Wähle, was besser zu dir passt.",
+    claves: ["täglich", "monatlich", "Kontoauszug", "manuell", "Routine", "wie fange ich an", "Modus"],
+    texto: [
+      "Es gibt keinen einzig richtigen Weg. Das sind die zwei häufigsten, und man kann sie mischen:",
+      "- Jeden Tag (30 Sekunden): tippe auf „Eintragen“, gib den Betrag ein, wähle die Kategorie, fertig. Das ist am genauesten und hält deine Serie am Laufen. Die tägliche Erinnerung hilft dir, wenn du es vergisst.",
+      "- Einmal im Monat (5 Minuten): lade den Kontoauszug deiner Bank (CSV oder PDF) herunter und lade ihn unter Einstellungen › Importieren hoch. EConsultor erkennt Datum, Beträge und Kategorien, und du prüfst Unklares vor dem Speichern.",
+      "- Gemischt: importiere jeden Monat den Auszug und trage nur Barzahlungen von Hand ein, da sie bei der Bank nicht auftauchen.",
+      "Die Diagramme und Tipps werden mit jedem Monat besser. Mit 2 oder 3 Monaten sind deine Gewohnheiten schon gut erkennbar.",
+    ],
+    accion: "Kontoauszug importieren",
+  },
+  "primer-paso": {
+    titulo: "Deine ersten fünf Minuten",
+    resumen: "Was du direkt nach dem Anlegen des Kontos tun kannst, damit die App nützlich wird.",
+    claves: ["erste Schritte", "Anfang", "Start", "neu", "Tutorial"],
+    texto: [
+      "- 1. Trage die Buchungen des letzten Monats ein oder importiere sie, damit die Diagramme nicht leer starten.",
+      "- 2. Erfasse deine festen Einnahmen (Gehalt) und die wiederkehrenden Ausgaben (Miete, Versicherungen, Abos). Damit berechnet EConsultor, wie viel dir jeden Monat frei bleibt.",
+      "- 3. Sieh dir „Tipps“ an: Du bekommst Empfehlungen auf Grundlage deiner eigenen Zahlen.",
+      "- 4. Aktiviere in den Einstellungen die tägliche Erinnerung, wenn du dir die Gewohnheit aufbauen möchtest.",
+      "Alles andere ist optional, und du kannst jederzeit hierher zurückkommen.",
+    ],
+  },
+  "interfaz-sencilla-profesional": {
+    titulo: "Einfache oder professionelle Oberfläche",
+    resumen: "Zwei Detailstufen: das Wesentliche auf einen Blick oder die vollständige Analyse.",
+    claves: ["Modus", "einfach", "Pro", "professionell", "Oberfläche", "Ansicht wechseln"],
+    texto: [
+      "Einfach zeigt deinen Kontostand, ein klares Diagramm und deine wichtigsten Kategorien. Gedacht für einen Blick in zehn Sekunden.",
+      "Professionell ergänzt den Geldfluss, den Finanzpuls, deine typische Woche und den Vergleich der letzten 12 Monate.",
+      "Du wechselst unter Einstellungen › Oberfläche, und die Wahl wird in deinem Konto gespeichert – auf Handy und Computer ist sie also dieselbe.",
+    ],
+    accion: "Zu den Einstellungen",
+  },
+  "anotar-movimientos": {
+    titulo: "Eine Buchung eintragen, bearbeiten und löschen",
+    resumen: "Die Taste „+“ öffnet das Eingabeblatt. Du kannst mehrere hintereinander eintragen.",
+    claves: ["eintragen", "hinzufügen", "Ausgabe", "Einnahme", "bearbeiten", "löschen", "Kategorie", "Datum", "Notiz"],
+    texto: [
+      "Tippe auf „+“ (am Computer auf „Eintragen“). Wähle Ausgabe oder Einnahme, gib Betrag und Kategorie und, wenn du magst, eine Notiz ein. Das Datum ist heute, du kannst es aber ändern, um etwas von vor ein paar Tagen nachzutragen.",
+      "„Speichern und weitere hinzufügen“ lässt das Blatt offen, damit du mehrere Ausgaben hintereinander einträgst, etwa nach dem Einkauf.",
+      "Zum Korrigieren öffne Buchungen und tippe auf die Buchung: Du kannst sie ändern oder löschen.",
+    ],
+    accion: "Buchungen ansehen",
+  },
+  "importar-extracto": {
+    titulo: "Kontoauszug importieren (CSV, Excel oder PDF)",
+    resumen: "Lade die Datei deiner Bank hoch, und EConsultor füllt deine Buchungen aus.",
+    claves: ["importieren", "Kontoauszug", "csv", "pdf", "Bank", "Excel", "xlsx", "ods", "nexi", "Italien", "Kreditkarte", "Ausgaben als Einnahmen", "umkehren", "n26", "bbva", "santander", "ing", "Deutsche Bank", "Sparkasse", "hochladen"],
+    texto: [
+      "Suche auf der Website deiner Bank nach „Kontoauszug“, „Umsätze“ oder „Exportieren“ und lade die Datei als CSV oder Excel (.xlsx, am zuverlässigsten) oder als PDF herunter. LibreOffice-Tabellen (.ods) werden ebenfalls gelesen. Ein altes Excel (.xls) musst du vorher als .xlsx oder CSV speichern.",
+      "Öffne dann Einstellungen › Importieren (oder die Import-Taste bei Buchungen) und wähle die Datei. Du siehst eine Liste dessen, was erkannt wurde: Datum, Verwendungszweck, Betrag und vorgeschlagene Kategorie.",
+      "- Prüfe, was ausgegraut oder ohne Kategorie ist, und korrigiere es.",
+      "- Wenn der Server die KI aktiviert hat, kannst du sie beim Kategorisieren und beim Lesen schwieriger PDFs helfen lassen. Vor dem Senden werden IBAN, E-Mail-Adressen und lange Zahlen entfernt.",
+      "- Kartenabrechnungen (Nexi, Visa, Mastercard…): Viele Banken führen dort Ausgaben mit positivem Vorzeichen. EConsultor erkennt das und zählt diese Zeilen als Ausgaben; Erstattungen und die Kartenzahlung werden gesondert behandelt. Wenn trotzdem alles umgekehrt erscheint, tippe über der Liste auf „Ausgaben und Einnahmen vertauschen“.",
+      "- Es versteht Datums- und Zahlenformate aus Spanien, Deutschland und Italien (05/11/2026, 5. Nov. 2026, 1.234,56).",
+      "- Es lernt von dir: Wenn du einen Händler schon kategorisiert hast, wird das bei den nächsten wiederholt. Was nicht erkennbar ist (eine Person, eine Referenznummer), bleibt unter „Sonstiges“, damit du es prüfst.",
+      "- Buchungen, die du schon hast (und Umbuchungen zwischen deinen eigenen Konten), erscheinen abgewählt, damit nichts doppelt landet; wähle sie an, wenn du sie wirklich importieren willst.",
+      "- Es funktioniert mit jeder Bank: Wenn die Spalten nicht so heißen, wie wir erwarten, werden sie aus dem Inhalt abgeleitet, und du bekommst einen Hinweis, damit du sie prüfst.",
+      "- Mehrere Konten: Vor dem Import wählst du, zu welchem Konto der Auszug gehört. Wenn er wie ein bereits hochgeladener Auszug aussieht (viele Daten, Beträge und Händler stimmen mit einem anderen Konto überein), erhältst du eine Warnung für den Fall, dass du die falsche Datei erwischt hast.",
+      "Wenn eine Datei nicht erkannt wird, nutze die Taste zum Melden von Fehlern und sag uns, um welche Bank es sich handelt; du musst nichts mit deinen Daten anhängen.",
+    ],
+    accion: "Jetzt importieren",
+  },
+  "varias-cuentas": {
+    titulo: "Mehrere Bankkonten",
+    resumen: "Importiere die Auszüge all deiner Konten, ohne dass sie sich vermischen oder doppelt erfasst werden.",
+    claves: ["Konten", "mehrere Konten", "Karte", "Duplikate", "doppelt", "doppelter Auszug", "Umbuchung", "Gemeinschaftskonto"],
+    texto: [
+      "Wenn du mehr als ein Konto oder eine Karte hast, gib beim Import eines Auszugs den Kontonamen ein oder wähle ihn (zum Beispiel „N26“, „Nexi-Karte“). Jede Buchung wird ihrem Konto zugeordnet, und du kannst die Buchungen nach Konto filtern.",
+      "EConsultor vergleicht, was du hochlädst, mit dem, was du schon hast: Stimmen fast alle Daten, Beträge und Händler mit einem anderen Konto überein, warnt es dich, dass du womöglich zweimal denselben Auszug hochgeladen hast, und lässt diese Buchungen abgewählt.",
+      "Umbuchungen zwischen deinen eigenen Konten zählen weder als Ausgabe noch als Einnahme, damit deine Diagramme nicht aufgebläht werden.",
+    ],
+  },
+  "idioma": {
+    titulo: "Die Sprache der App ändern",
+    resumen: "Englisch, Spanisch, Italienisch oder Deutsch.",
+    claves: ["Sprache", "Englisch", "Spanisch", "Italienisch", "Deutsch", "english", "español", "italiano"],
+    texto: [
+      "Standardmäßig ist die App auf Englisch. Ändere das unter Einstellungen › Sprache oder direkt auf dem Anmeldebildschirm. Die Wahl wird in deinem Konto gespeichert, ist also auf Handy und Computer dieselbe.",
+      "Es ändert sich alles: Menüs, Diagramme, Tipps, Hinweise und Fehlermeldungen. Die Kategorie- und Händlernamen deiner Buchungen werden nicht übersetzt.",
+    ],
+  },
+  "novedades": {
+    titulo: "Was ist neu",
+    resumen: "Ein Hinweis erzählt dir bei jedem Update der App von den Verbesserungen.",
+    claves: ["Neuigkeiten", "Update", "Version", "Änderungen", "was ist neu", "Aktualisierung"],
+    texto: [
+      "Wenn eine neue Version erscheint, öffnet sich beim Start der App ein Fenster mit den neuen Funktionen, neuen Bereichen und behobenen Fehlern. Du kannst es unter Einstellungen › Neuigkeiten erneut ansehen.",
+      "Erkennt die App bei geöffnetem Zustand eine neuere Version, weist sie dich mit einem Hinweis zum Neuladen darauf hin.",
+    ],
+  },
+  "saldo-del-mes": {
+    titulo: "Saldo des Monats",
+    resumen: "Wie deine Ersparnisse im Lauf des Monats steigen und sinken.",
+    claves: ["Saldo", "Diagramm", "Linie", "Bilanz", "Monat", "Prognose"],
+    texto: [
+      "Es zeigt den aufgelaufenen Saldo des Monats Tag für Tag: Einnahmen minus Ausgaben. Fällt er unter null, gibst du mehr aus, als du bisher eingenommen hast.",
+      "Tippe auf das Diagramm oder fahre mit der Maus darüber, um den Wert jedes Tages zu sehen. Im laufenden Monat erscheint oben „Voraussichtlicher Abschluss“: wie viel dir am Monatsende bliebe, wenn du dieses Tempo beibehältst.",
+      "Mit „Tabelle anzeigen“ bekommst du dieselben Daten als Tabelle.",
+    ],
+  },
+  "rio-del-dinero": {
+    titulo: "Der Fluss deines Geldes",
+    resumen: "Ein Diagramm, das verbindet, woher das Geld kommt und wohin es geht.",
+    claves: ["Sankey", "Fluss", "Geldfluss", "Einnahmen", "Ausgaben", "professionell"],
+    texto: [
+      "Es zeichnet, wie dein Geld von den Einnahmen zu den Ausgabenkategorien und zu dem, was übrig bleibt, fließt. Je breiter das Band, desto mehr Geld.",
+      "So siehst du auf einen Blick, welcher Teil des Gehalts in Wohnen, Essen oder Freizeit geht. Verfügbar in der professionellen Oberfläche.",
+    ],
+  },
+  "pulso-financiero": {
+    titulo: "Dein Finanzpuls (die Punktzahl von 0 bis 100)",
+    resumen: "Eine Gesamtnote und die vier Gewohnheiten, aus denen sie besteht.",
+    claves: ["Puls", "Punktzahl", "Note", "Kennzahlen", "Sparquote", "Fixkosten", "Stabilität", "Regelmäßigkeit", "finanzielle Gesundheit"],
+    texto: [
+      "Der Ring fasst deine finanzielle Gesundheit in einer Note von 0 bis 100 zusammen („Im Aufbau“, „Solide“, „Ausgezeichnet“…). Sie setzt sich aus vier Gewohnheiten zusammen:",
+      "- Sparen (Gewicht 40 %): Ziel ist, 20 % oder mehr deiner Einnahmen zu sparen.",
+      "- Fixkosten (20 %): Idealerweise übersteigen sie nicht die Hälfte deiner Einnahmen.",
+      "- Stabilität (20 %): dass deine Ausgaben von Monat zu Monat ähnlich sind.",
+      "- Regelmäßigkeit (20 %): an mindestens 20 Tagen im Monat etwas eintragen.",
+      "Jede Gewohnheit zeigt ihr Ziel, damit du weißt, was du zuerst verbessern kannst.",
+    ],
+  },
+  "mapa-y-semana": {
+    titulo: "„Deine Woche“",
+    resumen: "Finde heraus, an welchen Wochentagen du am meisten ausgibst.",
+    claves: ["Woche", "Wochenende", "Tage", "Wochentag"],
+    texto: [
+      "„Deine Woche“ mittelt die Ausgaben pro Wochentag über die letzten drei Monate. Wenn die Samstage herausstechen, weißt du, wo du hinschauen musst.",
+    ],
+  },
+  "doce-meses": {
+    titulo: "Letzte 12 Monate und Monatswechsel",
+    resumen: "Vergleiche Monate und blättere durch deinen Verlauf.",
+    claves: ["Monate", "Verlauf", "vergleichen", "Jahr", "Vormonat", "blättern"],
+    texto: [
+      "Die Balken der letzten 12 Monate stellen Einnahmen und Ausgaben gegenüber. Tippe auf einen Monat, um ihn in den übrigen Diagrammen zu öffnen.",
+      "Oben kannst du den Monat mit den Pfeilen wechseln. In die Zukunft kann man nicht blättern: Die Prognose erscheint nur im laufenden Monat.",
+    ],
+  },
+  "tabla-accesible": {
+    titulo: "Die Diagramme als Tabelle ansehen",
+    resumen: "Jedes Diagramm hat eine Tabellenansicht mit denselben Daten.",
+    claves: ["Tabelle", "Barrierefreiheit", "Farbenblindheit", "Screenreader", "Daten kopieren"],
+    texto: [
+      "Tippe bei einem beliebigen Diagramm auf „Tabelle anzeigen“. Das ist nützlich, wenn du genaue Zahlen bevorzugst, einen Screenreader nutzt oder manche Farben schlecht unterscheidest.",
+    ],
+  },
+  "consejos": {
+    titulo: "Wie die Tipps entstehen",
+    resumen: "Zwei Tabs: allgemein und im Detail. Regeln auf deinen Zahlen und, wenn du willst, künstliche Intelligenz.",
+    claves: ["Tipps", "KI", "künstliche Intelligenz", "claude", "Empfehlungen", "sparen", "premium", "im Detail", "ausführlich", "konkret", "Händler", "Abos"],
+    texto: [
+      "Die Tipps entstehen aus deinen Buchungen: Sparquote, Fixkosten gegenüber variablen Ausgaben, Abos, Trend, Wochenendausgaben und Regelmäßigkeit der Einnahmen. Jeder nennt die monatliche Ersparnis, die du erreichen könntest.",
+      "Mit genug Verlauf (etwa 10 Buchungen) und aktivierter KI auf dem Server schreibt ein Assistent persönlichere Tipps. An die KI geht nur eine anonyme Zusammenfassung von Zahlen, nie Notizen, Namen oder einzelne Buchungen.",
+      "Der Tab „Im Detail“ betrachtet deine letzten 3 Monate Händler für Händler: welche Abbuchungen sich jeden Monat wiederholen, bei welchen Kleinausgaben das Geld verschwindet, welche Kategorien steigen, wie viel du am Wochenende ausgibst und wie viel unklassifiziert bleibt. Jeder Tipp kommt mit einem Abschnitt „Was tun“. Es ist eine lokale Analyse; die KI greift nur ein, wenn du „Mit KI verbessern“ tippst und den Hinweis akzeptierst (es wird eine Zusammenfassung ohne Daten oder Notizen gesendet). Es braucht etwa 15 Buchungen.",
+      "Das ist keine professionelle Finanzberatung, sondern Ideen auf Grundlage deiner eigenen Daten.",
+    ],
+    accion: "Meine Tipps ansehen",
+  },
+  "prevision-fin-de-mes": {
+    titulo: "Prognose zum Monatsende",
+    resumen: "Wie viel dir bleibt, wenn du dieses Tempo beibehältst.",
+    claves: ["Prognose", "forecast", "Monatsende", "wie viel bleibt", "Hochrechnung"],
+    texto: [
+      "EConsultor rechnet deine Einnahmen und Ausgaben bis zum Monatsende hoch – mit deinem Tempo der letzten Monate und dem, was du bereits eingetragen hast. Je aktueller deine Daten, desto zuverlässiger.",
+      "Es ist eine Schätzung, kein Versprechen: Eine große, unerwartete Ausgabe ändert das Ergebnis.",
+    ],
+  },
+  "racha": {
+    titulo: "Die Tagesserie",
+    resumen: "Die aufeinanderfolgenden Tage, an denen du etwas eingetragen hast.",
+    claves: ["Serie", "Regelmäßigkeit", "Gewohnheit", "Feuer", "Tage in Folge"],
+    texto: [
+      "Jeder aufeinanderfolgende Tag, an dem du etwas einträgst, zählt zu deiner Serie, die in der Monatsübersicht erscheint. Reißt sie ab, kannst du sie jederzeit neu beginnen.",
+    ],
+  },
+  "recordatorio-diario": {
+    titulo: "Tägliche Erinnerung",
+    resumen: "Ein Hinweis zur gewählten Uhrzeit, um die Ausgaben des Tages einzutragen.",
+    claves: ["Erinnerung", "Hinweis", "Benachrichtigung", "push", "Uhrzeit", "9", "Morgen"],
+    texto: [
+      "Aktiviere unter Einstellungen › Tägliche Erinnerung den Hinweis und wähle die Uhrzeit (in deiner Zeitzone). Er wird nur gesendet, wenn du an diesem Tag noch nichts eingetragen hast.",
+      "- In der Android-App plant das Handy selbst den Hinweis, er funktioniert bei geschlossener App und es ist nichts weiter nötig.",
+      "- Im Browser musst du zusätzlich die Benachrichtigungen des Geräts erlauben.",
+      "- Auf dem iPhone: Öffne die Website in Safari, tippe auf Teilen › „Zum Home-Bildschirm“, öffne EConsultor von dort und aktiviere die Hinweise.",
+    ],
+    accion: "Hinweis einrichten",
+  },
+  "app-android": {
+    titulo: "Die Android-App installieren",
+    resumen: "Dieselbe EConsultor als App, mit nativer täglicher Erinnerung.",
+    claves: ["android", "apk", "App", "installieren", "Handy", "Telefon", "herunterladen"],
+    texto: [
+      "Lade die APK-Datei über den Link in den Einstellungen herunter, öffne sie und erlaube, falls Android danach fragt, die Installation von Apps aus dieser Quelle. Öffne dann EConsultor und melde dich an.",
+      "Die App zeigt genau dasselbe Konto wie die Website. Sie hat die tägliche Erinnerung zur gewählten Uhrzeit, den Auszug-Upload und funktioniert auch, wenn du den Browser schließt.",
+      "Gibt es noch keinen Download-Link, kann ihn dir die Person geben, die den Server betreibt.",
+    ],
+  },
+  "instalar-como-app": {
+    titulo: "Als App aus dem Browser installieren (iPhone, Computer)",
+    resumen: "EConsultor lässt sich ohne App-Store installieren.",
+    claves: ["pwa", "installieren", "iphone", "ios", "Home-Bildschirm", "safari", "chrome", "Desktop"],
+    texto: [
+      "- iPhone/iPad: Tippe in Safari auf Teilen › „Zum Home-Bildschirm“.",
+      "- Android: in Chrome Menü › „App installieren“ (oder nutze die Android-App).",
+      "- Computer: in Chrome oder Edge das Installations-Symbol in der Adressleiste.",
+    ],
+  },
+  "verificacion-dos-pasos": {
+    titulo: "Zwei-Schritte-Bestätigung",
+    resumen: "Ein Code von deinem Handy zusätzlich zum Passwort.",
+    claves: ["2fa", "zwei Schritte", "Sicherheit", "Authenticator", "totp", "Wiederherstellungscodes", "google authenticator"],
+    texto: [
+      "Tippe unter Einstellungen › Sicherheit auf „Aktivieren“, scanne den QR-Code mit einer Authenticator-App (Google Authenticator, Authy, 1Password…) und gib den 6-stelligen Code ein.",
+      "Bewahre die Wiederherstellungscodes sicher auf: Jeder gilt einmal, falls du dein Handy verlierst, und sie werden nicht erneut angezeigt.",
+    ],
+    accion: "Jetzt aktivieren",
+  },
+  "huella-y-sesion": {
+    titulo: "Mit Fingerabdruck anmelden und Abmeldung bei Inaktivität",
+    resumen: "Zugang mit dem Fingerabdruck des Handys und eine Sitzung, die sich nach 10 Minuten von selbst beendet.",
+    claves: ["Fingerabdruck", "Biometrie", "passkey", "face id", "Inaktivität", "angemeldet bleiben", "abmelden", "10 Minuten", "Sitzung"],
+    texto: [
+      "Aus Sicherheitsgründen wird die Sitzung beendet, wenn du die App 10 Minuten lang nicht berührst, und du musst dich neu anmelden. Möchtest du das nicht, aktiviere „Angemeldet bleiben“ unter Einstellungen › Sicherheit (auf einem gemeinsam genutzten Gerät besser ausgeschaltet lassen).",
+      "Unter Einstellungen › Sicherheit kannst du „Mit Fingerabdruck anmelden“ aktivieren: Das Handy speichert einen Schlüssel, der sich nur mit Fingerabdruck, Gesicht oder PIN entsperren lässt. Dein Fingerabdruck verlässt nie das Gerät und erreicht nie den Server. Du kannst bis zu 5 Geräte registrieren und jederzeit entfernen.",
+      "In der Android-App nutzt der Fingerabdruck den Sensor des Handys (auch Gesicht oder System-PIN): Melde dich mit deinem Passwort an, aktiviere ihn unter Einstellungen › Sicherheit, und beim nächsten Mal wird er bei der Anmeldung abgefragt. Im Browser musst du die App über ihre sichere Adresse (https) öffnen und auf dem Handy Fingerabdruck oder PIN eingerichtet haben.",
+      "Wenn du dein Handy verlierst, melde dich mit deinem Passwort an und entferne dieses Gerät.",
+    ],
+    accion: "Zu Sicherheit",
+  },
+  "exportar-borrar": {
+    titulo: "Deine Daten exportieren oder löschen",
+    resumen: "Sie gehören dir: Nimm sie mit oder entferne sie, wann du willst.",
+    claves: ["exportieren", "löschen", "Konto löschen", "dsgvo", "json", "Datenschutz", "Daten herunterladen"],
+    texto: [
+      "Unter Einstellungen › Deine Daten kannst du alles als JSON-Datei exportieren, nur die Buchungen löschen (das Konto bleibt) oder das Konto endgültig löschen. Mit dem Konto verschwinden auch deine Fehlermeldungen.",
+    ],
+    accion: "Deine Daten",
+  },
+  "privacidad": {
+    titulo: "Was gespeichert wird und wer es sehen kann",
+    resumen: "Klar erklärt, auch was die Person sieht, die den Server betreibt.",
+    claves: ["Datenschutz", "Daten", "Verschlüsselung", "Administrator", "Finanzprofil", "wer sieht", "ki", "Sicherheit"],
+    texto: [
+      "Deine Daten werden verschlüsselt auf dem Server gespeichert. Passwörter werden nicht gespeichert, nur ein nicht umkehrbarer Fingerabdruck davon. Sitzungen nutzen geschützte Cookies.",
+      "Wer den Server betreibt, hat ein Kontrollpanel, um zu überwachen, dass alles funktioniert. Standardmäßig zeigt es nur technische Informationen und Zählwerte (wie viele Konten, wie viele Buchungen), ohne deine Beträge.",
+      "Aktiviert die administrierende Person die Option für Finanzprofile, kann das Panel ein aggregiertes Profil deiner Situation zeigen (Sparniveau, Trend, wichtigste Kategorien und Prognose), um zu verstehen, wie die App genutzt wird. Sie muss dich darüber informieren, und du kannst jederzeit die Deaktivierung verlangen oder dein Konto löschen.",
+      "Ist die KI aktiviert, erhält sie nur eine anonyme Zahlenzusammenfassung; nie deinen Namen, deine E-Mail, deine Notizen oder einzelne Buchungen.",
+    ],
+  },
+  "reportar-fallo": {
+    titulo: "Einen Fehler melden oder eine Idee vorschlagen",
+    resumen: "In der oberen rechten Ecke gibt es eine dezente Taste.",
+    claves: ["melden", "Fehler", "bug", "Vorschlag", "Idee", "Problem", "Hilfe"],
+    texto: [
+      "In der oberen rechten Ecke gibt es ein kleines, fast durchsichtiges Käfer-Symbol: Tippe darauf, schildere, was passiert ist, und sende ab. Angehängt werden nur der Bildschirm, auf dem du warst, und der Gerätetyp, nie deine Buchungen.",
+      "Du kannst bis zu 10 Meldungen pro Tag senden. Sie werden direkt von der Person gelesen, die den Server betreibt.",
+    ],
+  },
+};

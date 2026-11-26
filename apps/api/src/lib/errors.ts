@@ -1,10 +1,13 @@
+import { tr } from './i18n.js';
+
 export class AppError extends Error {
   constructor(
     public readonly status: number,
     public readonly code: string,
     message: string,
   ) {
-    super(message);
+    // El mensaje llega a la persona: se traduce a su idioma (si no hay traducción, queda en español).
+    super(tr(message));
   }
 }
 

@@ -3,13 +3,14 @@ import { useRef, useState } from 'react';
 import { CatTile, Tip, pointerIn, type TipState } from '../components/ui';
 import { FAMILIES, categoryLabel, familyOf } from '../lib/categories';
 import { money, monthShort, pct, shiftMonth } from '../lib/format';
+import { t } from '../lib/i18n';
 
 /** Barra segmentada (un total repartido en familias) + ranking de categorías con variación mensual. */
 export function Breakdown({ o, compact = false }: { o: Overview; compact?: boolean }) {
   const wrap = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<TipState | null>(null);
   const total = o.totals.expenseMinor;
-  if (!total) return <p className="muted">Aún no hay gastos este mes.</p>;
+  if (!total) return <p className="muted">{t('Aún no hay gastos este mes.')}</p>;
 
   const fam = FAMILIES.map((f) => {
     const cats = o.expenseByCategory.filter((c) => familyOf(c.categoryId).id === f.id);
@@ -34,7 +35,7 @@ export function Breakdown({ o, compact = false }: { o: Overview; compact?: boole
 
   return (
     <div ref={wrap} style={{ position: 'relative' }}>
-      <div className="seg-bar" role="list" aria-label="Reparto del gasto por familia">
+      <div className="seg-bar" role="list" aria-label={t('Reparto del gasto por familia')}>
         {fam.map((x) => (
           <button
             key={x.f.id}
@@ -73,9 +74,9 @@ export function Breakdown({ o, compact = false }: { o: Overview; compact?: boole
               <div className="amt num">
                 {money(c.amountMinor, o.currency, 0)}
                 {!compact && ch !== null && Math.abs(ch) >= 0.03 ? (
-                  <span className={`delta ${ch > 0 ? 'up' : 'down'}`}>{ch > 0 ? '▲' : '▼'} {pct(Math.abs(ch))} vs {prevLabel}</span>
+                  <span className={`delta ${ch > 0 ? 'up' : 'down'}`}>{ch > 0 ? '▲' : '▼'} {t('{pct} vs {month}', { pct: pct(Math.abs(ch)), month: prevLabel })}</span>
                 ) : (
-                  <span className="delta">{pct(c.share)} del gasto</span>
+                  <span className="delta">{t('{pct} del gasto', { pct: pct(c.share) })}</span>
                 )}
               </div>
             </div>

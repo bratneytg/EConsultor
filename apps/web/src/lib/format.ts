@@ -89,5 +89,5 @@ export function relativeDay(date: string, today: string): string {
 
 /** Lunes primero. Letras sueltas para ejes y nombres completos en plural («sábados»). */
 export const weekdaysShort = (): string[] => [t('L'), t('M'), t('X'), t('J'), t('V'), t('S'), t('D')];
-export const weekdaysLong = (): string[] => [t('lunes'), t('martes'), t('miércoles'), t('jueves'), t('viernes'), t('sábados'), t('domingos')];
+export const weekdaysLong = (): string[] => [t('los lunes'), t('los martes'), t('los miércoles'), t('los jueves'), t('los viernes'), t('los sábados'), t('los domingos')];
 export const weekdayName = (weekday: number): string => [t('lunes'), t('martes'), t('miércoles'), t('jueves'), t('viernes'), t('sábado'), t('domingo')][weekday]!;

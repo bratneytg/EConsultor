@@ -5,6 +5,7 @@ import type { Config } from '../../config.js';
 import { scrub } from '../import/ai.js';
 import type { FinancialProfile } from '../profile/engine.js';
 import type { SpendingDetail } from './detailed.js';
+import { LANG_NAME_ES, curLang } from '../../lib/i18n.js';
 
 const itemSchema = z.object({
   kind: z.enum(['saving', 'spending', 'income', 'habit', 'risk', 'win']),
@@ -18,7 +19,10 @@ const responseSchema = z.array(itemSchema).min(1).max(8);
 const detailedItemSchema = itemSchema.extend({ action: z.string().min(10).max(320) });
 const detailedResponseSchema = z.array(detailedItemSchema).min(3).max(9);
 
-const SYSTEM = `Eres el coach financiero de EConsultor, una app de economía personal. Respondes SIEMPRE en español, con tono cercano, claro y motivador.
+/** Añade al final del prompt el idioma en el que debe redactar la IA (el de la persona). */
+const withLang = (sys: string): string => `${sys}\nIDIOMA DE RESPUESTA: redacta todos los textos (títulos, cuerpos y acciones) en ${LANG_NAME_ES[curLang()]}. Los nombres de categoría y de comercio que recibas déjalos como vienen.`;
+
+const SYSTEM = `Eres el coach financiero de EConsultor, una app de economía personal. Respondes SIEMPRE en el idioma que se indica al final de estas instrucciones, con tono cercano, claro y motivador.
 Recibirás un resumen numérico y anónimo (importes en céntimos) del perfil financiero de un usuario. Genera entre 4 y 6 consejos concretos y accionables, mezclando:
  - consejos específicos basados en sus números (cita cifras reales, convertidas a la moneda indicada),
  - al menos un consejo para AUMENTAR ingresos y uno para optimizar gastos,
@@ -73,7 +77,7 @@ export async function claudeAdvice(cfg: Config, p: FinancialProfile, o: Overview
       body: JSON.stringify({
         model: cfg.anthropicModel,
         max_tokens: 1500,
-        system: SYSTEM,
+        system: withLang(SYSTEM),
         messages: [{ role: 'user', content: JSON.stringify(digest(p, o)) }],
       }),
       signal: signal ?? AbortSignal.timeout(25_000),
@@ -90,7 +94,7 @@ export async function claudeAdvice(cfg: Config, p: FinancialProfile, o: Overview
 }
 
 
-const DETAILED_SYSTEM = `Eres el analista de gastos de EConsultor, una app de economía personal. Respondes SIEMPRE en español, tono cercano y directo.
+const DETAILED_SYSTEM = `Eres el analista de gastos de EConsultor, una app de economía personal. Respondes SIEMPRE en el idioma que se indica al final de estas instrucciones, tono cercano y directo.
 Recibirás un análisis agregado de los gastos de una persona en los últimos ~90 días (importes en céntimos): categorías con ticket medio y frecuencia, comercios principales, cargos recurrentes, gastos pequeños repetidos y gastos grandes.
 Tu trabajo: 5 a 8 consejos PRÁCTICOS y muy concretos para reducir o reorganizar SUS gastos habituales. Cada consejo debe:
  - nombrar comercios, categorías y cifras reales del resumen (en la moneda indicada, no en céntimos),
@@ -133,7 +137,7 @@ export async function claudeDetailedAdvice(cfg: Config, d: SpendingDetail, signa
       body: JSON.stringify({
         model: cfg.anthropicModel,
         max_tokens: 3000,
-        system: DETAILED_SYSTEM,
+        system: withLang(DETAILED_SYSTEM),
         messages: [{ role: 'user', content: JSON.stringify(detailedDigest(d)) }],
       }),
       signal: signal ?? AbortSignal.timeout(40_000),

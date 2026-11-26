@@ -1,4 +1,5 @@
 import type { AuthResponse, PublicUser } from '@econsultor/shared';
+import { getLang, t } from './i18n';
 
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string) {
@@ -34,7 +35,7 @@ export function refreshSession(opened = false): Promise<{ user: PublicUser } | n
   refreshing ??= (async () => {
     try {
       // Abrir la app cuenta como actividad; el refresco automático en segundo plano no.
-      const headers: Record<string, string> = { 'x-requested-with': 'econsultor' };
+      const headers: Record<string, string> = { 'x-requested-with': 'econsultor', 'x-lang': getLang() };
       if (opened) headers['x-user-active'] = '1';
       const res = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'same-origin', headers });
       if (!res.ok) {
@@ -59,6 +60,7 @@ async function raw(path: string, init: RequestInit): Promise<Response> {
   const headers = new Headers(init.headers);
   if (init.body) headers.set('content-type', 'application/json');
   if (accessToken) headers.set('authorization', `Bearer ${accessToken}`);
+  headers.set('x-lang', getLang());
   if (msSinceInput() < RECENT_MS) headers.set('x-user-active', '1');
   return fetch(`/api${path}`, { ...init, headers, credentials: 'same-origin' });
 }
@@ -69,14 +71,14 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
   let res = await raw(path, opts);
   if (res.status === 401 && !path.startsWith('/auth/')) {
     const why = (await res.clone().json().catch(() => ({}))) as { error?: string };
-    if (why.error === 'idle_timeout') { flagIdle(); accessToken = null; onSessionLost?.(); throw new ApiError(401, 'idle_timeout', 'Sesión cerrada por inactividad'); }
+    if (why.error === 'idle_timeout') { flagIdle(); accessToken = null; onSessionLost?.(); throw new ApiError(401, 'idle_timeout', t('Sesión cerrada por inactividad')); }
     const ok = await refreshSession();
     if (ok) res = await raw(path, opts);
     else { onSessionLost?.(); }
   }
   if (res.status === 204) return undefined as T;
   const body = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
-  if (!res.ok) throw new ApiError(res.status, body.error ?? 'error', body.message ?? 'Algo ha salido mal');
+  if (!res.ok) throw new ApiError(res.status, body.error ?? 'error', body.message ?? t('Algo ha salido mal'));
   return body as T;
 }
 

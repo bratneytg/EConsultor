@@ -6,6 +6,7 @@ import { buildFinancialProfile } from '../profile/engine.js';
 import { claudeAdvice, claudeDetailedAdvice } from './claude.js';
 import { buildSpendingDetail, detailedAdvice, MIN_DETAIL_TX } from './detailed.js';
 import { ruleBasedAdvice } from './rules.js';
+import { curLang } from '../../lib/i18n.js';
 
 export const FREE_LIMIT = 3;
 
@@ -29,7 +30,7 @@ export async function getAdvice(
   const overview: Overview = buildOverview(txs, { month: monthOf(today), today, currency });
 
   const latest = txs.reduce((m, t) => (t.updatedAt > m ? t.updatedAt : m), '');
-  const key = `${plan}|${txs.length}|${latest}|${today}`;
+  const key = `${plan}|${txs.length}|${latest}|${today}|${curLang()}`;
   const hit = cache.get(userId);
 
   let source: 'rules' | 'ai' = 'rules';
@@ -75,7 +76,7 @@ export async function getDetailedAdvice(
   const wantAi = !!args.useAi && aiAvailable;
 
   const latest = txs.reduce((m, t) => (t.updatedAt > m ? t.updatedAt : m), '');
-  const key = `${plan}|${txs.length}|${latest}|${today}|${wantAi ? 'ai' : 'local'}`;
+  const key = `${plan}|${txs.length}|${latest}|${today}|${wantAi ? 'ai' : 'local'}|${curLang()}`;
   const hit = detailedCache.get(userId);
 
   let items: Advice[];

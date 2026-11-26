@@ -2,6 +2,7 @@ import type { PublicUser, UiMode } from '@econsultor/shared';
 import { api } from '../lib/api';
 import { useAuth, useUser } from '../lib/auth';
 import { useShell } from './Shell';
+import { t } from '../lib/i18n';
 
 const MODES: [UiMode, string][] = [['simple', 'Sencilla'], ['pro', 'Profesional']];
 
@@ -18,12 +19,12 @@ export function ModeSwitch() {
       setUser(await api<PublicUser>('/me/settings', { method: 'PATCH', json: { uiMode } }));
     } catch {
       setUser(user);
-      toast('No se pudo cambiar la interfaz');
+      toast(t('No se pudo cambiar la interfaz'));
     }
   };
 
   return (
-    <div className="segmented" role="group" aria-label="Tipo de interfaz">
+    <div className="segmented" role="group" aria-label={t('Tipo de interfaz')}>
       {MODES.map(([k, label]) => (
         <button key={k} aria-pressed={user.uiMode === k} onClick={() => choose(k)}>{label}</button>
       ))}

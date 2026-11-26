@@ -4,6 +4,7 @@ import { area, curveMonotoneX, line } from 'd3-shape';
 import { useId, useMemo, useState } from 'react';
 import { Tip, useWidth, type TipState } from '../components/ui';
 import { dayLong, money, moneyShort } from '../lib/format';
+import { t } from '../lib/i18n';
 
 const H = 240;
 const M = { l: 46, r: 70, t: 16, b: 26 };
@@ -26,7 +27,7 @@ export function BalanceArea({ o }: { o: Overview }) {
     return { actual, proj, lo: lo < 0 ? lo - pad : 0, hi: hi + pad };
   }, [o]);
 
-  if (!geo.actual.length) return <p className="muted">Todavía no hay movimientos en este mes.</p>;
+  if (!geo.actual.length) return <p className="muted">{t('Todavía no hay movimientos en este mes.')}</p>;
 
   const iw = Math.max(10, w - M.l - M.r);
   const ih = H - M.t - M.b;
@@ -64,11 +65,11 @@ export function BalanceArea({ o }: { o: Overview }) {
       rows:
         hd.kind === 'real'
           ? [
-              { color: 'var(--balance)', label: 'Saldo del mes', value: money(hd.balance, o.currency, 0) },
-              ...(hd.income ? [{ color: 'var(--income)', label: 'Ingresos', value: money(hd.income, o.currency, 0) }] : []),
-              ...(hd.expense ? [{ color: 'var(--expense)', label: 'Gastos', value: money(hd.expense, o.currency, 0) }] : []),
+              { color: 'var(--balance)', label: t('Saldo del mes'), value: money(hd.balance, o.currency, 0) },
+              ...(hd.income ? [{ color: 'var(--income)', label: t('Ingresos'), value: money(hd.income, o.currency, 0) }] : []),
+              ...(hd.expense ? [{ color: 'var(--expense)', label: t('Gastos'), value: money(hd.expense, o.currency, 0) }] : []),
             ]
-          : [{ color: 'var(--balance)', label: 'Saldo previsto', value: money(hd.balance, o.currency, 0) }],
+          : [{ color: 'var(--balance)', label: t('Saldo previsto'), value: money(hd.balance, o.currency, 0) }],
     };
   }
 
@@ -80,7 +81,7 @@ export function BalanceArea({ o }: { o: Overview }) {
           height={H}
           role="img"
           tabIndex={0}
-          aria-label={`Saldo del mes. Hoy ${money(last.v, o.currency, 0)}${projEnd ? `, previsión a fin de mes ${money(projEnd.v, o.currency, 0)}` : ''}. Usa las flechas para recorrer los días.`}
+          aria-label={projEnd ? t('Saldo del mes. Hoy {now}, previsión a fin de mes {end}. Usa las flechas para recorrer los días.', { now: money(last.v, o.currency, 0), end: money(projEnd.v, o.currency, 0) }) : t('Saldo del mes. Hoy {now}. Usa las flechas para recorrer los días.', { now: money(last.v, o.currency, 0) })}
           onKeyDown={(e) => {
             if (e.key === 'ArrowRight') setHover((h) => Math.min(maxDay, (h ?? 0) + 1));
             if (e.key === 'ArrowLeft') setHover((h) => Math.max(1, (h ?? maxDay + 1) - 1));
@@ -117,12 +118,12 @@ export function BalanceArea({ o }: { o: Overview }) {
 
             {/* Etiquetas directas: solo extremos con historia */}
             <text className="t-strong" x={Math.min(x(last.day), iw - 4)} y={y(last.v) - 14} textAnchor="end">
-              Hoy {money(last.v, o.currency, 0)}
+              {t('Hoy {amount}', { amount: money(last.v, o.currency, 0) })}
             </text>
             {projEnd && (
               <g className="fade-in">
                 <text className="t-strong" x={x(projEnd.day) + 10} y={y(projEnd.v) - 2}>{moneyShort(projEnd.v, o.currency)}</text>
-                <text x={x(projEnd.day) + 10} y={y(projEnd.v) + 12}>previsto</text>
+                <text x={x(projEnd.day) + 10} y={y(projEnd.v) + 12}>{t('previsto')}</text>
               </g>
             )}
 
@@ -149,8 +150,8 @@ export function BalanceArea({ o }: { o: Overview }) {
 export function BalanceLegend() {
   return (
     <div className="legend">
-      <span><i style={{ background: 'var(--balance)' }} />Saldo real</span>
-      <span><i style={{ background: 'repeating-linear-gradient(90deg, var(--balance) 0 2px, transparent 2px 6px)' }} />Previsión de cierre</span>
+      <span><i style={{ background: 'var(--balance)' }} />{t('Saldo real')}</span>
+      <span><i style={{ background: 'repeating-linear-gradient(90deg, var(--balance) 0 2px, transparent 2px 6px)' }} />{t('Previsión de cierre')}</span>
     </div>
   );
 }

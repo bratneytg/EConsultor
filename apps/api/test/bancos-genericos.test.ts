@@ -40,7 +40,7 @@ describe('lectura genérica de extractos de distintos bancos', () => {
 "28.11.26";"28.11.26";"Gebucht";"DHL Group";"Max Mustermann";"Gehalt November";"Eingang";"";"2.100,00";"";"";""
 `);
     expect(rows).toHaveLength(5);
-    expect(warnings.join(' ')).toMatch(/pendientes/);
+    expect(warnings.join(' ')).toMatch(/pendiente/);
     expect(find(rows, 'lidl')).toMatchObject({ name: 'LIDL SAGT DANKE', amountMinor: -1899, categoryId: 'groceries' });
     expect(find(rows, 'bahn').categoryId).toBe('transport');
     expect(find(rows, 'netflix').categoryId).toBe('subscriptions');

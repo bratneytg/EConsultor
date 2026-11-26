@@ -2,6 +2,7 @@ import type { HealthScore } from '@econsultor/shared';
 import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { useCountUp } from '../components/ui';
+import { t } from '../lib/i18n';
 
 const STATUS: Record<HealthScore['label'], { color: string; ok: boolean }> = {
   Excelente: { color: 'var(--good)', ok: true },
@@ -20,7 +21,7 @@ export function HealthRing({ health, size = 168 }: { health: HealthScore; size?:
   return (
     <div style={{ width: size, display: 'grid', justifyItems: 'center', gap: 8 }}>
       <div style={{ position: 'relative', width: size, height: size }}>
-        <svg viewBox="0 0 100 100" width={size} height={size} role="img" aria-label={`Pulso financiero: ${health.score} de 100, ${health.label}`}>
+        <svg viewBox="0 0 100 100" width={size} height={size} role="img" aria-label={t('Pulso financiero: {score} de 100, {label}', { score: health.score, label: t(health.label) })}>
           <circle cx={50} cy={50} r={r} fill="none" stroke="var(--grid)" strokeWidth={7} />
           <circle
             cx={50} cy={50} r={r} fill="none" stroke={st.color} strokeWidth={7} strokeLinecap="round"
@@ -30,12 +31,12 @@ export function HealthRing({ health, size = 168 }: { health: HealthScore; size?:
         </svg>
         <div style={{ position: 'absolute', inset: 0, display: 'grid', placeContent: 'center', textAlign: 'center' }}>
           <div className="num" style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: size * 0.3, letterSpacing: '-0.04em', lineHeight: 1 }}>{n}</div>
-          <div className="muted" style={{ fontSize: 12 }}>de 100</div>
+          <div className="muted" style={{ fontSize: 12 }}>{t('de 100')}</div>
         </div>
       </div>
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
         <span style={{ color: st.color, display: 'inline-flex' }}><Icon name={st.ok ? 'check' : 'warn'} size={16} /></span>
-        {health.label}
+        {t(health.label)}
       </div>
     </div>
   );
@@ -47,15 +48,15 @@ export function HealthParts({ health }: { health: HealthScore }) {
       {health.parts.map((p) => (
         <div key={p.key}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 500 }}>
-            <span>{p.label}</span>
+            <span>{t(p.label)}</span>
             <span className="num muted">{p.value}/100</span>
           </div>
           <div className="rank-row" style={{ display: 'block', padding: 0 }}>
-            <div className="meter" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={p.value} aria-label={p.label}>
+            <div className="meter" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={p.value} aria-label={t(p.label)}>
               <i style={{ width: `${p.value}%`, background: p.value >= 60 ? 'var(--good)' : p.value >= 35 ? 'var(--warn)' : 'var(--serious)', transition: 'width 1s' }} />
             </div>
           </div>
-          <p className="hint" style={{ marginTop: 4 }}>{p.hint}</p>
+          <p className="hint" style={{ marginTop: 4 }}>{t(p.hint)}</p>
         </div>
       ))}
     </div>

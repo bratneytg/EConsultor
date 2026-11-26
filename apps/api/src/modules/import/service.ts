@@ -14,6 +14,7 @@ import { rowsFromTable } from './table.js';
 import { isSameStatement, matchAgainst, normAccount, sameAccount, TRANSFER_CUE, windowAround, type Candidate, type Overlap } from './accounts.js';
 import { norm } from './parse.js';
 import type { ImportPreview, ImportRow, RawRow } from './types.js';
+import { tr } from '../../lib/i18n.js';
 
 export const MAX_ROWS = 5000;
 
@@ -72,15 +73,15 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
       if (e instanceof SheetError) throw unprocessable(e.message, 'unreadable_sheet');
       throw e;
     }
-    if (!raw.length) throw unprocessable(tried || 'No he encontrado movimientos en ninguna hoja del archivo.');
+    if (!raw.length) throw unprocessable(tried || tr('No he encontrado movimientos en ninguna hoja del archivo.'));
   } else {
     const data = Buffer.from(input.content, 'base64');
-    if (data.length < 100 || data.subarray(0, 5).toString('latin1') !== '%PDF-') throw badRequest('El archivo no parece un PDF válido');
+    if (data.length < 100 || data.subarray(0, 5).toString('latin1') !== '%PDF-') throw badRequest(tr('El archivo no parece un PDF válido'));
     let lines: string[] = [];
     try {
       lines = await pdfLines(new Uint8Array(data));
     } catch {
-      throw unprocessable('No he podido abrir el PDF (¿está protegido con contraseña o dañado?). Prueba con el CSV.');
+      throw unprocessable(tr('No he podido abrir el PDF (¿está protegido con contraseña o dañado?). Prueba con el CSV.'));
     }
     if (lines.length === 0) {
       throw unprocessable('Este PDF no tiene texto (parece una imagen escaneada). Descarga el CSV desde la web del banco; con N26: web app → descargar → CSV.', 'scanned_pdf');
@@ -94,7 +95,7 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
       if (ai && ai.length > raw.length) { raw = ai; engine = 'ai'; warnings.length = 0; docText = lines.slice(0, 60).join(' '); }
     }
     if (raw.length === 0) {
-      throw unprocessable('No he encontrado movimientos en este PDF: su formato no es el habitual. Prueba con el CSV' + (cfg.anthropicApiKey ? ' o activa «Mejorar con IA».' : '.'));
+      throw unprocessable(cfg.anthropicApiKey ? tr('No he encontrado movimientos en este PDF: su formato no es el habitual. Prueba con el CSV o activa «Mejorar con IA».') : tr('No he encontrado movimientos en este PDF: su formato no es el habitual. Prueba con el CSV.'));
     }
   }
 
@@ -107,9 +108,9 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
   const maxDate = addDays(today, 1);
   const before = raw.length;
   raw = raw.filter((r) => r.date >= '2000-01-01' && r.date <= maxDate && r.amountMinor !== 0);
-  if (raw.length < before) warnings.push(`${before - raw.length} movimientos con fecha futura o anterior al año 2000 se han descartado.`);
-  if (raw.length === 0) throw unprocessable('No hay movimientos válidos en el archivo.');
-  if (raw.length > MAX_ROWS) throw new AppError(413, 'too_many_rows', `El archivo tiene ${raw.length} movimientos; el máximo por importación es ${MAX_ROWS}. Divide el extracto por años.`);
+  if (raw.length < before) warnings.push(tr('{n} movimientos con fecha futura o anterior al año 2000 se han descartado.', { n: before - raw.length }));
+  if (raw.length === 0) throw unprocessable(tr('No hay movimientos válidos en el archivo.'));
+  if (raw.length > MAX_ROWS) throw new AppError(413, 'too_many_rows', tr('El archivo tiene {n} movimientos; el máximo por importación es {max}. Divide el extracto por años.', { n: raw.length, max: MAX_ROWS }));
 
   // Categorización: reglas offline, luego lo que la propia persona ya categorizó para ese comercio
   // y, si lo pide, IA para lo que sigue sin reconocerse.
@@ -117,7 +118,7 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
   const history = buildHistory(allTxs);
   const cats = raw.map((r) => categorize(r, history));
   const learned = cats.filter((c) => c.via === 'history').length;
-  if (learned) warnings.push(`${learned === 1 ? '1 movimiento se ha clasificado' : `${learned} movimientos se han clasificado`} según lo que ya habías categorizado antes.`);
+  if (learned) warnings.push(learned === 1 ? tr('1 movimiento se ha clasificado según lo que ya habías categorizado antes.') : tr('{n} movimientos se han clasificado según lo que ya habías categorizado antes.', { n: learned }));
   if (input.useAi && cfg.anthropicApiKey) {
     const unknown = cats.map((c, i) => ({ c, i })).filter(({ c }) => c.confidence === 'low');
     if (unknown.length) {
@@ -178,9 +179,9 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
   const kept = rows.filter((r) => !r.skip);
   const sum = (t: 'income' | 'expense') => kept.filter((r) => r.type === t).reduce((s, r) => s + r.amountMinor, 0);
   const skipped = rows.length - kept.length;
-  if (skipped) warnings.push(`${skipped === 1 ? 'Hay 1 movimiento desmarcado' : `Hay ${skipped} movimientos desmarcados`}: duplicados de lo que ya tienes o traspasos entre tus propias cuentas. Márcalos si los quieres importar.`);
+  if (skipped) warnings.push(skipped === 1 ? tr('Hay 1 movimiento desmarcado: duplicado de lo que ya tienes o traspaso entre tus propias cuentas. Márcalo si lo quieres importar.') : tr('Hay {n} movimientos desmarcados: duplicados de lo que ya tienes o traspasos entre tus propias cuentas. Márcalos si los quieres importar.', { n: skipped }));
   const lowCount = kept.filter((r) => r.confidence === 'low').length;
-  if (lowCount) warnings.push(`No he sabido clasificar con seguridad ${lowCount === 1 ? '1 movimiento' : `${lowCount} movimientos`}: están como «Otros» y resaltados. Cambia su categoría antes de importar.`);
+  if (lowCount) warnings.push(lowCount === 1 ? tr('No he sabido clasificar con seguridad 1 movimiento: está como «Otros» y resaltado. Cambia su categoría antes de importar.') : tr('No he sabido clasificar con seguridad {n} movimientos: están como «Otros» y resaltados. Cambia su categoría antes de importar.', { n: lowCount }));
 
   return {
     source: input.kind,

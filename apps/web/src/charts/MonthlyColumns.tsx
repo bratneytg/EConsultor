@@ -3,6 +3,7 @@ import { scaleLinear } from 'd3-scale';
 import { useState } from 'react';
 import { Tip, useWidth, type TipState } from '../components/ui';
 import { money, moneyShort, monthLabel, monthShort } from '../lib/format';
+import { t } from '../lib/i18n';
 
 const H = 220;
 const M = { l: 44, r: 6, t: 14, b: 26 };
@@ -34,9 +35,9 @@ export function MonthlyColumns({ o, onSelect }: { o: Overview; onSelect: (m: str
       y: M.t + y(Math.max(m.incomeMinor, m.expenseMinor)),
       title: monthLabel(m.month),
       rows: [
-        { color: 'var(--income)', label: 'Ingresos', value: money(m.incomeMinor, o.currency, 0) },
-        { color: 'var(--expense)', label: 'Gastos', value: money(m.expenseMinor, o.currency, 0) },
-        { label: 'Balance', value: money(m.incomeMinor - m.expenseMinor, o.currency, 0) },
+        { color: 'var(--income)', label: t('Ingresos'), value: money(m.incomeMinor, o.currency, 0) },
+        { color: 'var(--expense)', label: t('Gastos'), value: money(m.expenseMinor, o.currency, 0) },
+        { label: t('Balance'), value: money(m.incomeMinor - m.expenseMinor, o.currency, 0) },
       ],
     });
   };
@@ -45,7 +46,7 @@ export function MonthlyColumns({ o, onSelect }: { o: Overview; onSelect: (m: str
     <>
       <div className="chart" ref={ref} style={{ height: H }}>
         {w > 0 && (
-          <svg width={w} height={H} role="group" aria-label="Ingresos y gastos de los últimos 12 meses">
+          <svg width={w} height={H} role="group" aria-label={t('Ingresos y gastos de los últimos 12 meses')}>
             <g transform={`translate(${M.l},${M.t})`}>
               {ticks.map((t) => (
                 <g key={t}>
@@ -63,7 +64,7 @@ export function MonthlyColumns({ o, onSelect }: { o: Overview; onSelect: (m: str
                     key={m.month}
                     tabIndex={0}
                     role="button"
-                    aria-label={`${monthLabel(m.month)}: ingresos ${money(m.incomeMinor, o.currency, 0)}, gastos ${money(m.expenseMinor, o.currency, 0)}. Pulsa para abrir este mes.`}
+                    aria-label={t('{month}: ingresos {income}, gastos {expense}. Pulsa para abrir este mes.', { month: monthLabel(m.month), income: money(m.incomeMinor, o.currency, 0), expense: money(m.expenseMinor, o.currency, 0) })}
                     style={{ cursor: 'pointer', outline: 'none' }}
                     onPointerEnter={() => show(i, cx)}
                     onPointerLeave={() => setTip(null)}
@@ -86,8 +87,8 @@ export function MonthlyColumns({ o, onSelect }: { o: Overview; onSelect: (m: str
         <Tip tip={tip} />
       </div>
       <div className="legend">
-        <span><i style={{ background: 'var(--income)' }} />Ingresos</span>
-        <span><i style={{ background: 'var(--expense)' }} />Gastos</span>
+        <span><i style={{ background: 'var(--income)' }} />{t('Ingresos')}</span>
+        <span><i style={{ background: 'var(--expense)' }} />{t('Gastos')}</span>
       </div>
     </>
   );

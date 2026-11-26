@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import webpush from 'web-push';
 import { z } from 'zod';
 import { AppError } from '../lib/errors.js';
+import { tr } from '../lib/i18n.js';
 
 const subscription = z.object({
   endpoint: z.string().url().max(1000).startsWith('https://'),
@@ -17,7 +18,7 @@ export async function notificationRoutes(app: FastifyInstance): Promise<void> {
   app.get('/config', async () => ({ publicKey: cfg.vapid?.publicKey ?? null }));
 
   app.post('/subscribe', auth, async (req) => {
-    if (!cfg.vapid) throw new AppError(501, 'push_disabled', 'Las notificaciones push no están configuradas en el servidor');
+    if (!cfg.vapid) throw new AppError(501, 'push_disabled', tr('Las notificaciones push no están configuradas en el servidor'));
     const sub = subscription.parse(req.body);
     await store.push.upsert({ endpoint: sub.endpoint, keys: sub.keys, userId: req.user.id, createdAt: new Date().toISOString() });
     return { ok: true };
@@ -30,12 +31,12 @@ export async function notificationRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.post('/test', { ...auth, config: { rateLimit: { max: 3, timeWindow: '1 minute' } } }, async (req) => {
-    if (!cfg.vapid) throw new AppError(501, 'push_disabled', 'Las notificaciones push no están configuradas en el servidor');
+    if (!cfg.vapid) throw new AppError(501, 'push_disabled', tr('Las notificaciones push no están configuradas en el servidor'));
     const subs = await store.push.forUser(req.user.id);
     let sent = 0;
     for (const s of subs) {
       try {
-        await webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, JSON.stringify({ title: 'EConsultor', body: 'Las notificaciones funcionan ✅', url: '/' }));
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, JSON.stringify({ title: 'EConsultor', body: tr('Las notificaciones funcionan ✅'), url: '/' }));
         sent++;
       } catch (err) {
         const status = (err as { statusCode?: number }).statusCode;

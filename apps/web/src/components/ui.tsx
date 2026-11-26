@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { categoryColor } from '../lib/categories';
 import { moneyParts } from '../lib/format';
+import { t } from '../lib/i18n';
 import { CATEGORY_ICON, Icon } from './Icon';
 
 /** Tamaño del contenedor, para gráficas SVG responsivas. */
@@ -110,7 +111,7 @@ export function ChartCard(props: {
       subtitle={props.subtitle}
       wide={props.wide}
       className={props.refetching ? 'refetching' : ''}
-      actions={<button className="chip-btn" aria-pressed={asTable} onClick={() => setAsTable((v) => !v)}>{asTable ? 'Ver gráfica' : 'Ver tabla'}</button>}
+      actions={<button className="chip-btn" aria-pressed={asTable} onClick={() => setAsTable((v) => !v)}>{asTable ? t('Ver gráfica') : t('Ver tabla')}</button>}
     >
       {asTable ? (
         <div className="table-wrap">

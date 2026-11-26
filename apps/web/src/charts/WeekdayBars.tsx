@@ -3,7 +3,7 @@ import { scaleLinear } from 'd3-scale';
 import { useState } from 'react';
 import { Tip, useWidth, type TipState } from '../components/ui';
 import { money, weekdaysLong, weekdaysShort } from '../lib/format';
-import { t } from '../lib/i18n';
+import { t, tx } from '../lib/i18n';
 
 const H = 170;
 const M = { t: 24, b: 24 };
@@ -23,7 +23,7 @@ export function WeekdayBars({ o }: { o: Overview }) {
   return (
     <>
       <p className="sub" style={{ marginBottom: 6 }}>
-        {top.avgExpenseMinor > 0 ? <>{t('Gastas más los')} <b>{LONG[top.weekday]}</b>: {t('unos {amount} de media.', { amount: money(top.avgExpenseMinor, o.currency, 0) })}</> : t('Aún no hay datos suficientes.')}
+        {top.avgExpenseMinor > 0 ? tx('Gastas más <b>{day}</b>: unos {amount} de media.', { day: LONG[top.weekday]!, amount: money(top.avgExpenseMinor, o.currency, 0) }) : t('Aún no hay datos suficientes.')}
       </p>
       <div className="chart" ref={ref} style={{ height: H }}>
         {w > 0 && (

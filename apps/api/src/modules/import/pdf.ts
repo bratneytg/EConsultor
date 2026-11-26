@@ -1,6 +1,7 @@
 import { getDocumentProxy } from 'unpdf';
 import { detectDayFirst, parseAmount, parseDate } from './parse.js';
 import type { RawRow } from './types.js';
+import { tr } from '../../lib/i18n.js';
 
 /**
  * Texto del PDF por líneas, reconstruidas con las coordenadas de cada fragmento (las tablas de los
@@ -84,6 +85,6 @@ export function rowsFromPdfLines(lines: string[], fallbackYear = new Date().getF
     const body = rest.slice(0, foreign ? amts[0]!.index : tail.index).replace(/\s+/g, ' ').replace(/[|·]+/g, ' ').trim().replace(/\s*\b[A-Z]{3}$/, foreign ? '' : '$&');
     rows.push({ date, amountMinor, name: body.slice(0, 120) });
   }
-  if (twoAmounts > rows.length / 2 && rows.length) warnings.push('El PDF parece tener una columna de saldo; he usado la primera cifra de cada línea como importe. Revisa los signos.');
+  if (twoAmounts > rows.length / 2 && rows.length) warnings.push(tr('El PDF parece tener una columna de saldo; he usado la primera cifra de cada línea como importe. Revisa los signos.'));
   return { rows, warnings, docText: lines.slice(0, 60).join(' ') };
 }

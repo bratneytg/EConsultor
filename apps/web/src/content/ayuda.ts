@@ -1,3 +1,9 @@
+import type { Lang } from '@econsultor/shared';
+import { getLang } from '../lib/i18n';
+import { AYUDA_DE } from './ayuda.de';
+import { AYUDA_EN } from './ayuda.en';
+import { AYUDA_IT } from './ayuda.it';
+
 /** Artículos de la ayuda. El texto se busca por título, resumen, palabras clave y contenido. */
 export interface Articulo {
   id: string;
@@ -11,6 +17,7 @@ export interface Articulo {
   accion?: { etiqueta: string; to: string };
 }
 
+/** Los temas se traducen al mostrarlos (`t(tema)`); el español es la clave. */
 export const TEMAS = ['Empezar', 'Gráficas', 'Ahorro y consejos', 'Avisos y móvil', 'Tus datos y seguridad'] as const;
 
 export const ARTICULOS: Articulo[] = [
@@ -84,9 +91,45 @@ export const ARTICULOS: Articulo[] = [
       '- Entiende fechas y números de España, Alemania e Italia (05/11/2026, 5 nov 2026, 1.234,56).',
       '- Aprende de ti: si ya categorizaste un comercio, lo repite con los siguientes. Lo que no se puede saber (una persona, una referencia numérica) queda en «Otros» para que lo revises.',
       '- Los movimientos que ya tienes (y los traspasos entre tus propias cuentas) aparecen desmarcados para no duplicarlos; márcalos si de verdad quieres importarlos.',
+      '- Funciona con cualquier banco: si las columnas no se llaman como esperamos, se deducen por su contenido y se te avisa para que lo compruebes.',
+      '- Varias cuentas: antes de importar eliges a qué cuenta pertenece el extracto. Si parece un extracto que ya subiste (coinciden muchas fechas, importes y comercios con otra cuenta), te avisa por si te has equivocado de archivo.',
       'Si un archivo no se entiende, usa el botón de reportar fallos y cuéntanos qué banco es; no hace falta que adjuntes nada con tus datos.',
     ],
     accion: { etiqueta: 'Importar ahora', to: '/ajustes' },
+  },
+  {
+    id: 'varias-cuentas',
+    tema: 'Empezar',
+    titulo: 'Varias cuentas bancarias',
+    resumen: 'Importa los extractos de todas tus cuentas sin que se mezclen ni se dupliquen.',
+    claves: ['cuentas', 'varias cuentas', 'tarjeta', 'duplicados', 'repetido', 'extracto repetido', 'traspaso', 'cuenta compartida'],
+    texto: [
+      'Si tienes más de una cuenta o tarjeta, al importar un extracto escribe o elige el nombre de la cuenta (por ejemplo «N26», «Tarjeta Nexi»). Cada movimiento queda asociado a su cuenta y puedes filtrar Movimientos por cuenta.',
+      'EConsultor compara lo que subes con lo que ya tienes: si casi todas las fechas, importes y comercios coinciden con otra cuenta, te avisa de que quizá has subido dos veces el mismo extracto y deja esos movimientos desmarcados.',
+      'Los traspasos entre tus propias cuentas no cuentan como gasto ni como ingreso, para que tus gráficas no se inflen.',
+    ],
+  },
+  {
+    id: 'idioma',
+    tema: 'Empezar',
+    titulo: 'Cambiar el idioma de la app',
+    resumen: 'Inglés, español, italiano o alemán.',
+    claves: ['idioma', 'lengua', 'inglés', 'español', 'italiano', 'alemán', 'english', 'deutsch', 'italiano', 'language'],
+    texto: [
+      'Por defecto la app está en inglés. Cámbialo en Ajustes › Idioma, o en la propia pantalla de entrada. La elección se guarda en tu cuenta, así que es la misma en el móvil y en el ordenador.',
+      'Cambia todo: menús, gráficas, consejos, avisos y mensajes de error. Los nombres de categoría y de comercio de tus movimientos no se traducen.',
+    ],
+  },
+  {
+    id: 'novedades',
+    tema: 'Empezar',
+    titulo: 'Qué hay de nuevo',
+    resumen: 'Un aviso te cuenta las mejoras cada vez que la app se actualiza.',
+    claves: ['novedades', 'actualización', 'versión', 'cambios', 'qué hay de nuevo', 'update'],
+    texto: [
+      'Cuando se publica una versión nueva, al abrir la app aparece una ventana con las funciones añadidas, las secciones nuevas y los fallos corregidos. Puedes volver a verla en Ajustes › Novedades.',
+      'Si la app detecta una versión más reciente mientras la tienes abierta, te lo indica con un aviso para recargarla.',
+    ],
   },
   {
     id: 'saldo-del-mes',
@@ -251,7 +294,8 @@ export const ARTICULOS: Articulo[] = [
     texto: [
       'Por seguridad, si no tocas la app durante 10 minutos la sesión se cierra y tendrás que volver a entrar. Si prefieres no hacerlo, activa «Mantener conectado» en Ajustes › Seguridad (en un dispositivo compartido, mejor déjalo apagado).',
       'En Ajustes › Seguridad puedes activar «Entrar con huella»: el móvil guarda una clave que solo se desbloquea con tu huella, cara o PIN. Tu huella nunca sale del dispositivo ni llega al servidor. Puedes registrar hasta 5 dispositivos y quitarlos cuando quieras.',
-      'Necesitas abrir la app desde su dirección segura (https) y un móvil con huella o PIN configurado. Si pierdes el móvil, entra con tu contraseña y quita ese dispositivo.',
+      'En la app de Android la huella usa el lector del teléfono (también la cara o el PIN del sistema): inicia sesión con tu contraseña, actívala en Ajustes › Seguridad y la próxima vez te la pedirá al entrar. En el navegador necesitas abrir la app desde su dirección segura (https) y tener huella o PIN configurado en el móvil.',
+      'Si pierdes el móvil, entra con tu contraseña y quita ese dispositivo.',
     ],
     accion: { etiqueta: 'Ir a Seguridad', to: '/ajustes' },
   },
@@ -295,6 +339,21 @@ export const ARTICULOS: Articulo[] = [
 const sinTildes = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 /** Búsqueda sencilla: todas las palabras deben aparecer; el título y las claves pesan más. */
+/** Traducción de un artículo (el español es el original; lo que falte se muestra en español). */
+export interface Traduccion { titulo: string; resumen: string; claves: string[]; texto: string[]; accion?: string }
+const TRADUCCIONES: Record<Exclude<Lang, 'es'>, Record<string, Traduccion>> = { en: AYUDA_EN, it: AYUDA_IT, de: AYUDA_DE };
+
+/** Artículos en el idioma pedido (por defecto, el de la app). La búsqueda trabaja sobre este texto. */
+export function articulosEn(lang: Lang = getLang()): Articulo[] {
+  if (lang === 'es') return ARTICULOS;
+  const tr = TRADUCCIONES[lang];
+  return ARTICULOS.map((a) => {
+    const x = tr[a.id];
+    if (!x) return a;
+    return { ...a, titulo: x.titulo, resumen: x.resumen, claves: [...x.claves, ...a.claves], texto: x.texto, accion: a.accion ? { ...a.accion, etiqueta: x.accion ?? a.accion.etiqueta } : undefined };
+  });
+}
+
 export function buscar(consulta: string, lista: Articulo[] = ARTICULOS): Articulo[] {
   const palabras = sinTildes(consulta).split(/\s+/).filter((p) => p.length > 1);
   if (!palabras.length) return lista;

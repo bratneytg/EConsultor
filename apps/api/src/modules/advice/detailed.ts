@@ -1,6 +1,7 @@
 import { categoryById, type Advice, type Transaction } from '@econsultor/shared';
 import { addDays, diffDays, weekdayMon0 } from '../../lib/dates.js';
 import { merchantKey } from '../import/merchant.js';
+import { curLang, lcName, tr } from '../../lib/i18n.js';
 import { money } from './rules.js';
 
 /**
@@ -13,7 +14,7 @@ import { money } from './rules.js';
 
 const WINDOW_DAYS = 90;
 
-const label = (id: string): string => categoryById(id)?.label ?? id;
+const label = (id: string): string => tr(categoryById(id)?.label ?? id);
 const sum = (xs: number[]): number => xs.reduce((a, b) => a + b, 0);
 
 export { merchantKey };
@@ -171,9 +172,10 @@ export function buildSpendingDetail(txs: Transaction[], today: string, currency:
   };
 }
 
-const pct = (n: number) => `${Math.round(n * 100)} %`;
+/** Porcentaje con la costumbre de cada idioma: «10 %» (es, de) o «10%» (en, it). */
+const pct = (n: number) => (curLang() === 'en' || curLang() === 'it' ? `${Math.round(n * 100)}%` : `${Math.round(n * 100)} %`);
 const names = (xs: { label: string }[], n = 3) => xs.slice(0, n).map((x) => x.label).join(', ');
-const lc = (s: string) => s.toLowerCase();
+const lc = (s: string) => lcName(s);
 
 /** Mínimo de movimientos para que el análisis tenga sentido. */
 export const MIN_DETAIL_TX = 15;
@@ -187,9 +189,9 @@ export function detailedAdvice(d: SpendingDetail): Advice[] {
   if (d.txCount < MIN_DETAIL_TX) {
     return [{
       id: 'd-need-data', kind: 'habit', severity: 'info', scope: 'specific',
-      title: 'Aún hay pocos movimientos para un análisis a fondo',
-      body: `En los últimos ${d.periodDays} días tengo ${d.txCount} gastos. Con unos ${MIN_DETAIL_TX} o más puedo ver tus comercios, tus gastos repetidos y dónde recortar.`,
-      action: 'Importa el extracto de tu banco (Ajustes → Importar) o anota tus gastos unos días más.',
+      title: tr('Aún hay pocos movimientos para un análisis a fondo'),
+      body: tr('En los últimos {days} días tengo {count} gastos. Con unos {min} o más puedo ver tus comercios, tus gastos repetidos y dónde recortar.', { days: d.periodDays, count: d.txCount, min: MIN_DETAIL_TX }),
+      action: tr('Importa el extracto de tu banco (Ajustes → Importar) o anota tus gastos unos días más.'),
     }];
   }
 
@@ -199,18 +201,18 @@ export function detailedAdvice(d: SpendingDetail): Advice[] {
     const visitsMonth = Math.round(c.count / (d.periodDays / 30));
     const top = c.merchants.filter((m) => m.categoryId === c.categoryId);
     const cut = Math.round(c.monthlyMinor * 0.15);
-    const topTxt = top.length ? ` Lo más grande: ${top.slice(0, 3).map((m) => `${m.label} (${money(m.monthlyMinor, cur)}/mes)`).join(', ')}.` : '';
-    const change = c.changePct !== null && Math.abs(c.changePct) >= 15 ? ` Respecto a los 3 meses anteriores, ${c.changePct > 0 ? 'sube' : 'baja'} un ${Math.abs(c.changePct)} %.` : '';
+    const topTxt = top.length ? ` ${tr('Lo más grande: {list}.', { list: top.slice(0, 3).map((m) => tr('{name} ({amount}/mes)', { name: m.label, amount: money(m.monthlyMinor, cur) })).join(', ') })}` : '';
+    const change = c.changePct !== null && Math.abs(c.changePct) >= 15 ? ` ${c.changePct > 0 ? tr('Respecto a los 3 meses anteriores, sube un {pct} %.', { pct: Math.abs(c.changePct) }) : tr('Respecto a los 3 meses anteriores, baja un {pct} %.', { pct: Math.abs(c.changePct) })}` : '';
     let action: string;
-    if (c.categoryId === 'groceries') action = `Haz una compra grande a la semana con lista en vez de ${visitsMonth} visitas sueltas al mes (ahora ${money(c.avgTicketMinor, cur)} por visita). Pon un tope semanal de ${money(Math.round((c.monthlyMinor - cut) / 4.3), cur)}.`;
-    else if (c.categoryId === 'dining') action = `Fija un máximo de ${Math.max(2, Math.round(visitsMonth * 0.8))} salidas al mes (hoy ${visitsMonth}) y llévate comida de casa los días laborables.`;
-    else if (c.categoryId === 'transport') action = 'Compara el abono mensual con tus viajes sueltos y agrupa los trayectos; si repostas, hazlo en las gasolineras más baratas de tu ruta.';
-    else if (c.categoryId === 'shopping') action = `Aplica la regla de las 24 horas a compras de más de ${money(2500, cur)} y deja un tope mensual de ${money(c.monthlyMinor - cut, cur)}.`;
-    else action = `Ponte un tope mensual de ${money(c.monthlyMinor - cut, cur)} para ${lc(label(c.categoryId))} y revisa a mitad de mes cómo vas.`;
+    if (c.categoryId === 'groceries') action = tr('Haz una compra grande a la semana con lista en vez de {visits} visitas sueltas al mes (ahora {ticket} por visita). Pon un tope semanal de {cap}.', { visits: visitsMonth, ticket: money(c.avgTicketMinor, cur), cap: money(Math.round((c.monthlyMinor - cut) / 4.3), cur) });
+    else if (c.categoryId === 'dining') action = tr('Fija un máximo de {max} salidas al mes (hoy {now}) y llévate comida de casa los días laborables.', { max: Math.max(2, Math.round(visitsMonth * 0.8)), now: visitsMonth });
+    else if (c.categoryId === 'transport') action = tr('Compara el abono mensual con tus viajes sueltos y agrupa los trayectos; si repostas, hazlo en las gasolineras más baratas de tu ruta.');
+    else if (c.categoryId === 'shopping') action = tr('Aplica la regla de las 24 horas a compras de más de {min} y deja un tope mensual de {cap}.', { min: money(2500, cur), cap: money(c.monthlyMinor - cut, cur) });
+    else action = tr('Ponte un tope mensual de {cap} para {cat} y revisa a mitad de mes cómo vas.', { cap: money(c.monthlyMinor - cut, cur), cat: lc(label(c.categoryId)) });
     add({
       id: `d-cat-${c.categoryId}`, kind: 'spending', severity: c.share > 0.25 ? 'warn' : 'tip', impactMinor: cut,
-      title: `${label(c.categoryId)}: ${money(c.monthlyMinor, cur)} al mes (${pct(c.share)} de tus gastos)`,
-      body: `Has hecho ${visitsMonth} pagos al mes, de ${money(c.avgTicketMinor, cur)} de media.${topTxt}${change}`,
+      title: tr('{cat}: {amount} al mes ({pct} de tus gastos)', { cat: label(c.categoryId), amount: money(c.monthlyMinor, cur), pct: pct(c.share) }),
+      body: `${tr('Has hecho {n} pagos al mes, de {avg} de media.', { n: visitsMonth, avg: money(c.avgTicketMinor, cur) })}${topTxt}${change}`,
       action,
     });
   }
@@ -222,9 +224,9 @@ export function detailedAdvice(d: SpendingDetail): Advice[] {
       const s0 = d.smallFrequent[0]!;
       add({
         id: 'd-small', kind: 'spending', severity: 'tip', impactMinor: Math.round(total * 0.4),
-        title: `Pequeños gastos que suman ${money(total, cur)} al mes`,
-        body: `${names(d.smallFrequent, 4)}: compras de unos ${money(s0.avgMinor, cur)} que repites (${s0.label}: ${s0.count} veces en ${d.periodDays} días). Cada una parece poco, pero juntas pesan.`,
-        action: `Quédate con la mitad de esas visitas: ahorrarías unos ${money(Math.round(total * 0.4), cur)} al mes. Prueba una semana sin ${s0.label}.`,
+        title: tr('Pequeños gastos que suman {amount} al mes', { amount: money(total, cur) }),
+        body: tr('{names}: compras de unos {avg} que repites ({top}: {count} veces en {days} días). Cada una parece poco, pero juntas pesan.', { names: names(d.smallFrequent, 4), avg: money(s0.avgMinor, cur), top: s0.label, count: s0.count, days: d.periodDays }),
+        action: tr('Quédate con la mitad de esas visitas: ahorrarías unos {save} al mes. Prueba una semana sin {top}.', { save: money(Math.round(total * 0.4), cur), top: s0.label }),
       });
     }
   }
@@ -235,9 +237,9 @@ export function detailedAdvice(d: SpendingDetail): Advice[] {
     const subs = d.recurring.filter((r) => r.categoryId === 'subscriptions');
     add({
       id: 'd-recurring', kind: 'saving', severity: 'tip', impactMinor: Math.round((subs.length ? sum(subs.map((s) => s.monthlyMinor)) : total * 0.1) * 0.3),
-      title: `${d.recurring.length} cargos fijos se repiten cada mes: ${money(total, cur)}`,
-      body: `Los más grandes: ${d.recurring.slice(0, 4).map((r) => `${r.label} (${money(r.monthlyMinor, cur)})`).join(', ')}.`,
-      action: 'Revisa uno por uno: ¿lo usaste este mes? Cancela lo que no, y para seguros, luz o móvil pide ofertas competidoras: suelen bajar la cuota.',
+      title: tr('{n} cargos fijos se repiten cada mes: {amount}', { n: d.recurring.length, amount: money(total, cur) }),
+      body: tr('Los más grandes: {list}.', { list: d.recurring.slice(0, 4).map((r) => `${r.label} (${money(r.monthlyMinor, cur)})`).join(', ') }),
+      action: tr('Revisa uno por uno: ¿lo usaste este mes? Cancela lo que no, y para seguros, luz o móvil pide ofertas competidoras: suelen bajar la cuota.'),
     });
   }
 
@@ -250,9 +252,9 @@ export function detailedAdvice(d: SpendingDetail): Advice[] {
     const diff = r.lastMonthMinor - r.priorMonthlyMinor;
     add({
       id: `d-rise-${r.categoryId}`, kind: 'spending', severity: 'warn', impactMinor: diff,
-      title: `${label(r.categoryId)} ha subido ${money(diff, cur)} en el último mes`,
-      body: `En los últimos 30 días gastaste ${money(r.lastMonthMinor, cur)} frente a ${money(r.priorMonthlyMinor, cur)} de media al mes antes.`,
-      action: `Mira los movimientos de ${lc(label(r.categoryId))} de este mes: si fue algo puntual, no hagas nada; si es nuevo hábito, ponle tope.`,
+      title: tr('{cat} ha subido {diff} en el último mes', { cat: label(r.categoryId), diff: money(diff, cur) }),
+      body: tr('En los últimos 30 días gastaste {last} frente a {prior} de media al mes antes.', { last: money(r.lastMonthMinor, cur), prior: money(r.priorMonthlyMinor, cur) }),
+      action: tr('Mira los movimientos de {cat} de este mes: si fue algo puntual, no hagas nada; si es nuevo hábito, ponle tope.', { cat: lc(label(r.categoryId)) }),
     });
   }
 
@@ -261,9 +263,9 @@ export function detailedAdvice(d: SpendingDetail): Advice[] {
     const cut = Math.round((d.weekend.totalMinor / (d.periodDays / 30)) * 0.2);
     add({
       id: 'd-weekend', kind: 'habit', severity: 'info', impactMinor: cut,
-      title: `El ${pct(d.weekend.share)} de tu ocio y restaurantes cae de viernes a domingo`,
-      body: `Eso son ${money(Math.round(d.weekend.totalMinor / (d.periodDays / 30)), cur)} al mes en tres días.`,
-      action: `Pon un presupuesto de fin de semana (por ejemplo ${money(Math.round((d.weekend.totalMinor / (d.periodDays / 30)) * 0.8 / 4.3), cur)} por semana) y sácalo en efectivo o a una tarjeta aparte.`,
+      title: tr('El {pct} de tu ocio y restaurantes cae de viernes a domingo', { pct: pct(d.weekend.share) }),
+      body: tr('Eso son {amount} al mes en tres días.', { amount: money(Math.round(d.weekend.totalMinor / (d.periodDays / 30)), cur) }),
+      action: tr('Pon un presupuesto de fin de semana (por ejemplo {cap} por semana) y sácalo en efectivo o a una tarjeta aparte.', { cap: money(Math.round((d.weekend.totalMinor / (d.periodDays / 30)) * 0.8 / 4.3), cur) }),
     });
   }
 
@@ -272,9 +274,9 @@ export function detailedAdvice(d: SpendingDetail): Advice[] {
     const b = d.unclassified.biggest.slice(0, 3).map((x) => `${x.label} (${money(x.amountMinor, cur)})`).join(', ');
     add({
       id: 'd-unclassified', kind: 'habit', severity: 'info',
-      title: `${pct(d.unclassified.pct)} de tus gastos del día a día está en «Otros»`,
-      body: `Son ${d.unclassified.count} movimientos por ${money(d.unclassified.totalMinor, cur)}. Mientras estén sin clasificar, no puedo decirte dónde recortar. Los más grandes: ${b}.`,
-      action: 'Abre Movimientos, filtra «Otros gastos» y cambia la categoría de los más grandes: la próxima importación recordará tus elecciones.',
+      title: tr('{pct} de tus gastos del día a día está en «Otros»', { pct: pct(d.unclassified.pct) }),
+      body: tr('Son {count} movimientos por {total}. Mientras estén sin clasificar, no puedo decirte dónde recortar. Los más grandes: {list}.', { count: d.unclassified.count, total: money(d.unclassified.totalMinor, cur), list: b }),
+      action: tr('Abre Movimientos, filtra «Otros gastos» y cambia la categoría de los más grandes: la próxima importación recordará tus elecciones.'),
     });
   }
 
@@ -283,9 +285,9 @@ export function detailedAdvice(d: SpendingDetail): Advice[] {
     const target = Math.round(d.variableWeeklyMinor * 0.9);
     add({
       id: 'd-weekly-cap', kind: 'saving', severity: 'tip', impactMinor: Math.round((d.variableWeeklyMinor - target) * 4.3),
-      title: `Tu gasto variable es de ${money(d.variableWeeklyMinor, cur)} a la semana`,
-      body: 'Es lo que gastas sin contar vivienda, suministros, seguros ni deudas, que es donde de verdad puedes decidir.',
-      action: `Prueba con un tope de ${money(target, cur)} por semana (un 10 % menos). Mira el viernes cuánto te queda y ajusta el fin de semana.`,
+      title: tr('Tu gasto variable es de {amount} a la semana', { amount: money(d.variableWeeklyMinor, cur) }),
+      body: tr('Es lo que gastas sin contar vivienda, suministros, seguros ni deudas, que es donde de verdad puedes decidir.'),
+      action: tr('Prueba con un tope de {cap} por semana (un 10 % menos). Mira el viernes cuánto te queda y ajusta el fin de semana.', { cap: money(target, cur) }),
     });
   }
 
@@ -294,9 +296,9 @@ export function detailedAdvice(d: SpendingDetail): Advice[] {
   if (down) {
     add({
       id: `d-win-${down.categoryId}`, kind: 'win', severity: 'win', impactMinor: down.prevMonthlyMinor - down.monthlyMinor,
-      title: `Has reducido ${lc(label(down.categoryId))} un ${Math.abs(down.changePct!)} %`,
-      body: `Pasaste de ${money(down.prevMonthlyMinor, cur)} a ${money(down.monthlyMinor, cur)} al mes frente a los 3 meses anteriores.`,
-      action: 'Lo que has hecho funciona: mantenlo y, si puedes, mueve esa diferencia a ahorro el mismo día que cobras.',
+      title: tr('Has reducido {cat} un {pct} %', { cat: lc(label(down.categoryId)), pct: Math.abs(down.changePct!) }),
+      body: tr('Pasaste de {from} a {to} al mes frente a los 3 meses anteriores.', { from: money(down.prevMonthlyMinor, cur), to: money(down.monthlyMinor, cur) }),
+      action: tr('Lo que has hecho funciona: mantenlo y, si puedes, mueve esa diferencia a ahorro el mismo día que cobras.'),
     });
   }
 

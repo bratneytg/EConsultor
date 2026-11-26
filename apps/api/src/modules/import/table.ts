@@ -1,5 +1,6 @@
 import { detectDayFirst, norm, parseAmount, parseDate } from './parse.js';
 import type { RawRow } from './types.js';
+import { tr } from '../../lib/i18n.js';
 
 /** Cabeceras conocidas (sin acentos, en minúsculas). El orden importa: primero lo más específico. */
 const H = {
@@ -174,12 +175,12 @@ export function rowsFromTable(table: string[][], context = ''): TableResult {
     const inferred = inferColumns(table);
     if (!inferred) {
       const first = (table.find((r) => r.filter((x) => String(x ?? '').trim()).length >= 2) ?? table[0] ?? []).slice(0, 8).map((x) => String(x ?? '')).join(' | ');
-      throw new Error(`No reconozco las columnas de fecha e importe. Cabecera encontrada: ${first}`);
+      throw new Error(tr('No reconozco las columnas de fecha e importe. Cabecera encontrada: {first}', { first }));
     }
     hi = inferred.start - 1;
     cols = inferred.cols;
     secondAmount = inferred.second;
-    warnings.push('No he reconocido las cabeceras de este extracto; he deducido las columnas por su contenido. Comprueba las fechas, los importes y qué es gasto y qué es ingreso.');
+    warnings.push(tr('No he reconocido las cabeceras de este extracto; he deducido las columnas por su contenido. Comprueba las fechas, los importes y qué es gasto y qué es ingreso.'));
   }
 
   // Si hay varias columnas de nombre (pagador y receptor), el valor que se repite casi siempre es la propia persona:
@@ -239,8 +240,8 @@ export function rowsFromTable(table: string[][], context = ''): TableResult {
       hint,
     });
   }
-  if (bad > 0) warnings.push(`${bad} ${bad === 1 ? 'línea ignorada' : 'líneas ignoradas'} por no tener una fecha o un importe legibles.`);
-  if (pending > 0) warnings.push(`${pending} ${pending === 1 ? 'movimiento omitido' : 'movimientos omitidos'} por estar pendientes, rechazados o anulados.`);
+  if (bad > 0) warnings.push(bad === 1 ? tr('1 línea ignorada por no tener una fecha o un importe legibles.') : tr('{n} líneas ignoradas por no tener una fecha o un importe legibles.', { n: bad }));
+  if (pending > 0) warnings.push(pending === 1 ? tr('1 movimiento omitido por estar pendiente, rechazado o anulado.') : tr('{n} movimientos omitidos por estar pendientes, rechazados o anulados.', { n: pending }));
   const docText = `${context} ${table.slice(0, hi + 1).map((r) => r.join(' ')).join(' ')}`.slice(0, 4000);
   return { rows, warnings, docText };
 }

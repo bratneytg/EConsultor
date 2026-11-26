@@ -1,4 +1,5 @@
 import { randomBytes, scrypt as scryptCb, timingSafeEqual } from 'node:crypto';
+import { tk } from '../lib/i18n.js';
 
 /**
  * scrypt (OWASP: N=2^16, r=8, p=2 ≈ 64 MB). Sin dependencias nativas.
@@ -47,9 +48,9 @@ const COMMON = new Set([
 /** Política: longitud ≥10 (en el esquema), sin contraseñas comunes ni derivadas del email. */
 export function passwordProblem(password: string, email: string): string | null {
   const lower = password.toLowerCase();
-  if (COMMON.has(lower)) return 'Esa contraseña es demasiado común';
+  if (COMMON.has(lower)) return tk('Esa contraseña es demasiado común');
   const local = email.split('@')[0]?.toLowerCase();
-  if (local && local.length >= 4 && lower.includes(local)) return 'La contraseña no debe contener tu email';
-  if (/^(.)\1+$/.test(password)) return 'La contraseña es demasiado repetitiva';
+  if (local && local.length >= 4 && lower.includes(local)) return tk('La contraseña no debe contener tu email');
+  if (/^(.)\1+$/.test(password)) return tk('La contraseña es demasiado repetitiva');
   return null;
 }

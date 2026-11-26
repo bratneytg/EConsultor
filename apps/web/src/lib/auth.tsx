@@ -1,8 +1,9 @@
 import type { AuthResponse, PublicUser } from '@econsultor/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { IDLE_TIMEOUT_MIN } from '@econsultor/shared';
-import { authApi, flagIdle, msSinceInput, refreshSession, setAccessToken, setSessionLostHandler, touchActivity } from './api';
+import { getLang, langChosenHere, useI18n } from './i18n';
+import { api, authApi, flagIdle, msSinceInput, refreshSession, setAccessToken, setSessionLostHandler, touchActivity } from './api';
 
 interface AuthState {
   user: PublicUser | null;
@@ -19,6 +20,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<PublicUser | null>(null);
   const [ready, setReady] = useState(false);
   const qc = useQueryClient();
+  const { setLang } = useI18n();
+
+  // Idioma: si se eligió a mano en este dispositivo manda esa elección (se guarda en la cuenta); si no, el de la cuenta.
+  const syncedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!user || syncedFor.current === user.id) return;
+    syncedFor.current = user.id;
+    if (langChosenHere()) {
+      if (user.language !== getLang()) void api<PublicUser>('/me/settings', { method: 'PATCH', json: { language: getLang() } }).then(setUser).catch(() => undefined);
+    } else if (user.language !== getLang()) setLang(user.language, false);
+  }, [user, setLang]);
 
   useEffect(() => {
     setSessionLostHandler(() => { setUser(null); qc.clear(); });

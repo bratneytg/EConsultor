@@ -7,6 +7,7 @@ import { markSeen, pendingReleases, RELEASES, type Release } from '../content/no
 import { AddSheet } from './AddSheet';
 import { ImportSheet } from './ImportSheet';
 import { ReportSheet } from './ReportSheet';
+import { t, tk } from '../lib/i18n';
 import { syncNativeReminder } from '../lib/native';
 import { Icon, type IconName } from './Icon';
 import { Toast } from './ui';
@@ -30,10 +31,10 @@ export const useShell = (): ShellCtx => {
 };
 
 const NAV: { to: string; label: string; icon: IconName }[] = [
-  { to: '/', label: 'Resumen', icon: 'pulse' },
-  { to: '/movimientos', label: 'Movimientos', icon: 'list' },
-  { to: '/consejos', label: 'Consejos', icon: 'spark' },
-  { to: '/ajustes', label: 'Ajustes', icon: 'gear' },
+  { to: '/', label: tk('Resumen'), icon: 'pulse' },
+  { to: '/movimientos', label: tk('Movimientos'), icon: 'list' },
+  { to: '/consejos', label: tk('Consejos'), icon: 'spark' },
+  { to: '/ajustes', label: tk('Ajustes'), icon: 'gear' },
 ];
 
 export function Shell() {
@@ -96,33 +97,33 @@ export function Shell() {
   const tab = (n: (typeof NAV)[number]) => (
     <NavLink key={n.to} to={n.to} end={n.to === '/'} className="tab">
       <Icon name={n.icon} />
-      {n.label}
+      {t(n.label)}
     </NavLink>
   );
 
   return (
     <Ctx.Provider value={value}>
       <div className="shell">
-        <nav className="nav-rail" aria-label="Principal">
-          <div className="brand"><img src="/icons/icon-192.png" alt="" />EConsultor</div>
+        <nav className="nav-rail" aria-label={t('Principal')}>
+          <div className="brand"><img src="/icons/icon-192.png" alt="" />{t('EConsultor')}</div>
           {NAV.map((n) => (
-            <NavLink key={n.to} to={n.to} end={n.to === '/'}><Icon name={n.icon} />{n.label}</NavLink>
+            <NavLink key={n.to} to={n.to} end={n.to === '/'}><Icon name={n.icon} />{t(n.label)}</NavLink>
           ))}
-          <button className="btn btn-primary" onClick={() => openAdd()}><Icon name="plus" size={18} />Anotar</button>
+          <button className="btn btn-primary" onClick={() => openAdd()}><Icon name="plus" size={18} />{t('Anotar')}</button>
           <div className="spacer" />
-          <NavLink to="/ayuda" className="rail-help"><Icon name="help" />Ayuda</NavLink>
+          <NavLink to="/ayuda" className="rail-help"><Icon name="help" />{t('Ayuda')}</NavLink>
           <span className="muted" style={{ fontSize: 13, padding: '0 14px' }}>{user.displayName}</span>
         </nav>
 
         <main id="main">
           <Outlet />
         </main>
-        <button className="report-dot" aria-label="Reportar un fallo" title="Reportar un fallo" onClick={openReport}><Icon name="bug" size={16} /></button>
+        <button className="report-dot" aria-label={t('Reportar un fallo')} title={t('Reportar un fallo')} onClick={openReport}><Icon name="bug" size={16} /></button>
 
-        <nav className="tabbar" aria-label="Principal">
+        <nav className="tabbar" aria-label={t('Principal')}>
           {tab(NAV[0]!)}
           {tab(NAV[1]!)}
-          <button className="fab" aria-label="Anotar movimiento" onClick={() => openAdd()}><Icon name="plus" size={26} /></button>
+          <button className="fab" aria-label={t('Anotar movimiento')} onClick={() => openAdd()}><Icon name="plus" size={26} /></button>
           {tab(NAV[2]!)}
           {tab(NAV[3]!)}
         </nav>

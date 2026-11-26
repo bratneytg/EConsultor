@@ -3,6 +3,7 @@ import type { Config } from '../../config.js';
 import { streakDays } from '../analytics/analytics.js';
 import { todayIn, timeIn } from '../../lib/dates.js';
 import type { Store } from '../../store/types.js';
+import { runWithLang, tr } from '../../lib/i18n.js';
 
 export interface PushSender {
   (sub: { endpoint: string; keys: { p256dh: string; auth: string } }, payload: string): Promise<void>;
@@ -14,8 +15,8 @@ const defaultSender: PushSender = async (sub, payload) => {
 
 function reminderText(name: string, streak: number): { title: string; body: string } {
   const first = name.split(' ')[0] ?? name;
-  if (streak >= 3) return { title: `🔥 Racha de ${streak} días`, body: `${first}, apunta los movimientos de hoy y no la rompas. Solo te llevará 30 segundos.` };
-  return { title: '¿Cómo ha ido el día?', body: `${first}, anota tus gastos e ingresos de hoy para mantener tus gráficas al día.` };
+  if (streak >= 3) return { title: tr('🔥 Racha de {n} días', { n: streak }), body: tr('{name}, apunta los movimientos de hoy y no la rompas. Solo te llevará 30 segundos.', { name: first }) };
+  return { title: tr('¿Cómo ha ido el día?'), body: tr('{name}, anota tus gastos e ingresos de hoy para mantener tus gráficas al día.', { name: first }) };
 }
 
 /**
@@ -41,7 +42,7 @@ export async function runReminders(store: Store, now = new Date(), send: PushSen
       continue;
     }
 
-    const payload = JSON.stringify({ ...reminderText(user.displayName, streakDays(txs, today)), url: '/?add=1' });
+    const payload = JSON.stringify({ ...runWithLang(user.language ?? 'en', () => reminderText(user.displayName, streakDays(txs, today))), url: '/?add=1' });
     let delivered = false;
     for (const s of subs) {
       try {

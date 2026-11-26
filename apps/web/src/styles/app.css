@@ -377,3 +377,8 @@ textarea.input { resize: vertical; min-height: 110px; font: inherit; }
 .update-banner { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom) + 92px); z-index: 70; width: max-content; max-width: calc(100vw - 24px); display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 16px; border-radius: 999px; background: var(--ink); color: var(--plane); box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.5); font-weight: 600; font-size: 14px; }
 .update-banner .btn { padding: 7px 14px; }
 @media (min-width: 960px) { .update-banner { bottom: 28px; } }
+.lang-picker { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.lang-picker select { border: 1px solid var(--hair); background: var(--surface); border-radius: 999px; padding: 6px 12px; font: inherit; color: var(--ink); }
+.lang-picker.compact { position: absolute; top: 14px; right: 16px; z-index: 2; }
+.auth-form { position: relative; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }

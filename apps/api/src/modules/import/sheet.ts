@@ -1,4 +1,5 @@
 import { strFromU8, unzipSync } from 'fflate';
+import { tr } from '../../lib/i18n.js';
 
 /** Una hoja de cálculo ya leída: celdas como texto (las fechas, en ISO; los importes, con punto decimal). */
 export interface Sheet { name: string; rows: string[][] }
@@ -8,7 +9,9 @@ const MAX_PART = 60 * 1024 * 1024;
 const MAX_ROWS = 60_000;
 const MAX_COLS = 80;
 
-export class SheetError extends Error {}
+export class SheetError extends Error {
+  constructor(message: string) { super(tr(message)); }
+}
 
 const entities = (s: string): string =>
   s

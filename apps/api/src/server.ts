@@ -9,6 +9,7 @@ import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest }
 import { ZodError } from 'zod';
 import type { Config } from './config.js';
 import { AppError, unauthorized } from './lib/errors.js';
+import { isLang, runWithLang, tr } from './lib/i18n.js';
 import { authRoutes } from './routes/auth.js';
 import { dataRoutes } from './routes/data.js';
 import { importRoutes } from './routes/import.js';
@@ -72,7 +73,7 @@ export async function buildApp(cfg: Config, store: Store): Promise<FastifyInstan
     origin: [cfg.publicOrigin],
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
-    allowedHeaders: ['content-type', 'authorization', 'x-requested-with', 'x-user-active'],
+    allowedHeaders: ['content-type', 'authorization', 'x-requested-with', 'x-user-active', 'x-lang'],
   });
   await app.register(cookie);
   await app.register(rateLimit, { global: true, max: 300, timeWindow: '1 minute' });
@@ -104,16 +105,22 @@ export async function buildApp(cfg: Config, store: Store): Promise<FastifyInstan
     req.sessionId = claims.sid;
   });
 
+  // Idioma de la petición: lo manda la app en cada llamada (la misma elección que ve la persona).
+  app.addHook('onRequest', (req, _reply, done) => {
+    const h = req.headers['x-lang'];
+    runWithLang(isLang(h) ? h : 'es', done);
+  });
+
   // ── Errores uniformes (sin filtrar detalles internos) ──
   app.setErrorHandler((err: Error & { statusCode?: number; code?: string }, req, reply) => {
     if (err instanceof ZodError) {
-      return reply.status(400).send({ error: 'validation_error', message: err.issues[0]?.message ?? 'Datos no válidos', issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })) });
+      return reply.status(400).send({ error: 'validation_error', message: tr(err.issues[0]?.message ?? 'Datos no válidos'), issues: err.issues.map((i) => ({ path: i.path.join('.'), message: tr(i.message) })) });
     }
     if (err instanceof AppError) return reply.status(err.status).send({ error: err.code, message: err.message });
-    if (err.statusCode === 429) return reply.status(429).send({ error: 'rate_limited', message: 'Demasiados intentos. Espera un momento.' });
+    if (err.statusCode === 429) return reply.status(429).send({ error: 'rate_limited', message: tr('Demasiados intentos. Espera un momento.') });
     if (err.statusCode && err.statusCode < 500) return reply.status(err.statusCode).send({ error: err.code ?? 'bad_request', message: err.message });
     req.log.error({ err }, 'unhandled');
-    return reply.status(500).send({ error: 'internal', message: 'Error interno' });
+    return reply.status(500).send({ error: 'internal', message: tr('Error interno') });
   });
 
   app.get('/healthz', async () => ({ status: 'ok' }));
@@ -133,7 +140,7 @@ export async function buildApp(cfg: Config, store: Store): Promise<FastifyInstan
     } });
     app.setNotFoundHandler((req, reply) => {
       if (req.method === 'GET' && !req.url.startsWith('/api')) return reply.sendFile('index.html');
-      return reply.status(404).send({ error: 'not_found', message: 'No encontrado' });
+      return reply.status(404).send({ error: 'not_found', message: tr('No encontrado') });
     });
   }
 

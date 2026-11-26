@@ -1,6 +1,7 @@
 import { polarity } from './categorize.js';
 import { norm } from './parse.js';
 import type { RawRow } from './types.js';
+import { tr } from '../../lib/i18n.js';
 
 /**
  * Extractos de tarjeta (Nexi, Visa, Mastercard…): lo que gastas sale en positivo y las devoluciones o el pago de
@@ -42,8 +43,10 @@ export function resolveSigns(rows: RawRow[], docText: string, opts: { flip?: boo
     });
     const incomes = out.filter((r) => r.amountMinor > 0).length;
     warnings.push(
-      `${card ? 'Este extracto parece de una tarjeta de crédito, que lista los gastos en positivo. ' : 'El extracto no marca con signo los gastos y los ingresos. '}` +
-        `He tratado cada línea como un gasto, salvo ${incomes === 1 ? '1 que parece' : `${incomes} que parecen`} un ingreso (nómina, abono o devolución). Revisa los ingresos; si todo está al revés, usa «Invertir gastos e ingresos».`,
+      `${card ? tr('Este extracto parece de una tarjeta de crédito, que lista los gastos en positivo.') : tr('El extracto no marca con signo los gastos y los ingresos.')} ` +
+        (incomes === 1
+          ? tr('He tratado cada línea como un gasto, salvo 1 que parece un ingreso (nómina, abono o devolución). Revisa los ingresos; si todo está al revés, usa «Invertir gastos e ingresos».')
+          : tr('He tratado cada línea como un gasto, salvo {n} que parecen un ingreso (nómina, abono o devolución). Revisa los ingresos; si todo está al revés, usa «Invertir gastos e ingresos».', { n: incomes })),
     );
   } else if (pos > 0 && neg > 0) {
     let agree = 0;
@@ -58,13 +61,13 @@ export function resolveSigns(rows: RawRow[], docText: string, opts: { flip?: boo
     if (inverted) {
       mode = 'inverted';
       out = rows.map(flip);
-      warnings.push('En este extracto los gastos van en positivo (es lo habitual en tarjetas de crédito). Los he contado como gastos, y los importes en negativo (devoluciones o pagos de la tarjeta), como ingresos.');
+      warnings.push(tr('En este extracto los gastos van en positivo (es lo habitual en tarjetas de crédito). Los he contado como gastos, y los importes en negativo (devoluciones o pagos de la tarjeta), como ingresos.'));
     }
   }
 
   if (opts.flip) {
     out = out.map(flip);
-    warnings.push('Has invertido gastos e ingresos.');
+    warnings.push(tr('Has invertido gastos e ingresos.'));
   }
   return { rows: out, mode, warnings };
 }

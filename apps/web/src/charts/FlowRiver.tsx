@@ -4,6 +4,7 @@ import { useId, useMemo, useState } from 'react';
 import { Tip, useWidth, type TipState } from '../components/ui';
 import { FAMILIES, categoryLabel, familyOf } from '../lib/categories';
 import { money, pct } from '../lib/format';
+import { t } from '../lib/i18n';
 
 interface N { id: string; name: string; color: string; col: 'src' | 'hub' | 'dst' }
 interface L { source: string; target: string; value: number; color: string }
@@ -28,7 +29,7 @@ export function FlowRiver({ o }: { o: Overview }) {
 
     const nodes: N[] = [];
     const links: L[] = [];
-    const hub: N = { id: 'hub', name: 'Ingresos', color: 'var(--income)', col: 'hub' };
+    const hub: N = { id: 'hub', name: t('Ingresos'), color: 'var(--income)', col: 'hub' };
 
     if (narrow || o.incomeByCategory.length <= 1) {
       // en pantallas estrechas el propio hub es el origen
@@ -42,7 +43,7 @@ export function FlowRiver({ o }: { o: Overview }) {
     nodes.push(hub);
     if (expense > income) {
       hub.col = 'hub'; // con afluente de déficit el hub ya no es la primera columna
-      nodes.push({ id: 'deficit', name: 'Déficit', color: 'var(--crit)', col: 'src' });
+      nodes.push({ id: 'deficit', name: t('Déficit'), color: 'var(--crit)', col: 'src' });
       links.push({ source: 'deficit', target: 'hub', value: expense - income, color: 'var(--crit)' });
     }
     const byFamily = new Map<string, number>();
@@ -57,13 +58,13 @@ export function FlowRiver({ o }: { o: Overview }) {
       links.push({ source: 'hub', target: `out:${f.id}`, value: v, color: f.color });
     }
     if (income > expense) {
-      nodes.push({ id: 'saved', name: 'Te sobra', color: 'var(--balance)', col: 'dst' });
+      nodes.push({ id: 'saved', name: t('Te sobra'), color: 'var(--balance)', col: 'dst' });
       links.push({ source: 'hub', target: 'saved', value: income - expense, color: 'var(--balance)' });
     }
     return { nodes, links, total: Math.max(income, expense) };
   }, [o, narrow]);
 
-  if (!graph) return <p className="muted">Anota ingresos y gastos para ver cómo fluye tu dinero.</p>;
+  if (!graph) return <p className="muted">{t('Anota ingresos y gastos para ver cómo fluye tu dinero.')}</p>;
 
   const dstCount = graph.nodes.filter((n) => n.col === 'dst').length;
   const H = Math.min(440, Math.max(230, dstCount * 46 + 20));
@@ -92,7 +93,7 @@ export function FlowRiver({ o }: { o: Overview }) {
   return (
     <div className="chart" ref={ref} style={{ height: H }}>
       {w > 0 && (
-        <svg width={w} height={H} role="img" aria-label="Diagrama de flujo de ingresos a gastos y ahorro. Consulta la vista de tabla para ver los importes.">
+        <svg width={w} height={H} role="img" aria-label={t('Diagrama de flujo de ingresos a gastos y ahorro. Consulta la vista de tabla para ver los importes.')}>
           <defs>
             {(links as SL[]).map((l, i) => (
               <linearGradient key={i} id={`${gid}-g${i}`} gradientUnits="userSpaceOnUse" x1={(l.source as SN).x1} x2={(l.target as SN).x0}>

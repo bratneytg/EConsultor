@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { LanguagePicker } from '../components/LanguagePicker';
 import { t } from '../lib/i18n';
 import { Icon } from '../components/Icon';
 import { ApiError, authApi, takeIdleFlag } from '../lib/api';
@@ -53,14 +54,14 @@ export function Auth() {
 
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true); setError('');
-    try { await fn(); } catch (e) { setError(e instanceof ApiError ? e.message : 'No se pudo conectar con el servidor'); } finally { setBusy(false); }
+    try { await fn(); } catch (e) { setError(e instanceof ApiError ? e.message : t('No se pudo conectar con el servidor')); } finally { setBusy(false); }
   };
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     // `noValidate`: el navegador no bloquea el envío; el email se comprueba aquí (registro) y en el servidor (acceso).
-    if (mode === 'register' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError('Introduce un email válido');
-    if (!email.trim() || !password) return setError('Escribe tu email y tu contraseña');
+    if (mode === 'register' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError(t('Introduce un email válido'));
+    if (!email.trim() || !password) return setError(t('Escribe tu email y tu contraseña'));
     run(async () => {
       const res = mode === 'login' ? await authApi.login(email, password) : await authApi.register({ email, password, displayName: name });
       const token = accept(res);
@@ -80,33 +81,34 @@ export function Auth() {
     <div className="auth">
       <div className="auth-art">
         <Ribbons />
-        <h2>Tu dinero, a la vista.</h2>
-        <p>Anota en segundos, entiende a dónde va cada euro y recibe consejos pensados para tus números.</p>
+        <h2>{t('Tu dinero, a la vista.')}</h2>
+        <p>{t('Anota en segundos, entiende a dónde va cada euro y recibe consejos pensados para tus números.')}</p>
       </div>
 
       <div className="auth-form">
+        <LanguagePicker compact />
         {mfaToken ? (
           <form onSubmit={verify}>
-            <h1>Verificación en dos pasos</h1>
-            <p className="sub" style={{ marginBottom: 18 }}>{useRecovery ? 'Escribe uno de tus códigos de recuperación.' : 'Escribe el código de 6 dígitos de tu app autenticadora.'}</p>
+            <h1>{t('Verificación en dos pasos')}</h1>
+            <p className="sub" style={{ marginBottom: 18 }}>{useRecovery ? t('Escribe uno de tus códigos de recuperación.') : t('Escribe el código de 6 dígitos de tu app autenticadora.')}</p>
             <div className="field">
               <input
                 className={`input ${useRecovery ? '' : 'code-input'}`} autoFocus inputMode={useRecovery ? 'text' : 'numeric'} autoComplete="one-time-code"
-                maxLength={useRecovery ? 16 : 6} placeholder={useRecovery ? 'XXXXX-XXXXX' : '000000'} aria-label="Código"
+                maxLength={useRecovery ? 16 : 6} placeholder={useRecovery ? 'XXXXX-XXXXX' : '000000'} aria-label={t('Código')}
                 value={code} onChange={(e) => setCode(useRecovery ? e.target.value : e.target.value.replace(/\D/g, ''))}
               />
             </div>
             {error && <p className="error" role="alert">{error}</p>}
-            <button className="btn btn-primary btn-block" disabled={busy || (useRecovery ? code.length < 8 : code.length !== 6)}>Entrar</button>
+            <button className="btn btn-primary btn-block" disabled={busy || (useRecovery ? code.length < 8 : code.length !== 6)}>{t('Entrar')}</button>
             <button type="button" className="btn btn-ghost btn-block" style={{ marginTop: 8 }} onClick={() => { setUseRecovery((v) => !v); setCode(''); setError(''); }}>
-              {useRecovery ? 'Usar el código de la app' : 'Usar un código de recuperación'}
+              {useRecovery ? t('Usar el código de la app') : t('Usar un código de recuperación')}
             </button>
-            <button type="button" className="btn btn-ghost btn-block" onClick={() => { setMfaToken(null); setCode(''); setError(''); }}>Volver</button>
+            <button type="button" className="btn btn-ghost btn-block" onClick={() => { setMfaToken(null); setCode(''); setError(''); }}>{t('Volver')}</button>
           </form>
         ) : (
           <form onSubmit={submit} noValidate>
-            <h1>{mode === 'login' ? 'Entrar' : 'Crear tu cuenta'}</h1>
-            {idleNotice && mode === 'login' && <p className="notice" role="status">Cerramos tu sesión tras 10 minutos sin actividad, para proteger tus datos. Puedes cambiarlo en Ajustes → Seguridad.</p>}
+            <h1>{mode === 'login' ? t('Entrar') : t('Crear tu cuenta')}</h1>
+            {idleNotice && mode === 'login' && <p className="notice" role="status">{t('Cerramos tu sesión tras 10 minutos sin actividad, para proteger tus datos. Puedes cambiarlo en Ajustes → Seguridad.')}</p>}
             {canPasskey && mode === 'login' && (
               <>
                 <button type="button" className="btn btn-primary btn-block" disabled={busy} onClick={withFingerprint}><Icon name="fingerprint" size={20} />{t('Entrar con huella')}</button>
@@ -114,18 +116,18 @@ export function Auth() {
               </>
             )}
             {mode === 'register' && (
-              <div className="field"><label htmlFor="name">Nombre</label><input id="name" className="input" autoComplete="given-name" required maxLength={60} value={name} onChange={(e) => setName(e.target.value)} /></div>
+              <div className="field"><label htmlFor="name">{t('Nombre')}</label><input id="name" className="input" autoComplete="given-name" required maxLength={60} value={name} onChange={(e) => setName(e.target.value)} /></div>
             )}
-            <div className="field"><label htmlFor="email">Email</label><input id="email" className="input" type="email" inputMode="email" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+            <div className="field"><label htmlFor="email">{t('Email')}</label><input id="email" className="input" type="email" inputMode="email" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
             <div className="field">
-              <label htmlFor="pw">Contraseña</label>
+              <label htmlFor="pw">{t('Contraseña')}</label>
               <input id="pw" className="input" type="password" required minLength={mode === 'register' ? 10 : 1} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(e) => setPassword(e.target.value)} />
-              {mode === 'register' && <span className="hint">Mínimo 10 caracteres. Una frase larga es mejor que una palabra con símbolos.</span>}
+              {mode === 'register' && <span className="hint">{t('Mínimo 10 caracteres. Una frase larga es mejor que una palabra con símbolos.')}</span>}
             </div>
             {error && <p className="error" role="alert">{error}</p>}
-            <button className="btn btn-primary btn-block" disabled={busy}>{mode === 'login' ? 'Entrar' : 'Crear cuenta'}</button>
+            <button className="btn btn-primary btn-block" disabled={busy}>{mode === 'login' ? t('Entrar') : t('Crear cuenta')}</button>
             <button type="button" className="btn btn-ghost btn-block" style={{ marginTop: 8 }} onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}>
-              {mode === 'login' ? 'No tengo cuenta · Crear una' : 'Ya tengo cuenta · Entrar'}
+              {mode === 'login' ? t('No tengo cuenta · Crear una') : t('Ya tengo cuenta · Entrar')}
             </button>
 
           </form>

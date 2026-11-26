@@ -11,7 +11,7 @@ Hay una app para Android en `apps/android/` (abre tu EConsultor y añade el avis
 ## Dos interfaces
 
 - **Sencilla** (por defecto): el mes en un vistazo —balance, estado en una frase, ingresos/gastos/ahorro—, dos gráficos (saldo del mes y en qué gastas) y tres consejos en tarjetas.
-- **Profesional**: el análisis completo (río de dinero, 12 meses, mapa de calor, patrón semanal, pulso financiero…).
+- **Profesional**: el análisis completo (río de dinero, 12 meses, patrón semanal, pulso financiero…).
 
 Se cambia con el selector de la cabecera del Resumen o en *Ajustes → Interfaz*, y la elección se guarda en el perfil, así que te acompaña a cualquier dispositivo.
 
@@ -26,6 +26,25 @@ El botón **«Importar extractos bancarios»** (en *Movimientos* y en *Ajustes �
 - **CSV** (recomendado): N26 → web app → descargar extracto en CSV. También vale cualquier CSV con columnas de fecha e importe.
 - **PDF**: se lee su texto con `unpdf`. Es una lectura heurística: va bien con tablas simples; un PDF escaneado (imagen) no tiene texto y no se puede leer sin OCR.
 - **IA opcional**: con `ANTHROPIC_API_KEY` aparece la casilla «Mejorar con IA», que envía a Claude solo las descripciones de lo que las reglas no reconocen (sin IBAN ni emails) y ayuda con PDFs de formato raro.
+
+## Idiomas
+
+La app está en **inglés (por defecto), español, italiano y alemán**. Se elige en *Ajustes → Idioma* o en la pantalla de entrada y se guarda en la cuenta. Cambia la interfaz, la ayuda, los consejos, los avisos del recordatorio y los mensajes del servidor.
+
+- El texto original en español hace de clave: `t('Guardar')` en la web, `tr('…')` en el servidor. Los diccionarios están en `apps/web/src/i18n/` y `apps/api/src/i18n/`; si falta una traducción sale el español, nunca una clave rota.
+- La web envía su idioma al servidor en la cabecera `X-Lang`; sin ella el servidor responde en español.
+- Las pruebas (`cobertura.test.ts`, `idiomas.test.ts`) fallan si un texto nuevo no está en los tres idiomas o pierde una variable `{…}`. La ayuda traducida está en `apps/web/src/content/ayuda.{en,it,de}.ts`.
+- Lo único sin traducir es el texto del aviso nativo de la app de Android (`apps/android`), que sigue en español.
+
+## Varias cuentas e importación de cualquier banco
+
+- Cada movimiento puede pertenecer a una **cuenta** (por ejemplo «N26» o «Tarjeta Nexi»); al importar eliges la cuenta del extracto y *Movimientos* se puede filtrar por cuenta.
+- Si el extracto coincide en fecha, importe y comercio con otra cuenta (±2 días), se avisa de que quizá se subió dos veces y esos movimientos quedan desmarcados. Los traspasos entre tus cuentas no cuentan como gasto ni ingreso.
+- La lectura de extractos no depende de un banco concreto: reconoce cabeceras en español, inglés, alemán e italiano y, si no las reconoce, deduce las columnas por su contenido (avisando). Entiende CSV, Excel (`.xlsx`), LibreOffice (`.ods`) y PDF, extractos de tarjeta con los gastos en positivo (Nexi, Visa…) y el vocabulario de comercios de Alemania, España e Italia.
+
+## Novedades de cada versión
+
+Al abrir la app tras una actualización aparece una ventana con las funciones nuevas, las secciones añadidas y los fallos corregidos (`apps/web/src/content/novedades.ts`; se vuelve a ver en *Ajustes → Novedades*). Si la app detecta una versión más reciente mientras está abierta, avisa para recargarla. **Al publicar una versión, sube `version` en `apps/web/package.json` y añade su entrada en `novedades.ts`.**
 
 ## Qué incluye
 

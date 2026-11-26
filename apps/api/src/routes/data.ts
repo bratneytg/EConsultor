@@ -10,6 +10,7 @@ import { generateDemoTransactions } from '../modules/demo/seed.js';
 import { effectivePlan } from '../lib/plan.js';
 import { verifyPassword } from '../security/password.js';
 import { toPublicUser } from './auth.js';
+import { tk } from '../lib/i18n.js';
 
 /** Fecha de calendario real (rechaza 2026-02-31) y no más de 1 día en el futuro. */
 function assertSaneDate(date: string, today: string): void {
@@ -173,7 +174,7 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
     const b = z
       .object({
         kind: z.enum(['bug', 'idea', 'other']).default('bug'),
-        message: z.string().trim().min(5, 'Cuéntanos un poco más (mínimo 5 letras)').max(2000),
+        message: z.string().trim().min(5, tk('Cuéntanos un poco más (mínimo 5 letras)')).max(2000),
         page: z.string().trim().max(120).optional(),
         platform: z.string().trim().max(30).optional(),
         appVersion: z.string().trim().max(30).optional(),
