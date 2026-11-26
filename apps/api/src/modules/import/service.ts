@@ -8,15 +8,20 @@ import { aiCategorize, aiExtractStatement } from './ai.js';
 import { buildHistory, categorize, haystack } from './categorize.js';
 import { rowsFromCsv } from './csv.js';
 import { pdfLines, rowsFromPdfLines } from './pdf.js';
+import { readSpreadsheet, SheetError } from './sheet.js';
+import { resolveSigns } from './signs.js';
+import { rowsFromTable } from './table.js';
 import type { ImportPreview, ImportRow, RawRow } from './types.js';
 
 export const MAX_ROWS = 5000;
 
 export interface AnalyzeInput {
-  kind: 'csv' | 'pdf';
-  /** CSV: texto. PDF: contenido en base64. */
+  kind: 'csv' | 'pdf' | 'sheet';
+  /** CSV: texto. PDF y hoja de cálculo (.xlsx/.ods): contenido en base64. */
   content: string;
   useAi: boolean;
+  /** La persona pide invertir gastos e ingresos (cuando el extracto tiene el signo al revés). */
+  flipSigns?: boolean;
 }
 
 const unprocessable = (m: string, code = 'unreadable_statement') => new AppError(422, code, m);
@@ -33,15 +38,35 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
   const warnings: string[] = [];
   let engine: 'offline' | 'ai' = 'offline';
   let raw: RawRow[] = [];
+  let docText = '';
 
   if (input.kind === 'csv') {
     try {
       const r = rowsFromCsv(input.content);
       raw = r.rows;
+      docText = r.docText;
       warnings.push(...r.warnings);
     } catch (e) {
       throw unprocessable((e as Error).message);
     }
+  } else if (input.kind === 'sheet') {
+    const data = Buffer.from(input.content, 'base64');
+    let tried = '';
+    try {
+      const sheets = readSpreadsheet(new Uint8Array(data));
+      for (const sh of sheets) {
+        try {
+          const r = rowsFromTable(sh.rows, sh.name);
+          if (r.rows.length) { raw = r.rows; docText = r.docText; warnings.push(...r.warnings); break; }
+        } catch (e) {
+          tried ||= (e as Error).message;
+        }
+      }
+    } catch (e) {
+      if (e instanceof SheetError) throw unprocessable(e.message, 'unreadable_sheet');
+      throw e;
+    }
+    if (!raw.length) throw unprocessable(tried || 'No he encontrado movimientos en ninguna hoja del archivo.');
   } else {
     const data = Buffer.from(input.content, 'base64');
     if (data.length < 100 || data.subarray(0, 5).toString('latin1') !== '%PDF-') throw badRequest('El archivo no parece un PDF válido');
@@ -56,15 +81,21 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
     }
     const r = rowsFromPdfLines(lines, Number(today.slice(0, 4)));
     raw = r.rows;
+    docText = r.docText;
     warnings.push(...r.warnings);
     if (raw.length < 3 && input.useAi && cfg.anthropicApiKey) {
       const ai = await aiExtractStatement(cfg, lines.join('\n'));
-      if (ai && ai.length > raw.length) { raw = ai; engine = 'ai'; warnings.length = 0; }
+      if (ai && ai.length > raw.length) { raw = ai; engine = 'ai'; warnings.length = 0; docText = lines.slice(0, 60).join(' '); }
     }
     if (raw.length === 0) {
       throw unprocessable('No he encontrado movimientos en este PDF: su formato no es el habitual. Prueba con el CSV' + (cfg.anthropicApiKey ? ' o activa «Mejorar con IA».' : '.'));
     }
   }
+
+  // Qué es gasto y qué es ingreso: cada banco usa su convención (las tarjetas, p. ej., ponen los gastos en positivo).
+  const resolved = resolveSigns(raw, docText, { flip: input.flipSigns });
+  raw = resolved.rows;
+  warnings.push(...resolved.warnings);
 
   // Saneado: fechas razonables, importes distintos de cero y tope de filas.
   const maxDate = addDays(today, 1);
@@ -126,6 +157,7 @@ export async function analyzeStatement(cfg: Config, store: Store, user: UserReco
     engine,
     rows,
     warnings,
+    signs: { mode: resolved.mode, flipped: !!input.flipSigns },
     stats: { total: rows.length, income: kept.filter((r) => r.type === 'income').length, expense: kept.filter((r) => r.type === 'expense').length, skipped, from, to, incomeMinor: sum('income'), expenseMinor: sum('expense') },
   };
 }

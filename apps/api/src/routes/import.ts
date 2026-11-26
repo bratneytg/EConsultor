@@ -8,9 +8,10 @@ import { clearAdviceCache } from '../modules/advice/advisor.js';
 import { analyzeStatement, MAX_ROWS } from '../modules/import/service.js';
 
 const previewInput = z.object({
-  kind: z.enum(['csv', 'pdf']),
+  kind: z.enum(['csv', 'pdf', 'sheet']),
   content: z.string().min(10),
   useAi: z.boolean().default(false),
+  flipSigns: z.boolean().default(false),
 });
 
 const commitInput = z.object({
@@ -27,7 +28,7 @@ const commitInput = z.object({
     .max(MAX_ROWS),
 });
 
-/** Importación de extractos bancarios (CSV / PDF): vista previa → confirmación → alta de movimientos. */
+/** Importación de extractos bancarios (CSV / PDF / Excel): vista previa → confirmación → alta de movimientos. */
 export async function importRoutes(app: FastifyInstance): Promise<void> {
   const { store, cfg } = app;
   const auth = { preHandler: app.requireAuth };

@@ -19,10 +19,11 @@ interface PreviewRow {
   skip?: 'duplicate' | 'internal';
 }
 interface Preview {
-  source: 'csv' | 'pdf';
+  source: 'csv' | 'pdf' | 'sheet';
   engine: 'offline' | 'ai';
   rows: PreviewRow[];
   warnings: string[];
+  signs?: { mode: 'normal' | 'inverted' | 'unsigned'; flipped: boolean };
   stats: { total: number; income: number; expense: number; skipped: number; from: string; to: string; incomeMinor: number; expenseMinor: number };
 }
 interface Draft extends PreviewRow { on: boolean }
@@ -70,26 +71,29 @@ export function ImportSheet({ open, onClose, onDone }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose, step]);
 
-  const analyze = useCallback(async (f: File, ai: boolean) => {
+  const analyze = useCallback(async (f: File, ai: boolean, flipSigns = false) => {
     setError('');
     if (f.size > MAX_FILE) return setError('El archivo pesa más de 9 MB. Divide el extracto por años.');
     const isPdf = /\.pdf$/i.test(f.name) || f.type === 'application/pdf';
+    // Windows etiqueta los .csv como «ms-excel»: manda la extensión.
+    const isSheet = /\.(xlsx|xlsm|xls|ods)$/i.test(f.name) || /spreadsheetml|opendocument\.spreadsheet/.test(f.type);
     const isText = /\.(csv|txt|tsv)$/i.test(f.name) || f.type.startsWith('text/') || f.type === 'application/vnd.ms-excel';
-    if (!isPdf && !isText) return setError('Solo se admiten archivos CSV o PDF.');
+    if (!isPdf && !isSheet && !isText) return setError('Solo se admiten archivos CSV, Excel (.xlsx), LibreOffice (.ods) o PDF.');
     last.current = f;
     setStep('analyzing');
     try {
       const buf = await f.arrayBuffer();
+      const binary = isPdf || isSheet;
       const res = await api<Preview>('/import/preview', {
         method: 'POST',
-        json: { kind: isPdf ? 'pdf' : 'csv', content: isPdf ? toBase64(buf) : decodeText(buf), useAi: ai },
+        json: { kind: isPdf ? 'pdf' : isSheet ? 'sheet' : 'csv', content: binary ? toBase64(buf) : decodeText(buf), useAi: ai, flipSigns },
       });
       setPreview(res);
       setRows(res.rows.map((r) => ({ ...r, on: !r.skip })));
       setStep('review');
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'No se pudo analizar el archivo. Inténtalo de nuevo.');
-      setStep('pick');
+      setStep(flipSigns ? 'review' : 'pick');
     }
   }, []);
 
@@ -142,7 +146,7 @@ export function ImportSheet({ open, onClose, onDone }: Props) {
 
             {step === 'pick' && (
               <>
-                <input ref={file} type="file" hidden accept=".csv,.tsv,.txt,.pdf,text/csv,application/pdf" onChange={(e) => { onFiles(e.target.files); e.target.value = ''; }} />
+                <input ref={file} type="file" hidden accept=".csv,.tsv,.txt,.pdf,.xlsx,.xlsm,.xls,.ods,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.oasis.opendocument.spreadsheet" onChange={(e) => { onFiles(e.target.files); e.target.value = ''; }} />
                 <button
                   className="drop" data-drag={drag}
                   onClick={() => file.current?.click()}
@@ -152,13 +156,14 @@ export function ImportSheet({ open, onClose, onDone }: Props) {
                 >
                   <Icon name="upload" size={28} />
                   <b>Suelta aquí tu extracto o toca para elegirlo</b>
-                  <span>CSV o PDF · hasta 9 MB</span>
+                  <span>CSV, Excel, LibreOffice o PDF · hasta 9 MB</span>
                 </button>
 
                 <ul className="imp-notes">
                   <li>Lo leemos en el servidor, <b>sin enviarlo a ninguna IA</b>. Detectamos fechas, importes y categorías por reglas.</li>
                   <li>Antes de guardar nada verás el resultado y podrás corregirlo. Lo que ya tienes no se duplica.</li>
-                  <li>Con N26, el CSV es lo más fiable: web app → Extractos → Descargar CSV. El PDF solo funciona si tiene texto, no si es una foto.</li>
+                  <li>Lo más fiable es el CSV o el Excel (.xlsx) que te da el banco; el PDF solo funciona si tiene texto, no si es una foto. Con N26: web app → Extractos → Descargar CSV.</li>
+                  <li>Entiende extractos de cuenta y de tarjeta (incluidas las que ponen los gastos en positivo, como Nexi), en euros, con fechas y números al estilo de España, Alemania o Italia.</li>
                 </ul>
 
                 {cfg?.ai && (
@@ -190,6 +195,12 @@ export function ImportSheet({ open, onClose, onDone }: Props) {
                   {preview.engine === 'ai' ? ' · mejorado con IA' : ' · análisis sin conexión'}
                 </p>
                 {preview.warnings.map((w) => <p key={w} className="imp-warn"><Icon name="info" size={16} />{w}</p>)}
+                <p className="hint imp-flip">
+                  ¿Los gastos salen como ingresos, o al revés?{' '}
+                  <button type="button" className="link-btn" disabled={step === 'importing' || !last.current} onClick={() => last.current && void analyze(last.current, useAi, !preview.signs?.flipped)}>
+                    {preview.signs?.flipped ? 'Volver a como estaba' : 'Invertir gastos e ingresos'}
+                  </button>
+                </p>
 
                 <ul className="imp-list">
                   {rows.slice(0, SHOWN).map((r) => (

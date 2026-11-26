@@ -40,6 +40,7 @@ El botón **«Importar extractos bancarios»** (en *Movimientos* y en *Ajustes �
 | Perfil financiero interno (nunca se muestra ni se expone por la API) | ✅ |
 | Consejos: pestaña «Generales» y pestaña «A fondo» (comercios, recurrentes, gastos pequeños, tendencias; con «qué hacer»); la IA es opcional y con consentimiento | ✅ (IA necesita `ANTHROPIC_API_KEY`) |
 | Cierre por inactividad (10 min, configurable con «Mantener conectado») y acceso con huella (passkeys) | ✅ (la huella exige HTTPS y `PUBLIC_ORIGIN` correcto) |
+| Importación de CSV, Excel (.xlsx), LibreOffice (.ods) y PDF; entiende extractos de cuenta y de tarjeta (gastos en positivo, p. ej. Nexi), fechas/números de ES-DE-IT, con botón «Invertir gastos e ingresos» | ✅ |
 | Importación con categorización por reglas, aprendizaje de tu historial y detección de comercios tras PayPal | ✅ |
 | Plan gratis / Premium (interruptor de demostración; falta pasarela de pago) | 🟡 |
 | Exportar y eliminar la cuenta (RGPD) | ✅ |

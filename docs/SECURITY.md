@@ -38,6 +38,8 @@ Es una credencial pública a propósito, para probar la interfaz. Se limita así
 
 - Rutas `/api/import/preview` y `/commit`: requieren sesión, límite de 20 peticiones por minuto, cuerpo máximo de 16 MB (vista previa) y 4 MB (confirmar), 5000 movimientos por importación.
 - El análisis es local en el servidor. La IA solo se usa si el usuario marca la casilla y hay `ANTHROPIC_API_KEY`; antes de enviar se eliminan IBAN, emails y números largos.
+- Los Excel (.xlsx) y hojas de LibreOffice (.ods) se leen solo como datos: se descomprime el zip y se interpreta su XML (cadenas, números, fechas); nunca se ejecutan macros, fórmulas ni enlaces externos. Límites: 120 MB descomprimidos en total, 60 MB por parte, 60 000 filas y 80 columnas, para frenar «zip bombs». Los `.xls` antiguos no se admiten. Sin librerías de Excel de terceros (solo `fflate` para el zip).
+- El signo de los importes se decide en servidor (`signs.ts`): extractos de tarjeta con gastos en positivo, columnas Dare/Avere o «tipo», y descripciones. La persona puede invertirlo con un botón.
 - La categorización usa reglas, el historial de la propia persona (si ya categorizó ese comercio, se repite su criterio) y, solo con consentimiento, la IA. Lo que no se puede saber se deja en «Otros» y se avisa; no se inventa.
 - Los IBAN del extracto no se guardan en las notas. La confirmación valida categoría, fecha (no futura) e importe en servidor; el tipo gasto/ingreso se deduce de la categoría.
 - Los datos de un extracto real son sensibles. Mientras el despliegue de Render use disco efímero y `ALLOW_DEMO_DATA=true`, **no importes tus movimientos reales ahí**: usa tu servidor propio con `ALLOW_DEMO_DATA=false`.

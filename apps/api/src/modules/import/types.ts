@@ -8,6 +8,8 @@ export interface RawRow {
   bankCategory?: string;
   /** Tipo de operación del banco («Presentment», «Space transfer»…). Solo sirve para detectar traspasos internos. */
   kind?: string;
+  /** Dirección indicada por el propio extracto (columna «tipo» o «segno»); solo se usa si los importes no llevan signo. */
+  hint?: 'debit' | 'credit';
 }
 
 export interface ImportRow {
@@ -25,10 +27,12 @@ export interface ImportRow {
 }
 
 export interface ImportPreview {
-  source: 'csv' | 'pdf';
+  source: 'csv' | 'pdf' | 'sheet';
   /** `offline`: todo se procesó en el servidor propio. `ai`: se usó Claude para parte del análisis. */
   engine: 'offline' | 'ai';
   rows: ImportRow[];
   stats: { total: number; income: number; expense: number; skipped: number; from: string; to: string; incomeMinor: number; expenseMinor: number };
   warnings: string[];
+  /** Cómo se decidió qué es gasto y qué es ingreso. `flipped`: la persona pidió invertirlo. */
+  signs: { mode: 'normal' | 'inverted' | 'unsigned'; flipped: boolean };
 }
