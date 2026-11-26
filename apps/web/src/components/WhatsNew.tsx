@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect } from 'react';
 import { KIND_LABEL, type Release } from '../content/novedades';
+import { useBackClose } from '../lib/backClose';
 import { t } from '../lib/i18n';
 import { Icon } from './Icon';
 
@@ -8,6 +9,7 @@ interface Props { open: boolean; releases: Release[]; version: string; onClose: 
 
 /** Ventana de novedades: qué ha cambiado desde la última vez que se abrió la app. */
 export function WhatsNew({ open, releases, version, onClose }: Props) {
+  useBackClose(open && releases.length > 0, onClose);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();

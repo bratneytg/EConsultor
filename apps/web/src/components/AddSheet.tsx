@@ -1,10 +1,11 @@
-import type { Transaction } from '@econsultor/shared';
+import { CATEGORY_LABEL_MAX, MAX_CUSTOM_CATEGORIES, type CategoryPrefs, type CustomCategory, type PublicUser, type Transaction } from '@econsultor/shared';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
-import { useUser } from '../lib/auth';
-import { categoryColor, categoryLabel, expenseCategories, incomeCategories } from '../lib/categories';
-import { ApiError } from '../lib/api';
+import { useAuth, useUser } from '../lib/auth';
+import { FAMILIES, categoryColor, categoryLabel, categoryPrefs, expenseCategories, incomeCategories } from '../lib/categories';
+import { api, ApiError } from '../lib/api';
 import { addDays, isoToday, parseAmount, shiftMonth, symbol } from '../lib/format';
+import { useBackClose } from '../lib/backClose';
 import { t } from '../lib/i18n';
 import { useAccounts, useDeleteTransaction, useSaveRecurring, useSaveTransaction } from '../lib/queries';
 import { Switch } from './ui';
@@ -19,6 +20,7 @@ interface Props {
 
 export function AddSheet({ open, editing, onClose, onDone }: Props) {
   const user = useUser();
+  const { setUser } = useAuth();
   const today = isoToday(user.timezone);
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [amount, setAmount] = useState('');
@@ -27,6 +29,8 @@ export function AddSheet({ open, editing, onClose, onDone }: Props) {
   const [note, setNote] = useState('');
   const [account, setAccount] = useState('');
   const [repeat, setRepeat] = useState(false);
+  const [newCat, setNewCat] = useState<{ label: string; family: string; nature: 'variable' | 'fixed' | 'discretionary' } | null>(null);
+  const [creating, setCreating] = useState(false);
   const { data: accounts } = useAccounts(open);
   const [error, setError] = useState('');
   const amountRef = useRef<HTMLInputElement>(null);
@@ -37,6 +41,7 @@ export function AddSheet({ open, editing, onClose, onDone }: Props) {
   useEffect(() => {
     if (!open) return;
     setError('');
+    setNewCat(null);
     if (editing) {
       setType(editing.type);
       setAmount((editing.amountMinor / 100).toFixed(2).replace('.', ','));
@@ -59,7 +64,32 @@ export function AddSheet({ open, editing, onClose, onDone }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
+  useBackClose(open, onClose);
+
   const cats = type === 'expense' ? expenseCategories(editing ? [editing.categoryId] : []) : incomeCategories(editing ? [editing.categoryId] : []);
+
+  /** Crea una categoría propia sin salir de la hoja y la deja elegida. */
+  const createCategory = async () => {
+    if (!newCat) return;
+    const label = newCat.label.trim();
+    if (!label) return setError(t('Escribe un nombre'));
+    setCreating(true);
+    setError('');
+    try {
+      const before = categoryPrefs();
+      const flags = type === 'expense' ? { fixed: newCat.nature === 'fixed' || undefined, discretionary: newCat.nature === 'discretionary' || undefined } : {};
+      const next: CategoryPrefs = { ...before, custom: [...before.custom, { label, type, family: type === 'expense' ? (newCat.family as CustomCategory['family']) : undefined, ...flags } as CustomCategory] };
+      const saved = await api<PublicUser>('/me/categories', { method: 'PUT', json: next });
+      setUser(saved);
+      const known = new Set(before.custom.map((c) => c.id));
+      const created = saved.categoryPrefs.custom.find((c) => !known.has(c.id));
+      if (created) setCat(created.id);
+      setNewCat(null);
+      onDone(t('Categoría creada'));
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t('No se pudo guardar. Inténtalo de nuevo.'));
+    } finally { setCreating(false); }
+  };
 
   const submit = async (another: boolean) => {
     const minor = parseAmount(amount);
@@ -101,8 +131,8 @@ export function AddSheet({ open, editing, onClose, onDone }: Props) {
           >
             <div className="grabber" />
             <div className="segmented" role="group" aria-label={t('Tipo de movimiento')}>
-              <button aria-pressed={type === 'expense'} onClick={() => { setType('expense'); setCat(''); }}>{t('Gasto')}</button>
-              <button aria-pressed={type === 'income'} onClick={() => { setType('income'); setCat(''); }}>{t('Ingreso')}</button>
+              <button aria-pressed={type === 'expense'} onClick={() => { setType('expense'); setCat(''); setNewCat(null); }}>{t('Gasto')}</button>
+              <button aria-pressed={type === 'income'} onClick={() => { setType('income'); setCat(''); setNewCat(null); }}>{t('Ingreso')}</button>
             </div>
 
             <div className="amount-wrap">
@@ -121,7 +151,44 @@ export function AddSheet({ open, editing, onClose, onDone }: Props) {
                   {categoryLabel(c.id)}
                 </button>
               ))}
+              {!newCat && categoryPrefs().custom.length < MAX_CUSTOM_CATEGORIES && (
+                <button className="cat" style={{ ['--tile-c' as string]: 'var(--ink-3)' }} onClick={() => { setNewCat({ label: '', family: 'other', nature: 'variable' }); setError(''); }}>
+                  <span className="tile" style={{ borderStyle: 'dashed' }}><Icon name="plus" /></span>
+                  {t('Nueva categoría')}
+                </button>
+              )}
             </div>
+
+            {newCat && (
+              <div className="stack" style={{ marginBottom: 14 }}>
+                <div className="field" style={{ marginBottom: 0 }}>
+                  <label htmlFor="new-cat">{t('Nombre de la categoría')}</label>
+                  <input id="new-cat" className="input" autoFocus maxLength={CATEGORY_LABEL_MAX} placeholder={type === 'expense' ? t('Ej.: Mascotas') : t('Ej.: Alquiler de una habitación')} value={newCat.label} onChange={(e) => setNewCat({ ...newCat, label: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && createCategory()} />
+                </div>
+                {type === 'expense' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div className="field" style={{ marginBottom: 0 }}>
+                      <label htmlFor="new-cat-family">{t('Color')}</label>
+                      <select id="new-cat-family" className="input" value={newCat.family} onChange={(e) => setNewCat({ ...newCat, family: e.target.value })}>
+                        {FAMILIES.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+                      </select>
+                    </div>
+                    <div className="field" style={{ marginBottom: 0 }}>
+                      <label htmlFor="new-cat-nature">{t('Tipo de gasto')}</label>
+                      <select id="new-cat-nature" className="input" value={newCat.nature} onChange={(e) => setNewCat({ ...newCat, nature: e.target.value as 'variable' | 'fixed' | 'discretionary' })}>
+                        <option value="variable">{t('Variable')}</option>
+                        <option value="fixed">{t('Fijo')}</option>
+                        <option value="discretionary">{t('Discrecional')}</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button className="btn btn-primary" disabled={creating} onClick={createCategory}>{t('Crear')}</button>
+                  <button className="btn btn-ghost" onClick={() => setNewCat(null)}>{t('Cancelar')}</button>
+                </div>
+              </div>
+            )}
 
             <div className="field">
               <span className="lbl">{t('Fecha')}</span>

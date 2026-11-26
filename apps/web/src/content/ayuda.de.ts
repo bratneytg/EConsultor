@@ -33,7 +33,7 @@ export const AYUDA_DE: Record<string, Traduccion> = {
     texto: [
       "Einfach zeigt deinen Kontostand, ein klares Diagramm und deine wichtigsten Kategorien. Gedacht für einen Blick in zehn Sekunden.",
       "Professionell ergänzt den Geldfluss, den Finanzpuls, deine typische Woche und den Vergleich der letzten 12 Monate.",
-      "Du wechselst unter Einstellungen › Oberfläche, und die Wahl wird in deinem Konto gespeichert – auf Handy und Computer ist sie also dieselbe.",
+      "Du wechselst unter Einstellungen › Oberfläche, Sprache und Profil, und die Wahl wird in deinem Konto gespeichert – auf Handy und Computer ist sie also dieselbe.",
     ],
     accion: "Zu den Einstellungen",
   },

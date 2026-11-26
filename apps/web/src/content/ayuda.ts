@@ -34,7 +34,7 @@ export const ARTICULOS: Articulo[] = [
       '- Mixto: importa el extracto cada mes y anota a mano solo los pagos en efectivo, que no aparecen en el banco.',
       'Las gráficas y los consejos mejoran cuantos más meses tengan. Con 2 o 3 meses ya se ven tus hábitos con claridad.',
     ],
-    accion: { etiqueta: 'Importar un extracto', to: '/ajustes' },
+    accion: { etiqueta: 'Importar un extracto', to: '/ajustes/datos' },
   },
   {
     id: 'primer-paso',
@@ -59,9 +59,9 @@ export const ARTICULOS: Articulo[] = [
     texto: [
       'Sencilla muestra tu saldo, un gráfico claro y tus categorías principales. Está pensada para mirarla en diez segundos.',
       'Profesional añade el flujo del dinero, el pulso financiero, tu semana tipo y la comparación de los últimos 12 meses.',
-      'Se cambia en Ajustes › Interfaz y la elección se guarda en tu cuenta, así que es la misma en el móvil y en el ordenador.',
+      'Se cambia en Ajustes › Interfaz, idioma y perfil y la elección se guarda en tu cuenta, así que es la misma en el móvil y en el ordenador.',
     ],
-    accion: { etiqueta: 'Ir a Ajustes', to: '/ajustes' },
+    accion: { etiqueta: 'Ir a Ajustes', to: '/ajustes/general' },
   },
   {
     id: 'anotar-movimientos',
@@ -96,7 +96,7 @@ export const ARTICULOS: Articulo[] = [
       '- Varias cuentas: antes de importar eliges a qué cuenta pertenece el extracto. Si parece un extracto que ya subiste (coinciden muchas fechas, importes y comercios con otra cuenta), te avisa por si te has equivocado de archivo.',
       'Si un archivo no se entiende, usa el botón de reportar fallos y cuéntanos qué banco es; no hace falta que adjuntes nada con tus datos.',
     ],
-    accion: { etiqueta: 'Importar ahora', to: '/ajustes' },
+    accion: { etiqueta: 'Importar ahora', to: '/ajustes/datos' },
   },
   {
     id: 'varias-cuentas',
@@ -126,7 +126,7 @@ export const ARTICULOS: Articulo[] = [
       'Puedes ponerlos en pausa (al reanudarlos no se anotan los meses parados), cambiarlos o eliminarlos. Los cambios solo afectan a lo que viene: lo que ya se anotó se queda como está, y si borras a mano un movimiento generado, no vuelve a aparecer.',
       'Los cargos se anotan aunque no abras la app ese día: el servidor lo hace solo y en cuanto entras ya están. Los periódicos también mejoran la previsión de fin de mes.',
     ],
-    accion: { etiqueta: 'Crear un periódico', to: '/ajustes' },
+    accion: { etiqueta: 'Crear un periódico', to: '/ajustes/periodicos' },
   },
   {
     id: 'categorias-propias',
@@ -143,7 +143,7 @@ export const ARTICULOS: Articulo[] = [
       '«Fijo» y «discrecional» no son un adorno: los consejos y la previsión los usan para separar lo que puedes recortar de lo que tienes que pagar sí o sí.',
       'Un consejo: usa pocas categorías y claras. Con menos de 15 se ve mejor a dónde va el dinero.',
     ],
-    accion: { etiqueta: 'Abrir categorías', to: '/ajustes' },
+    accion: { etiqueta: 'Abrir categorías', to: '/ajustes/categorias' },
   },
   {
     id: 'idioma',
@@ -296,7 +296,7 @@ export const ARTICULOS: Articulo[] = [
       '- En el navegador necesitas además permitir las notificaciones del dispositivo.',
       '- En iPhone: abre la web en Safari, pulsa Compartir › «Añadir a pantalla de inicio», abre EConsultor desde ahí y activa los avisos.',
     ],
-    accion: { etiqueta: 'Configurar el aviso', to: '/ajustes' },
+    accion: { etiqueta: 'Configurar el aviso', to: '/ajustes/avisos' },
   },
   {
     id: 'app-android',
@@ -332,7 +332,7 @@ export const ARTICULOS: Articulo[] = [
       'En Ajustes › Seguridad pulsa «Activar», escanea el código QR con una app autenticadora (Google Authenticator, Authy, 1Password…) y escribe el código de 6 dígitos.',
       'Guarda los códigos de recuperación en un lugar seguro: cada uno sirve una vez si pierdes el móvil, y no se vuelven a mostrar.',
     ],
-    accion: { etiqueta: 'Activar ahora', to: '/ajustes' },
+    accion: { etiqueta: 'Activar ahora', to: '/ajustes/seguridad' },
   },
   {
     id: 'huella-y-sesion',
@@ -346,7 +346,7 @@ export const ARTICULOS: Articulo[] = [
       'En la app de Android la huella usa el lector del teléfono (también la cara o el PIN del sistema): inicia sesión con tu contraseña, actívala en Ajustes › Seguridad y la próxima vez te la pedirá al entrar. En el navegador necesitas abrir la app desde su dirección segura (https) y tener huella o PIN configurado en el móvil.',
       'Si pierdes el móvil, entra con tu contraseña y quita ese dispositivo.',
     ],
-    accion: { etiqueta: 'Ir a Seguridad', to: '/ajustes' },
+    accion: { etiqueta: 'Ir a Seguridad', to: '/ajustes/seguridad' },
   },
   {
     id: 'exportar-borrar',
@@ -357,7 +357,7 @@ export const ARTICULOS: Articulo[] = [
     texto: [
       'En Ajustes › Tus datos puedes exportar todo en un archivo JSON, borrar solo los movimientos (conservando la cuenta) o eliminar la cuenta de forma definitiva. Al eliminarla desaparecen también tus reportes de fallos.',
     ],
-    accion: { etiqueta: 'Tus datos', to: '/ajustes' },
+    accion: { etiqueta: 'Tus datos', to: '/ajustes/datos' },
   },
   {
     id: 'informe-mensual',
@@ -371,7 +371,7 @@ export const ARTICULOS: Articulo[] = [
       '- Después van los datos: cifras clave, gasto por categorías, evolución de los últimos meses, gasto día a día, mayores gastos, ingresos y tus gastos periódicos.',
       'El informe se hace en tu idioma y con los nombres de categoría que hayas puesto. En la app de Android se guarda en Descargas (si no se guarda, actualiza la app). Es una ayuda para entender tus cifras, no asesoramiento financiero.',
     ],
-    accion: { etiqueta: 'Descargar un informe', to: '/ajustes' },
+    accion: { etiqueta: 'Descargar un informe', to: '/ajustes/informe' },
   },
   {
     id: 'privacidad',

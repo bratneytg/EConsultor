@@ -33,7 +33,7 @@ export const AYUDA_EN: Record<string, Traduccion> = {
     texto: [
       "Simple shows your balance, one clear chart and your main categories. It's meant to be read in ten seconds.",
       "Professional adds the flow of your money, the financial pulse, your typical week and a 12-month comparison.",
-      "You change it in Settings › Interface and the choice is saved to your account, so it's the same on your phone and your computer.",
+      "You change it in Settings › Interface, language and profile and the choice is saved to your account, so it's the same on your phone and your computer.",
     ],
     accion: "Go to Settings",
   },

@@ -2,9 +2,9 @@ import type { PublicUser, UiMode } from '@econsultor/shared';
 import { api } from '../lib/api';
 import { useAuth, useUser } from '../lib/auth';
 import { useShell } from './Shell';
-import { t } from '../lib/i18n';
+import { t, tk } from '../lib/i18n';
 
-const MODES: [UiMode, string][] = [['simple', 'Sencilla'], ['pro', 'Profesional']];
+const MODES: [UiMode, string][] = [['simple', tk('Sencilla')], ['pro', tk('Profesional')]];
 
 /** Cambia entre la interfaz sencilla y la profesional; la elección se guarda en el perfil. */
 export function ModeSwitch() {
@@ -26,7 +26,7 @@ export function ModeSwitch() {
   return (
     <div className="segmented" role="group" aria-label={t('Tipo de interfaz')}>
       {MODES.map(([k, label]) => (
-        <button key={k} aria-pressed={user.uiMode === k} onClick={() => choose(k)}>{label}</button>
+        <button key={k} aria-pressed={user.uiMode === k} onClick={() => choose(k)}>{t(label)}</button>
       ))}
     </div>
   );

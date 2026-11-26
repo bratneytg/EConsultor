@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { useBackClose } from '../lib/backClose';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useUser } from '../lib/auth';
 import { ApiError, api } from '../lib/api';
@@ -186,6 +187,7 @@ export function ImportSheet({ open, onClose, onDone }: Props) {
   };
 
   const busy = step === 'analyzing' || step === 'importing';
+  useBackClose(open, onClose, () => !busy);
 
   return (
     <AnimatePresence>

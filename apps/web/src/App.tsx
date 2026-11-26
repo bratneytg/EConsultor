@@ -30,6 +30,7 @@ export function App() {
         <Route path="consejos" element={<Suspense fallback={fallback}><Advice /></Suspense>} />
         <Route path="ayuda" element={<Suspense fallback={fallback}><Help /></Suspense>} />
         <Route path="ajustes" element={<Suspense fallback={fallback}><Settings /></Suspense>} />
+        <Route path="ajustes/:section" element={<Suspense fallback={fallback}><Settings /></Suspense>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

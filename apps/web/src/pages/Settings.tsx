@@ -2,16 +2,16 @@ import type { PublicUser } from '@econsultor/shared';
 import { locale, t, tk, tx } from '../lib/i18n';
 import { useQuery } from '@tanstack/react-query';
 import QRCode from 'qrcode';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { LanguagePicker } from '../components/LanguagePicker';
-import { Icon } from '../components/Icon';
+import { Icon, type IconName } from '../components/Icon';
 import { ModeSwitch } from '../components/ModeSwitch';
 import { CategoriesCard } from '../components/CategoriesCard';
 import { RecurringCard } from '../components/RecurringCard';
 import { ReportCard } from '../components/ReportCard';
 import { useShell } from '../components/Shell';
 import { Card, Switch } from '../components/ui';
-import { Link } from 'react-router-dom';
+import { Link, Navigate, useParams } from 'react-router-dom';
 import { isAndroidApp, saveTextFile } from '../lib/native';
 import { api, ApiError } from '../lib/api';
 import { useAuth, useUser } from '../lib/auth';
@@ -19,6 +19,8 @@ import { useAppConfig, useInvalidateData } from '../lib/queries';
 import { disablePush, enablePush, hasPushSubscription, isIOS, isStandalone, pushSupported } from '../lib/push';
 import { passkeyMessage, passkeyStatus, registerPasskey, removePasskey as removeKey, statusMessage, thisDeviceKeyId, type PasskeyStatus } from '../lib/passkey';
 import { applyTheme, getThemePref, type ThemePref } from '../lib/theme';
+
+interface Section { id: string; icon: IconName; title: string; hint: string; multi?: boolean; body: ReactNode }
 
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'MXN', 'ARS', 'COP', 'CLP', 'PEN', 'BRL'];
 const EVENT_LABEL: Record<string, string> = {
@@ -59,10 +61,12 @@ export function Settings() {
     saveTextFile('econsultor-export.json', 'application/json', JSON.stringify(data, null, 2));
   };
 
-  return (
-    <div>
-      <header className="page-head"><h1>{t('Ajustes')}</h1></header>
-      <div className="stack">
+  const { section } = useParams();
+  useEffect(() => { window.scrollTo(0, 0); }, [section]);
+
+  const sections: Section[] = [
+    { id: 'general', icon: 'gear', title: tk('Interfaz, idioma y perfil'), hint: tk('Tipo de interfaz, idioma, moneda y tema'), multi: true, body: (
+      <>
         <Card title={t('Interfaz')} subtitle={t('Sencilla: lo esencial, con pocos gráficos. Profesional: el análisis completo.')}>
           <ModeSwitch />
         </Card>
@@ -86,20 +90,19 @@ export function Settings() {
           <div className="field" style={{ marginBottom: 0 }}>
             <span className="lbl">{t('Apariencia')}</span>
             <div className="segmented" role="group" aria-label={t('Tema')}>
-              {([['system', 'Sistema'], ['light', 'Claro'], ['dark', 'Oscuro']] as const).map(([k, l]) => (
-                <button key={k} aria-pressed={theme === k} onClick={() => { setTheme(k); applyTheme(k); }}>{l}</button>
+              {([['system', tk('Sistema')], ['light', tk('Claro')], ['dark', tk('Oscuro')]] as const).map(([k, l]) => (
+                <button key={k} aria-pressed={theme === k} onClick={() => { setTheme(k); applyTheme(k); }}>{t(l)}</button>
               ))}
             </div>
           </div>
         </Card>
-
-        <RecurringCard />
-
-        <CategoriesCard />
-
-        <ReportCard />
-
-        <Card title={t('Recordatorio diario')} subtitle={t('Un aviso al final del día para anotar tus movimientos. Solo si aún no has anotado nada.')}>
+      </>
+    ) },
+    { id: 'periodicos', icon: 'repeat', title: tk('Gastos periódicos'), hint: tk('Alquiler, transporte, suscripciones, nómina…'), body: <RecurringCard /> },
+    { id: 'categorias', icon: 'list', title: tk('Categorías'), hint: tk('Crea las tuyas, cambia nombres u oculta las que no uses'), body: <CategoriesCard /> },
+    { id: 'informe', icon: 'chart', title: tk('Informe mensual'), hint: tk('Descarga un PDF con el análisis de cada mes'), body: <ReportCard /> },
+    { id: 'avisos', icon: 'bell', title: tk('Recordatorio diario'), hint: tk('Un aviso para que no se te olvide anotar'), body: (
+      <Card title={t('Recordatorio diario')} subtitle={t('Un aviso al final del día para anotar tus movimientos. Solo si aún no has anotado nada.')}>
           <div className="setting">
             <div><b>{t('Recordarme cada día')}</b></div>
             <Switch label={t('Recordatorio diario')} checked={user.reminderEnabled} onChange={(v) => patch({ reminderEnabled: v })} />
@@ -122,10 +125,17 @@ export function Settings() {
           </div>
           )}
         </Card>
-
-        <Security />
-
-        <Card title={t('Ayuda')} subtitle={t('Guías, trucos y respuestas. Búscalas cuando las necesites.')}>
+    ) },
+    { id: 'seguridad', icon: 'shield', title: tk('Seguridad'), hint: tk('Verificación en dos pasos, huella y sesiones'), body: <Security /> },
+    { id: 'datos', icon: 'upload', title: tk('Tus datos'), hint: tk('Importar extractos, exportar o borrar'), body: (
+      <Card title={t('Tus datos')} subtitle={t('Son tuyos: puedes llevártelos o borrarlos cuando quieras.')}>
+          <div className="setting"><div><b>{t('Importar extractos bancarios')}</b><p>{t('Sube el CSV o el PDF de tu banco y rellenamos tus movimientos y tu perfil.')}</p></div><button className="btn" onClick={openImport}><Icon name="upload" size={18} />{t('Importar')}</button></div>
+          <div className="setting"><div><b>{t('Exportar mis datos')}</b><p>{t('Un archivo JSON con tus movimientos y ajustes.')}</p></div><button className="btn" onClick={exportData}><Icon name="download" size={18} />{t('Exportar')}</button></div>
+          <DangerZone onDone={() => invalidate()} />
+        </Card>
+    ) },
+    { id: 'ayuda', icon: 'help', title: tk('Ayuda y novedades'), hint: tk('Guía, novedades y reportar un fallo'), body: (
+      <Card title={t('Ayuda')} subtitle={t('Guías, trucos y respuestas. Búscalas cuando las necesites.')}>
           <div className="setting"><div><b>{t('Ayuda y tutorial')}</b><p>{t('Cómo usar la app a diario o con un extracto mensual, qué significa cada gráfica…')}</p></div><Link className="btn" to="/ayuda"><Icon name="help" size={18} />{t('Abrir')}</Link></div>
           <div className="setting"><div><b>{t('Novedades')}</b><p>{t('Qué ha cambiado en la app. Versión {version}.', { version: __APP_VERSION__ })}</p></div><button className="btn" onClick={openWhatsNew}><Icon name="spark" size={18} />{t('Ver')}</button></div>
           <div className="setting"><div><b>{t('Reportar un fallo o una idea')}</b><p>{t('También tienes un icono discreto arriba a la derecha en cualquier pantalla.')}</p></div><button className="btn" onClick={openReport}><Icon name="bug" size={18} />{t('Reportar')}</button></div>
@@ -133,15 +143,9 @@ export function Settings() {
             <div className="setting"><div><b>{t('App para Android')}</b><p>{t('Con el aviso diario nativo.')}</p></div><a className="btn" href={cfg.apkUrl}><Icon name="phone" size={18} />{t('Descargar')}</a></div>
           )}
         </Card>
-
-        <Card title={t('Tus datos')} subtitle={t('Son tuyos: puedes llevártelos o borrarlos cuando quieras.')}>
-          <div className="setting"><div><b>{t('Importar extractos bancarios')}</b><p>{t('Sube el CSV o el PDF de tu banco y rellenamos tus movimientos y tu perfil.')}</p></div><button className="btn" onClick={openImport}><Icon name="upload" size={18} />{t('Importar')}</button></div>
-          <div className="setting"><div><b>{t('Exportar mis datos')}</b><p>{t('Un archivo JSON con tus movimientos y ajustes.')}</p></div><button className="btn" onClick={exportData}><Icon name="download" size={18} />{t('Exportar')}</button></div>
-          <DangerZone onDone={() => invalidate()} />
-        </Card>
-
-        {cfg?.demo && (
-          <Card title={t('Modo demostración')} subtitle={t('Solo visible en desarrollo.')}>
+    ) },
+    ...(cfg?.demo ? [{ id: 'demo', icon: 'spark' as const, title: tk('Modo demostración'), hint: tk('Solo visible en desarrollo.'), body: (
+      <Card title={t('Modo demostración')} subtitle={t('Solo visible en desarrollo.')}>
             <div className="setting">
               <div><b>{t('Plan')}</b><p>{t('Ahora: {plan}. Premium desbloquea todos los consejos y la IA.', { plan: user.plan === 'premium' ? t('Premium') : t('Gratis') })}</p></div>
               <button className="btn" onClick={async () => setUser(await api<PublicUser>('/dev/plan', { method: 'POST', json: { plan: user.plan === 'premium' ? 'free' : 'premium' } }))}>
@@ -149,7 +153,37 @@ export function Settings() {
               </button>
             </div>
           </Card>
-        )}
+    ) }] : []),
+  ];
+
+  const current = sections.find((x) => x.id === section);
+  if (section && !current) return <Navigate to="/ajustes" replace />;
+
+  if (current) {
+    return (
+      <div>
+        <header className="page-head subpage-head">
+          <Link to="/ajustes" className="icon-btn" aria-label={t('Volver a Ajustes')}><Icon name="left" size={20} /></Link>
+          <h1>{t(current.title)}</h1>
+        </header>
+        <div className={`stack ${current.multi ? '' : 'sub-single'}`}>{current.body}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <header className="page-head"><h1>{t('Ajustes')}</h1></header>
+      <div className="stack">
+        <nav className="menu card" aria-label={t('Ajustes')}>
+          {sections.map((x) => (
+            <Link key={x.id} to={`/ajustes/${x.id}`} className="menu-row">
+              <span className="tile"><Icon name={x.icon} /></span>
+              <span className="menu-text"><b>{t(x.title)}</b><small>{t(x.hint)}</small></span>
+              <Icon name="right" size={18} />
+            </Link>
+          ))}
+        </nav>
 
         <button className="btn btn-block" onClick={logout}><Icon name="logout" size={18} />{t('Cerrar sesión')}</button>
         <p className="hint" style={{ textAlign: 'center' }}>{user.email}</p>

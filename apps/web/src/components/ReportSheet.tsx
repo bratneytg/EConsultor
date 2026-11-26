@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { api, ApiError } from '../lib/api';
 import { appVersion, platformName } from '../lib/native';
+import { useBackClose } from '../lib/backClose';
 import { t, tk } from '../lib/i18n';
 
 type Kind = 'bug' | 'idea' | 'other';
@@ -16,6 +17,7 @@ export function ReportSheet({ open, onClose, onDone }: { open: boolean; onClose:
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { if (open) { setError(''); setBusy(false); } }, [open]);
+  useBackClose(open, onClose, () => !busy);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();

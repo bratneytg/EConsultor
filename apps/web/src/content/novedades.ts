@@ -11,6 +11,16 @@ export interface Release { version: string; title: string; changes: Change[] }
  */
 export const RELEASES: Release[] = [
   {
+    version: '1.4.1',
+    title: tk('Ajustes más fáciles de recorrer'),
+    changes: [
+      { kind: 'improvement', text: tk('Ajustes ahora es un menú: cada tema (periódicos, categorías, seguridad…) tiene su propia pantalla.') },
+      { kind: 'feature', text: tk('Puedes crear una categoría nueva al anotar un gasto o un ingreso, sin salir de esa ventana.') },
+      { kind: 'fix', text: tk('El botón «Atrás» del móvil cierra primero la ventana abierta, en lugar de salir de la pantalla.') },
+      { kind: 'fix', text: tk('Al cambiar de idioma, «Sencilla / Profesional» y el tema también se traducen.') },
+    ],
+  },
+  {
     version: '1.4.0',
     title: tk('Gastos periódicos, categorías propias e informe en PDF'),
     changes: [

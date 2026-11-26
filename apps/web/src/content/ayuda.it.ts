@@ -33,7 +33,7 @@ export const AYUDA_IT: Record<string, Traduccion> = {
     texto: [
       "La versione Semplice mostra il tuo saldo, un grafico chiaro e le categorie principali. È pensata per essere letta in dieci secondi.",
       "La versione Professionale aggiunge il flusso del denaro, il polso finanziario, la tua settimana tipo e il confronto degli ultimi 12 mesi.",
-      "Si cambia in Impostazioni › Interfaccia e la scelta viene salvata nel tuo account, quindi è la stessa su telefono e computer.",
+      "Si cambia in Impostazioni › Interfaccia, lingua e profilo e la scelta viene salvata nel tuo account, quindi è la stessa su telefono e computer.",
     ],
     accion: "Vai alle Impostazioni",
   },
