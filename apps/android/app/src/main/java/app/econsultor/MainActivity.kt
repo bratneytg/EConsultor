@@ -196,6 +196,44 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // ── Huella del teléfono (BiometricPrompt + Keystore) ──
+        @JavascriptInterface
+        fun biometricAvailable(): Boolean = Biometric.available(this@MainActivity)
+
+        @JavascriptInterface
+        fun biometricInfo(): String = Biometric.info(this@MainActivity) ?: ""
+
+        @JavascriptInterface
+        fun biometricForget() = Biometric.forget(this@MainActivity)
+
+        @JavascriptInterface
+        fun biometricEnroll(cb: String, userId: String, id: String, secret: String, title: String, subtitle: String, cancel: String) {
+            if (!validCallback(cb)) return
+            runOnUiThread {
+                Biometric.enroll(this@MainActivity, userId.take(100), id.take(100), secret.take(300), title.take(60), subtitle.take(120), cancel.take(30)) { ok, data ->
+                    responder(cb, ok, data)
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun biometricLogin(cb: String, title: String, subtitle: String, cancel: String) {
+            if (!validCallback(cb)) return
+            runOnUiThread {
+                Biometric.login(this@MainActivity, title.take(60), subtitle.take(120), cancel.take(30)) { ok, data ->
+                    responder(cb, ok, data)
+                }
+            }
+        }
+
+        private fun validCallback(cb: String) = Regex("^[A-Za-z0-9_-]{1,40}$").matches(cb)
+
+        /** Devuelve el resultado a la web: `window.__ecBio(callbackId, ok, datos)`. */
+        private fun responder(cb: String, ok: Boolean, data: String) {
+            val js = "window.__ecBio && window.__ecBio(${org.json.JSONObject.quote(cb)}, $ok, ${org.json.JSONObject.quote(data)})"
+            runOnUiThread { web.evaluateJavascript(js, null) }
+        }
+
         /** Guarda un archivo de texto (la exportación de datos) en la carpeta Descargas. */
         @JavascriptInterface
         fun saveTextFile(name: String, mime: String, content: String) {
