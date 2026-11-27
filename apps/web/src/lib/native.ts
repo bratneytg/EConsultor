@@ -128,7 +128,13 @@ export const nativeBiometricLogin = (tx: BioText): Promise<string> => call((cb) 
 
 // ───────── Captura de pagos (notificaciones) ─────────
 export interface CaptureApp { pkg: string; label: string; on: boolean; known: boolean }
-export interface NativeCaptureStatus { access: boolean; configured: boolean; queued: number; sent: number }
+export interface NativeCaptureStatus {
+  access: boolean; configured: boolean; queued: number; sent: number;
+  /** Último aviso de una app de banco entregado por Android y qué pasó con él. */
+  last?: { pkg?: string; label?: string; at?: number; outcome?: 'queued' | 'no_amount' | 'not_selected' | 'filtered' };
+  /** Resultado del último intento de envío al servidor: código HTTP o «net». */
+  lastSend?: string; lastSendAt?: number;
+}
 
 /** ¿Esta versión de la app puede leer notificaciones de pago? */
 export const captureSupported = (): boolean => typeof native()?.captureSetup === 'function';

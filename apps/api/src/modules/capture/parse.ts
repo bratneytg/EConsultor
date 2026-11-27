@@ -33,7 +33,7 @@ export function parseAmountMinor(raw: string): number | null {
 }
 
 // ── Verbos: quién paga a quién ──
-const SPEND = /\b(bezahlt|ausgegeben|zahlung|kartenzahlung|abbuchung|abgebucht|lastschrift|belastet|belastung|kauf|einkauf|ueberweisung gesendet|gesendet|paid|spent|payment|purchase|charged|debit|debited|sent|withdrawal|withdrawn|card payment|you paid|compra|pago|cargo|cargado|has pagado|has gastado|adeudo|retirada|domiciliacion|recibo|transferencia enviada|pagamento|acquisto|addebito|addebitato|hai speso|hai pagato|prelievo|bonifico inviato)\b/;
+const SPEND = /\b(bezahlt|ausgegeben|zahlungsvorgang|zahlung|kartenzahlung|abbuchung|abgebucht|lastschrift|belastet|belastung|kauf|einkauf|ueberweisung gesendet|gesendet|paid|spent|payment|purchase|charged|debit|debited|sent|withdrawal|withdrawn|card payment|you paid|compra|pago|cargo|cargado|has pagado|has gastado|adeudo|retirada|domiciliacion|recibo|transferencia enviada|pagamento|acquisto|addebito|addebitato|hai speso|hai pagato|prelievo|bonifico inviato)\b/;
 const INCOME = /\b(erhalten|zurueckerhalten|erstattung|erstattet|eingegangen|gutschrift|gutgeschrieben|eingang|geldeingang|received|deposit|deposited|credited|refund|refunded|incoming|got paid|ingreso|ingresado|has recibido|abono|abonado|transferencia recibida|nomina|devolucion|reembolso|accredito|accreditato|hai ricevuto|bonifico ricevuto|stipendio|rimborso)\b/;
 // Sustantivos sueltos («Zahlung», «Pago»): no deciden por sí solos si entra o sale dinero.
 const WEAK_SPEND = /^(zahlung|zahlung|payment|pago|pagamento|cargo|kauf|compra|purchase|acquisto|einkauf|sent|gesendet)$/;
@@ -82,6 +82,7 @@ const GENERIC_TITLE = /^(?:\W*)(zahlung|payment|pago|pagamento|transaktion|trans
 /** Quita lo que no es el nombre del comercio: tarjeta, ciudad tras coma, fecha, «mit Karte…». */
 function cleanMerchant(s: string): string {
   return s
+    .replace(/\s+(?:über|ueber|für|fuer|over|for|por|per)\s+[-−–+]?\s*[€$£\d].*$/i, '')
     .replace(/\b(?:mit|with|con|using|via|per|durch|tramite)\s+(?:der\s+|deiner\s+|tu\s+|tua\s+|your\s+|la\s+)?(?:karte|card|tarjeta|carta|girocard|visa|mastercard|apple pay|google pay|wallet)\b.*$/i, '')
     .replace(/\b(?:am|on|el|il|den|le)\s+\d{1,2}[./-]\d{1,2}(?:[./-]\d{2,4})?\b.*$/i, '')
     .replace(/\s*\([^)]*\)\s*$/g, '')
@@ -139,7 +140,15 @@ export function parseNotification(inp: NotificationInput): ParsedPayment | Parse
   const inc = INCOME.exec(n);
   // Códigos de seguridad y publicidad no son pagos, aunque nombren una «Zahlung» o un «Einkauf».
   if (NOISE.test(n) && (/\b\d{4,8}\b/.test(n.replace(/\d+[.,]\d{1,2}/g, '')) || !STRONG.test(n))) return 'no_cue';
-  if (!spend && !inc) return implicit === 'spend' ? parseWallet(title, whole, amount) : 'no_cue';
+  if (!spend && !inc) {
+    if (implicit === 'spend') return parseWallet(title, whole, amount);
+    // Un importe con signo explícito y sin más palabras («REWE» / «−12,50 €») es un cargo o un abono.
+    if (amount.sign && !NOISE.test(n)) {
+      const merchant = findMerchant(title, whole, amount.index + amount.length, inp.app);
+      return { type: amount.sign === '+' ? 'income' : 'expense', amountMinor: amount.minor, currency: amount.currency, merchant };
+    }
+    return 'no_cue';
+  }
   // Si salen los dos, manda el que aparece primero («has recibido una devolución de tu pago»).
   let type: 'income' | 'expense' = inc && (!spend || inc.index < spend.index || WEAK_SPEND.test(spend[0])) ? 'income' : 'expense';
   if (amount.sign === '+') type = 'income';

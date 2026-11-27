@@ -175,6 +175,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         // Avisos de pago que no pudieron enviarse (sin conexión): se reintentan al abrir la app.
         Capture.flush(this)
+        Capture.rebind(this)
     }
 
     /** Lo que la web puede pedirle a la app. Solo se expone a la página de tu servidor. */

@@ -1,7 +1,9 @@
 package app.econsultor
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
+import android.service.notification.NotificationListenerService
 import androidx.core.app.NotificationManagerCompat
 import org.json.JSONArray
 import org.json.JSONObject
@@ -104,9 +106,30 @@ object Capture {
         }
     }
 
+    /** Último aviso de una app de banco que Android nos entregó y qué se hizo con él (sin guardar su texto). */
+    fun noteEvent(c: Context, pkg: String, outcome: String) {
+        val label = KNOWN[pkg] ?: pkg
+        sp(c).edit().putString("last", JSONObject().put("pkg", pkg).put("label", label).put("at", System.currentTimeMillis()).put("outcome", outcome).toString()).apply()
+    }
+
+    private fun noteSend(c: Context, result: String) {
+        sp(c).edit().putString("lastSend", result).putLong("lastSendAt", System.currentTimeMillis()).apply()
+    }
+
+    /** Si el permiso está dado pero Android no tiene el servicio conectado, le pide que lo vuelva a enlazar. */
+    fun rebind(c: Context) {
+        try {
+            if (NotificationManagerCompat.getEnabledListenerPackages(c).contains(c.packageName)) {
+                NotificationListenerService.requestRebind(ComponentName(c, NotificationCaptureService::class.java))
+            }
+        } catch (_: Exception) { /* sin permiso o servicio no disponible */ }
+    }
+
     fun status(c: Context): String {
         val access = NotificationManagerCompat.getEnabledListenerPackages(c).contains(c.packageName)
-        return JSONObject().put("access", access).put("configured", configured(c)).put("queued", queue(c).length()).put("sent", sp(c).getInt("sent", 0)).toString()
+        val last = try { JSONObject(sp(c).getString("last", "{}") ?: "{}") } catch (_: Exception) { JSONObject() }
+        return JSONObject().put("access", access).put("configured", configured(c)).put("queued", queue(c).length()).put("sent", sp(c).getInt("sent", 0))
+            .put("last", last).put("lastSend", sp(c).getString("lastSend", "") ?: "").put("lastSendAt", sp(c).getLong("lastSendAt", 0L)).toString()
     }
 
     private fun queue(c: Context): JSONArray = try { JSONArray(sp(c).getString("queue", "[]")) } catch (_: Exception) { JSONArray() }
@@ -159,6 +182,7 @@ object Capture {
             conn.outputStream.use { it.write(item.toString().toByteArray(Charsets.UTF_8)) }
             val code = conn.responseCode
             conn.disconnect()
+            noteSend(c, code.toString())
             when {
                 code in 200..299 -> Sent.OK
                 code == 401 -> Sent.AUTH
@@ -166,6 +190,7 @@ object Capture {
                 else -> Sent.RETRY // 429, 5xx, proxy…
             }
         } catch (_: Exception) {
+            noteSend(c, "net")
             Sent.RETRY
         }
     }

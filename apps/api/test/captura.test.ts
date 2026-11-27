@@ -242,3 +242,16 @@ describe('extracto del banco después de capturar', () => {
     expect(res.warnings.join(' ')).toMatch(/móvil/);
   });
 });
+
+describe('avisos de banco con formatos mínimos', () => {
+  it('un importe con signo y sin más palabras es un cargo o un abono', () => {
+    expect(parseNotification({ app: 'de.number26.android', title: 'REWE', text: '−12,50 €' })).toMatchObject({ type: 'expense', amountMinor: 1250, merchant: 'REWE' });
+    expect(parseNotification({ app: 'de.number26.android', title: 'Max Mustermann', text: '+50,00 €' })).toMatchObject({ type: 'income', amountMinor: 5000 });
+  });
+  it('«Zahlungsvorgang … über X €» se entiende como pago', () => {
+    expect(parseNotification({ app: 'de.number26.android', title: 'N26', text: 'Dein Zahlungsvorgang bei REWE über 12,50 € wurde bearbeitet' })).toMatchObject({ type: 'expense', amountMinor: 1250, merchant: 'REWE' });
+  });
+  it('un importe sin signo ni palabra de pago sigue sin ser un pago', () => {
+    expect(parseNotification({ app: 'de.number26.android', title: 'REWE', text: '€12.50' })).toBe('no_cue');
+  });
+});

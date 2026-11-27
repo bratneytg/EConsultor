@@ -33,6 +33,31 @@ function CopyLine({ value, label }: { value: string; label: string }) {
 }
 
 /** Captura automática de pagos: Atajo de iPhone (Wallet) y notificaciones de Android, sin conectar ningún banco. */
+/** Qué ha pasado con el último aviso de banco que Android nos ha entregado. */
+function lastText(n: NativeCaptureStatus): string {
+  const l = n.last;
+  if (!l || !l.outcome || !l.at) return t('Aún no he leído ningún aviso de tus apps de banco. Haz un pago pequeño y mira aquí qué pasa.');
+  const when = new Date(l.at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  const day = new Date(l.at).toDateString() === new Date().toDateString() ? '' : ` ${dayShort(new Date(l.at).toISOString().slice(0, 10))}`;
+  const app = l.label ?? '';
+  switch (l.outcome) {
+    case 'queued': return t('Último aviso leído: {app}, {when}. Enviado a tu servidor.', { app, when: when + day });
+    case 'no_amount': return t('Último aviso leído: {app}, {when}. No traía ningún importe, así que no lo envié.', { app, when: when + day });
+    case 'not_selected': return t('Último aviso: {app}, {when}. Esa app no está marcada abajo: actívala para que se lea.', { app, when: when + day });
+    default: return t('Último aviso: {app}, {when}. Era un aviso agrupado o persistente y se descartó.', { app, when: when + day });
+  }
+}
+
+/** Si el último envío al servidor falló, qué hacer. */
+function sendProblem(n: NativeCaptureStatus): string {
+  const r = n.lastSend ?? '';
+  if (!r || /^2\d\d$/.test(r)) return '';
+  if (r === 'net') return t('No he podido conectar con tu servidor. Los avisos esperan en la cola y se reenviarán solos.');
+  if (r === '401') return t('Tu servidor no reconoce el token: genera uno nuevo en esta pantalla.');
+  if (r === '404') return t('Tu servidor aún no tiene la captura de pagos: actualízalo a la última versión.');
+  return t('Tu servidor respondió con el error {code}. Los avisos esperan en la cola.', { code: r });
+}
+
 export function CaptureCard() {
   const { toast, openPending } = useShell();
   const qc = useQueryClient();
@@ -160,6 +185,15 @@ export function CaptureCard() {
           ) : (
             <p className="muted" style={{ marginTop: 0 }}>{nat ? t('Acceso concedido. Enviados: {sent}. En cola sin conexión: {queued}.', { sent: nat.sent, queued: nat.queued }) : ''}</p>
           )}
+          {nat && nat.configured && (
+            <div className="notice" role="status" style={{ margin: '8px 0 12px' }}>
+              <b>{t('Estado de la captura')}</b>
+              <p style={{ margin: '4px 0 0' }}>{lastText(nat)}</p>
+              {sendProblem(nat) && <p style={{ margin: '4px 0 0' }}>{sendProblem(nat)}</p>}
+            </div>
+          )}
+          <p className="hint" style={{ marginTop: 0 }}>{t('Si el interruptor de «Acceso a notificaciones» sale en gris o avisa de «ajuste restringido» (pasa con apps instaladas fuera de Google Play): Ajustes del móvil → Aplicaciones → EConsultor → menú ⋮ → «Permitir ajustes restringidos», y vuelve a activarlo.')}</p>
+          <p className="hint">{t('Si los avisos llegan tarde o a veces no llegan, en Ajustes → Aplicaciones → EConsultor → Batería elige «Sin restricciones».')}</p>
           {apps.length === 0 ? <p className="muted">{t('No he encontrado apps de bancos en este teléfono.')}</p> : apps.map((a) => (
             <div className="app-row" key={a.pkg}>
               <div><b>{a.label}</b>{!a.known && <p className="muted" style={{ margin: 0, fontSize: 13 }}>{t('Otra app: actívala solo si es de un banco o de pagos.')}</p>}</div>
