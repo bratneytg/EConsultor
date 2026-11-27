@@ -11,6 +11,14 @@ export interface Release { version: string; title: string; changes: Change[] }
  */
 export const RELEASES: Release[] = [
   {
+    version: '1.9.1',
+    title: tk('Una interfaz sencilla con más vida'),
+    changes: [
+      { kind: 'feature', text: tk('Tus gráficos de la interfaz sencilla ahora son más animados y cercanos: una barra por día que sube en ola, tu día más caro, tu media diaria y los días que no gastas nada.') },
+      { kind: 'feature', text: tk('«En qué se va tu dinero» te lo cuenta en una frase y muestra tus categorías con emoji, barras que crecen y la comparación con el mes pasado.') },
+    ],
+  },
+  {
     version: '1.9.0',
     title: tk('Tus pagos entran solos'),
     changes: [

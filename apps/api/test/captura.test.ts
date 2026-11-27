@@ -234,7 +234,7 @@ describe('extracto del banco después de capturar', () => {
     await send(token, { text: 'Du hast 23,45 € bei REWE ausgegeben' });
     const today = new Date().toISOString().slice(0, 10);
     const d = (n: number) => new Date(Date.parse(today) + n * 86_400_000).toISOString().slice(0, 10);
-    const csv = `"Booking Date","Value Date","Partner Name","Partner Iban",Type,"Payment Reference","Account Name","Amount (EUR)","Original Amount","Original Currency","Exchange Rate"\n"${d(2)}","${d(2)}","REWE Markt","","Presentment","","Main Account","-23.45","","",""\n"${d(2)}","${d(2)}","Lidl","","Presentment","","Main Account","-10.00","","",""\n`;
+    const csv = `"Booking Date","Value Date","Partner Name","Partner Iban",Type,"Payment Reference","Account Name","Amount (EUR)","Original Amount","Original Currency","Exchange Rate"\n"${d(-2)}","${d(-2)}","REWE Markt","","Presentment","","Main Account","-23.45","","",""\n"${d(-2)}","${d(-2)}","Lidl","","Presentment","","Main Account","-10.00","","",""\n`;
     const res = json(await app.inject({ method: 'POST', url: '/api/import/preview', headers: h, payload: { kind: 'csv', content: csv } }));
     const rewe = res.rows.find((r: any) => /REWE/i.test(r.note));
     expect(rewe.skip).toBe('duplicate');

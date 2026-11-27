@@ -116,7 +116,7 @@ export function Card({ title, subtitle, wide, actions, children, className = '' 
 
 /** Tarjeta de gráfica con vista alternativa en tabla (accesibilidad: nada depende del hover). */
 export function ChartCard(props: {
-  title: string; subtitle?: string; wide?: boolean; refetching?: boolean;
+  title: string; subtitle?: string; wide?: boolean; refetching?: boolean; className?: string;
   table: { head: string[]; rows: (string | number)[][] };
   children: ReactNode;
 }) {
@@ -126,7 +126,7 @@ export function ChartCard(props: {
       title={props.title}
       subtitle={props.subtitle}
       wide={props.wide}
-      className={props.refetching ? 'refetching' : ''}
+      className={`${props.refetching ? 'refetching' : ''} ${props.className ?? ''}`}
       actions={<button className="chip-btn" aria-pressed={asTable} onClick={() => setAsTable((v) => !v)}>{asTable ? t('Ver gráfica') : t('Ver tabla')}</button>}
     >
       {asTable ? (

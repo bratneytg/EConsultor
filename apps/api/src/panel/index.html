@@ -176,6 +176,15 @@ dl.datos dd { margin: 0; overflow-wrap: anywhere; }
 .perfil .prevision { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
 .perfil .prevision p { margin: 4px 0 0; color: var(--ink-2); }
 .perfil .neg { color: var(--bad-ink); }
+.perfil > header { align-items: center; }
+.perfil .cab-perfil { display: flex; align-items: center; gap: 14px; flex: none; }
+.perfil .btn-desplegar { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.perfil .btn-desplegar svg { width: 14px; height: 14px; transition: transform .18s ease; }
+.perfil .btn-desplegar[aria-expanded="true"] svg { transform: rotate(180deg); }
+.perfil .cuerpo-perfil { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.perfil .nota .num { font-size: 24px; }
+@media (max-width: 560px) { .perfil > header { flex-wrap: wrap; } .perfil .cab-perfil { width: 100%; justify-content: space-between; } }
+@media (prefers-reduced-motion: reduce) { .perfil .btn-desplegar svg { transition: none; } }
 .psico { border-top: 1px dashed var(--line); padding-top: 14px; }
 .psico h4 { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .titular-psico { font-size: 17px; font-weight: 550; margin: 4px 0 6px; }
@@ -297,7 +306,7 @@ function icono(nivel, cls = '') {
 }
 
 /* ───────────── estado ───────────── */
-const S = { datos: null, vista: 'resumen', rango: 'h24', auto: true, cargando: false, error: null, ultimaCarga: 0, verTabla: new Set(), filtros: { usuarios: '', eventos: '', tipo: '', reportes: '', tipoReporte: '', limiteReportes: 30, registro: '', contenedor: '', soloErrores: false, limite: 150 } };
+const S = { datos: null, vista: 'resumen', rango: 'h24', auto: true, cargando: false, error: null, ultimaCarga: 0, verTabla: new Set(), perfilesAbiertos: new Set(), filtros: { usuarios: '', eventos: '', tipo: '', reportes: '', tipoReporte: '', limiteReportes: 30, registro: '', contenedor: '', soloErrores: false, limite: 150 } };
 const specs = new Map();
 
 const VISTAS = [
@@ -784,8 +793,8 @@ function tarjetaPsico(ps, moneda, id) {
 
 function tarjetaPerfil(p, i) {
   const pv = p.prevision; const quedan = pv.diasMes - pv.diasTranscurridos;
-  return html`<article class="perfil"><header><div><h3>${p.nombre} <span class="etiqueta ${NIVEL_ARQ[p.arquetipo]}">${p.arquetipoNombre}</span></h3><p class="muted">${p.email} · ${p.moneda} · ${plural(p.meses, 'mes con datos', 'meses con datos')} · fiabilidad ${p.fiabilidad}</p></div>
-      <div class="nota"><span class="num">${p.salud.puntos}</span><small>${p.salud.etiqueta}</small></div></header>
+  const abierto = S.perfilesAbiertos.has(p.email);
+  const cuerpo = abierto ? html`<div class="cuerpo-perfil" id="perfil-cuerpo-${i}">
     <p class="ayuda">${p.arquetipoDescripcion}</p>
     ${medidor('Riesgo financiero (0 resiliente – 100 vulnerable)', p.riesgo, `${p.riesgo} / 100`, 40, 60)}
     <div class="tira mt10">${kpi('Ahorro medio', `${p.ahorroPct} %`, p.ahorroPct >= 20 ? 'Por encima del objetivo' : 'Objetivo: 20 %')}${kpi('Ingresa al mes', dinero(p.ingresoMedio, p.moneda))}${kpi('Gasta al mes', dinero(p.gastoMedio, p.moneda), `Fijos ${p.fijosPct} % de sus ingresos`)}${kpi('Constancia', `${p.constanciaPct} %`, p.racha ? `Racha de ${p.racha} d` : 'Últimos 30 días')}</div>
@@ -793,7 +802,11 @@ function tarjetaPerfil(p, i) {
         <dl class="datos"><dt>Tendencia del gasto</dt><dd>${p.tendenciaGasto}</dd><dt>Volatilidad de ingresos</dt><dd class="num">${nf1.format(p.volatilidadIngresos)}${p.volatilidadIngresos > 0.35 ? ' (alta)' : ''}</dd><dt>Fuentes de ingreso</dt><dd class="num">${p.fuentesIngreso}</dd><dt>Suscripciones</dt><dd class="num">${dinero(p.suscripciones, p.moneda)} / mes</dd><dt>Gasto fin de semana</dt><dd class="num">×${nf1.format(p.sesgoFinDeSemana)} vs. laborables</dd></dl></div>
       <div>${grafico(`perfil-${i}`, { tipo: 'barras', titulo: 'Gasto de los últimos meses', col: 'Mes', fmt: (v) => dinero(v * 100, p.moneda), series: [{ n: 'Gasto', vals: p.meses12.map((m) => Math.round(m.gastos / 100)) }], cats: p.meses12.map((m) => m.mes) })}
         <div class="prevision"><b>Previsión de este mes</b><p>Lleva ${dinero(p.mesActual.ingresos, p.moneda)} ingresados y ${dinero(p.mesActual.gastos, p.moneda)} gastados. ${quedan > 0 && pv.diasTranscurridos > 0 ? html`Al ritmo de ${dinero(pv.ritmoDiario, p.moneda)} al día, cerraría con <b class="${pv.cierreProyectado < 0 ? 'neg' : ''}">${dinero(pv.cierreProyectado, p.moneda)}</b>.` : 'El mes ya ha terminado.'}</p></div></div></div>
-    ${p.lecturas.length ? html`<h4 class="mt14">Cómo leerlo</h4><ul class="lecturas">${p.lecturas.map((l) => html`<li>${l}</li>`)}</ul>` : ''}${p.psico ? tarjetaPsico(p.psico, p.moneda, i) : ''}</article>`;
+    ${p.lecturas.length ? html`<h4 class="mt14">Cómo leerlo</h4><ul class="lecturas">${p.lecturas.map((l) => html`<li>${l}</li>`)}</ul>` : ''}${p.psico ? tarjetaPsico(p.psico, p.moneda, i) : ''}</div>` : '';
+  return html`<article class="perfil"><header><div><h3>${p.nombre} <span class="etiqueta ${NIVEL_ARQ[p.arquetipo]}">${p.arquetipoNombre}</span></h3><p class="muted">${p.email} · ${p.moneda} · ${plural(p.meses, 'mes con datos', 'meses con datos')} · fiabilidad ${p.fiabilidad}</p></div>
+      <div class="cab-perfil"><div class="nota"><span class="num">${p.salud.puntos}</span><small>${p.salud.etiqueta}</small></div>
+        <button type="button" class="btn suave btn-desplegar" data-perfil="${p.email}" aria-expanded="${abierto ? 'true' : 'false'}" aria-controls="perfil-cuerpo-${i}">${abierto ? 'Ocultar' : 'Ver perfil'}<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></header>
+    ${cuerpo}</article>`;
 }
 
 function vPerfiles(d) {
@@ -881,6 +894,7 @@ function conectar() {
   $('#f-tipo-rep')?.addEventListener('change', (e) => { S.filtros.tipoReporte = e.target.value; S.filtros.limiteReportes = 30; pintar(); });
   $('#mas-reportes')?.addEventListener('click', () => { S.filtros.limiteReportes += 30; pintar(); });
   $('#f-err')?.addEventListener('change', (e) => { S.filtros.soloErrores = e.target.checked; pintar(); });
+  document.querySelectorAll('[data-perfil]').forEach((b) => b.addEventListener('click', () => { const k = b.dataset.perfil; S.perfilesAbiertos.has(k) ? S.perfilesAbiertos.delete(k) : S.perfilesAbiertos.add(k); pintar(); }));
   document.querySelectorAll('.sel-plan').forEach((el) => el.addEventListener('change', () => cambiarPlan(el)));
 }
 /* Cambia el plan de una cuenta: el panel se lo pide a la app (no toca la base de datos). */

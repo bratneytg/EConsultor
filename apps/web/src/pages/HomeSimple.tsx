@@ -4,8 +4,8 @@ import { Icon, type IconName } from '../components/Icon';
 import { ModeSwitch } from '../components/ModeSwitch';
 import { useShell } from '../components/Shell';
 import { Card, ChartCard, HeroMoney } from '../components/ui';
-import { BalanceArea, BalanceLegend } from '../charts/BalanceArea';
-import { Breakdown } from '../charts/Breakdown';
+import { DayBars } from '../charts/DayBars';
+import { SpendPills } from '../charts/SpendPills';
 import { useUser } from '../lib/auth';
 import { dayShort, money, monthLabel, pct, shiftMonth } from '../lib/format';
 import { useAdvice, useOverview } from '../lib/queries';
@@ -102,16 +102,15 @@ export function HomeSimple() {
       ) : (
         <div className="grid">
           <ChartCard
-            wide refetching={isPlaceholderData}
-            title={t('Saldo del mes')} subtitle={t('Lo que ingresas menos lo que gastas, día a día.')}
+            wide refetching={isPlaceholderData} className="fun-card"
+            title={t('Tus días')} subtitle={t('Cada barra es un día. Toca una para ver el detalle.')}
             table={{ head: ['Día', 'Ingresos', 'Gastos', 'Saldo'], rows: o.daily.map((d) => [dayShort(d.date), money(d.incomeMinor, cur, 0), money(d.expenseMinor, cur, 0), money(d.balanceMinor, cur, 0)]) }}
           >
-            <BalanceArea o={o} />
-            <BalanceLegend />
+            <DayBars key={o.month} o={o} />
           </ChartCard>
 
-          <Card wide title={t('En qué gastas')} subtitle={t('Tus cuatro categorías más pesadas.')}>
-            <Breakdown o={o} compact />
+          <Card wide className="fun-card" title={t('En qué se va tu dinero')} subtitle={t('Tus categorías más pesadas, de más a menos.')}>
+            <SpendPills key={o.month} o={o} />
           </Card>
         </div>
       )}
