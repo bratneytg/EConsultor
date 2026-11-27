@@ -2,14 +2,14 @@ import { CATEGORY_LABEL_MAX, MAX_CUSTOM_CATEGORIES, type CategoryPrefs, type Cus
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth, useUser } from '../lib/auth';
-import { categoryColor, categoryLabel, categoryPrefs, expenseCategories, incomeCategories } from '../lib/categories';
+import { categoryColor, categoryIcon, categoryLabel, categoryPrefs, expenseCategories, incomeCategories } from '../lib/categories';
 import { api, ApiError } from '../lib/api';
 import { addDays, isoToday, parseAmount, shiftMonth, symbol } from '../lib/format';
 import { useBackClose } from '../lib/backClose';
 import { t } from '../lib/i18n';
 import { useAccounts, useDeleteTransaction, useSaveRecurring, useSaveTransaction } from '../lib/queries';
 import { ColorPicker, Switch } from './ui';
-import { Icon, CATEGORY_ICON } from './Icon';
+import { Icon } from './Icon';
 
 interface Props {
   open: boolean;
@@ -147,7 +147,7 @@ export function AddSheet({ open, editing, onClose, onDone }: Props) {
             <div className="cat-grid" role="group" aria-label={t('Categoría')}>
               {cats.map((c) => (
                 <button key={c.id} className="cat" aria-pressed={cat === c.id} style={{ ['--tile-c' as string]: categoryColor(c.id) }} onClick={() => setCat(c.id)}>
-                  <span className="tile"><Icon name={CATEGORY_ICON[c.id] ?? 'dots'} /></span>
+                  <span className="tile"><Icon name={categoryIcon(c.id)} /></span>
                   {categoryLabel(c.id)}
                 </button>
               ))}

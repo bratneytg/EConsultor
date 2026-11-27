@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CATEGORIES } from '@econsultor/shared';
+import { ICON_LABELS } from '../lib/categories';
 import { TEMAS } from '../content/ayuda';
 import { de } from './de';
 import { en } from './en';
@@ -26,6 +27,7 @@ for (const file of walk(SRC)) {
 /** Textos que llegan por una variable (no se ven en el código como literal): etiquetas del servidor, categorías, temas… */
 const dinamicos = [
   ...CATEGORIES.map((c) => c.label),
+  ...Object.values(ICON_LABELS),
   ...TEMAS,
   'Excelente', 'Sólida', 'En construcción', 'Atención',
   'Ahorro', 'Gastos fijos', 'Estabilidad', 'Constancia',

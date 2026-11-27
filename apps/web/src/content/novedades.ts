@@ -11,6 +11,14 @@ export interface Release { version: string; title: string; changes: Change[] }
  */
 export const RELEASES: Release[] = [
   {
+    version: '1.9.2',
+    title: tk('Tus categorías, a tu medida'),
+    changes: [
+      { kind: 'feature', text: tk('Ahora puedes eliminar cualquier categoría de serie que no uses: desaparece solo para ti y la recuperas cuando quieras con «Mostrar».') },
+      { kind: 'new', text: tk('Las categorías nuevas que crees tienen icono propio: elige entre 24 iconos, además del color, para reconocerlas de un vistazo en listas y gráficas.') },
+    ],
+  },
+  {
     version: '1.9.1',
     title: tk('Una interfaz sencilla con más vida'),
     changes: [

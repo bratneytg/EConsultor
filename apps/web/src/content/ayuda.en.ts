@@ -344,13 +344,13 @@ export const AYUDA_EN: Record<string, Traduccion> = {
   },
   "categorias-propias": {
     titulo: "Create and change categories",
-    resumen: "Add your own, rename the existing ones or hide the ones you don't use.",
-    claves: ["category", "categories", "create", "name", "rename", "hide", "colour", "fixed", "variable", "pets"],
+    resumen: "Add your own, with their icon and colour, rename the existing ones or delete the ones you don't use.",
+    claves: ["category", "categories", "create", "name", "rename", "delete", "icon", "colour", "fixed", "variable", "pets"],
     texto: [
       "In Settings › Categories you can adapt the expense and income categories to your life.",
-      "- New category: give it a name and, if it's an expense, pick the colour it uses in the charts and whether it is fixed, variable or discretionary.",
+      "- New category: give it a name, pick its icon and, if it's an expense, the colour it uses in the charts and whether it is fixed, variable or discretionary.",
       "- Edit: you can rename any of them, including the ones the app comes with. To go back to the original, type its name again.",
-      "- Hide: categories you don't use stop showing when you add a transaction. Transactions that already have that category don't change.",
+      "- Delete a default one: it stops showing when you add a transaction, but only for you; you can bring it back with “Show” whenever you want.",
       "- Delete one of your own categories: its transactions move to “Other expenses” or “Other income”.",
       "“Fixed” and “discretionary” aren't decoration: tips and the forecast use them to tell what you can cut from what you have to pay anyway.",
       "A tip: use few, clear categories. With fewer than 15 it's easier to see where the money goes.",

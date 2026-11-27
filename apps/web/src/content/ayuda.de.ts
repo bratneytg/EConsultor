@@ -344,13 +344,13 @@ export const AYUDA_DE: Record<string, Traduccion> = {
   },
   "categorias-propias": {
     titulo: "Kategorien erstellen und ändern",
-    resumen: "Füge eigene hinzu, benenne bestehende um oder blende ungenutzte aus.",
-    claves: ["kategorie", "kategorien", "erstellen", "name", "umbenennen", "ausblenden", "farbe", "fix", "variabel", "haustiere"],
+    resumen: "Füge deine eigenen mit Symbol und Farbe hinzu, benenne vorhandene um oder lösche die, die du nicht nutzt.",
+    claves: ["Kategorie", "Kategorien", "erstellen", "Name", "umbenennen", "löschen", "Symbol", "Farbe", "fest", "variabel", "Haustiere"],
     texto: [
       "Unter Einstellungen › Kategorien kannst du die Kategorien für Ausgaben und Einnahmen an dein Leben anpassen.",
-      "- Neue Kategorie: Gib ihr einen Namen und wähle bei einer Ausgabe die Farbe in den Diagrammen sowie, ob sie fix, variabel oder frei verfügbar ist.",
+      "- Neue Kategorie: Gib ihr einen Namen, wähle ihr Symbol und, bei einer Ausgabe, die Farbe, mit der sie in den Diagrammen erscheint, sowie ob sie fest, variabel oder frei verfügbar ist.",
       "- Bearbeiten: Du kannst jede Kategorie umbenennen, auch die, die die App mitbringt. Um zum Original zurückzukehren, tippe wieder ihren Namen ein.",
-      "- Ausblenden: Kategorien, die du nicht nutzt, erscheinen beim Hinzufügen einer Buchung nicht mehr. Buchungen mit dieser Kategorie bleiben unverändert.",
+      "- Eine Standardkategorie löschen: Sie erscheint beim Hinzufügen einer Buchung nicht mehr, aber nur für dich; du kannst sie jederzeit mit „Anzeigen“ zurückholen.",
       "- Eine eigene Kategorie löschen: Ihre Buchungen wandern zu „Sonstige Ausgaben“ oder „Sonstige Einnahmen“.",
       "„Fix“ und „frei verfügbar“ sind keine Zierde: Tipps und Prognose nutzen sie, um Kürzbares von dem zu trennen, was du ohnehin zahlen musst.",
       "Ein Tipp: Nutze wenige, klare Kategorien. Mit weniger als 15 sieht man besser, wohin das Geld geht.",

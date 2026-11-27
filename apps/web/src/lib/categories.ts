@@ -1,4 +1,5 @@
-import { CATEGORIES, categoryById, categoryFamily, registerCategories, type Category, type CategoryPrefs } from '@econsultor/shared';
+import { CATEGORIES, CUSTOM_CATEGORY_ICONS, categoryById, categoryFamily, registerCategories, type Category, type CategoryPrefs } from '@econsultor/shared';
+import { CATEGORY_ICON, type IconName } from '../components/Icon';
 import { t } from './i18n';
 
 /**
@@ -34,6 +35,18 @@ export const categoryPrefs = (): CategoryPrefs => prefs;
 
 /** Nombre de la categoría: el que puso la persona o, si no, el de serie en el idioma de la app. */
 export const categoryLabel = (id: string): string => prefs.renamed[id] ?? prefs.custom.find((c) => c.id === id)?.label ?? t(categoryById(id)?.label ?? id);
+
+/** Icono de la categoría: el que eligió la persona para la suya, o el de serie. */
+export const categoryIcon = (id: string): IconName => (prefs.custom.find((c) => c.id === id)?.icon as IconName | undefined) ?? CATEGORY_ICON[id] ?? 'dots';
+
+/** Nombre corto de cada icono elegible, para el selector de «Nueva categoría». */
+export const ICON_LABELS: Record<(typeof CUSTOM_CATEGORY_ICONS)[number], string> = {
+  home: 'Casa', bolt: 'Energía', umbrella: 'Seguro', card: 'Tarjeta', repeat: 'Suscripción',
+  cart: 'Compra', fork: 'Comida', car: 'Coche', plane: 'Viaje', bag: 'Bolsa', ticket: 'Entradas',
+  heart: 'Salud', book: 'Estudios', briefcase: 'Trabajo', wallet: 'Cartera', trend: 'Inversión',
+  gift: 'Regalo', dumbbell: 'Deporte', paw: 'Mascotas', music: 'Música', gear: 'Mantenimiento',
+  phone: 'Tecnología', trophy: 'Aficiones', dots: 'Otro',
+};
 
 /** ¿Existe esta categoría para la persona? (las de serie y las suyas). */
 export const knownCategory = (id: string): boolean => !!categoryById(id);

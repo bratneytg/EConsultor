@@ -2,10 +2,10 @@ import { CATEGORIES, CATEGORY_LABEL_MAX, MAX_CUSTOM_CATEGORIES, categoryById, ty
 import { useState } from 'react';
 import { api, ApiError } from '../lib/api';
 import { useAuth, useUser } from '../lib/auth';
-import { categoryLabel, categoryPrefs } from '../lib/categories';
+import { FAMILIES, ICON_LABELS, categoryLabel, categoryPrefs } from '../lib/categories';
 import { t } from '../lib/i18n';
 import { useInvalidateData } from '../lib/queries';
-import { CatTile, Card, ColorPicker } from './ui';
+import { CatTile, Card, ColorPicker, IconPicker } from './ui';
 import { Icon } from './Icon';
 import { useShell } from './Shell';
 
@@ -17,6 +17,7 @@ interface Edit {
   id?: string;
   label: string;
   family: string;
+  icon: string;
   nature: Nature;
 }
 
@@ -61,9 +62,9 @@ export function CategoriesCard() {
     const flags = { fixed: edit.nature === 'fixed' || undefined, discretionary: edit.nature === 'discretionary' || undefined };
     let next: CategoryPrefs;
     if (!edit.id) {
-      next = { ...p, custom: [...p.custom, { label, type: kind, family: kind === 'expense' ? (edit.family as CustomCategory['family']) : undefined, ...(kind === 'expense' ? flags : {}) } as CustomCategory] };
+      next = { ...p, custom: [...p.custom, { label, type: kind, family: kind === 'expense' ? (edit.family as CustomCategory['family']) : undefined, icon: edit.icon as CustomCategory['icon'], ...(kind === 'expense' ? flags : {}) } as CustomCategory] };
     } else if (edit.id.startsWith('c_')) {
-      next = { ...p, custom: p.custom.map((c) => (c.id === edit.id ? { ...c, label, family: kind === 'expense' ? (edit.family as CustomCategory['family']) : c.family, ...(kind === 'expense' ? flags : {}) } : c)) };
+      next = { ...p, custom: p.custom.map((c) => (c.id === edit.id ? { ...c, label, family: kind === 'expense' ? (edit.family as CustomCategory['family']) : c.family, icon: edit.icon as CustomCategory['icon'], ...(kind === 'expense' ? flags : {}) } : c)) };
     } else {
       // De serie: solo el nombre. Si queda igual que el original, se quita el cambio.
       const renamed = { ...p.renamed };
@@ -82,15 +83,15 @@ export function CategoriesCard() {
   const toggleHidden = async (id: string) => {
     const p = current();
     const hidden = p.hidden.includes(id) ? p.hidden.filter((x) => x !== id) : [...p.hidden, id];
-    await put({ ...p, hidden }, p.hidden.includes(id) ? t('Categoría visible') : t('Categoría oculta'));
+    await put({ ...p, hidden }, p.hidden.includes(id) ? t('Categoría restaurada') : t('Categoría eliminada'));
   };
 
   const startEdit = (id: string): void => {
     const own = prefs.custom.find((c) => c.id === id);
-    setEdit({ id, label: categoryLabel(id), family: own?.family ?? 'other', nature: own ? natureOf(own) : 'variable' });
+    setEdit({ id, label: categoryLabel(id), family: own?.family ?? 'other', icon: own?.icon ?? 'dots', nature: own ? natureOf(own) : 'variable' });
     setError('');
   };
-  const startNew = (): void => { setEdit({ label: '', family: 'other', nature: 'variable' }); setError(''); };
+  const startNew = (): void => { setEdit({ label: '', family: 'other', icon: 'dots', nature: 'variable' }); setError(''); };
 
   const row = (id: string, custom: boolean) => {
     const hidden = prefs.hidden.includes(id);
@@ -101,12 +102,12 @@ export function CategoriesCard() {
           <CatTile id={id} />
           <div style={{ minWidth: 0 }}>
             <b>{categoryLabel(id)}</b>
-            {(custom || hidden || prefs.renamed[id]) && <p>{custom ? t('Creada por ti') : hidden ? t('Oculta al añadir movimientos') : t('Nombre cambiado')}</p>}
+            {(custom || hidden || prefs.renamed[id]) && <p>{custom ? t('Creada por ti') : hidden ? t('Eliminada solo para ti: puedes recuperarla cuando quieras.') : t('Nombre cambiado')}</p>}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="chip-btn" disabled={busy} onClick={() => startEdit(id)}>{t('Editar')}</button>
-          {canHide && <button className="chip-btn" disabled={busy} onClick={() => toggleHidden(id)}>{hidden ? t('Mostrar') : t('Ocultar')}</button>}
+          {!hidden && <button className="chip-btn" disabled={busy} onClick={() => startEdit(id)}>{t('Editar')}</button>}
+          {canHide && <button className={hidden ? 'chip-btn' : 'chip-btn chip-btn-danger'} disabled={busy} onClick={() => toggleHidden(id)}>{hidden ? t('Mostrar') : t('Eliminar')}</button>}
         </div>
       </div>
     );
@@ -134,22 +135,35 @@ export function CategoriesCard() {
             <label htmlFor="cat-name">{edit.id ? t('Nombre') : t('Nombre de la categoría')}</label>
             <input id="cat-name" className="input" maxLength={CATEGORY_LABEL_MAX} placeholder={kind === 'expense' ? t('Ej.: Mascotas') : t('Ej.: Alquiler de una habitación')} value={edit.label} onChange={(e) => setEdit({ ...edit, label: e.target.value })} />
           </div>
-          {kind === 'expense' && (!edit.id || edit.id.startsWith('c_')) && (
+          {(!edit.id || edit.id.startsWith('c_')) && (
             <>
+              {kind === 'expense' && (
+                <div className="field" style={{ marginBottom: 0 }}>
+                  <span className="lbl" id="cat-color-lbl">{t('Color')}</span>
+                  <ColorPicker label={t('Color')} value={edit.family} onChange={(family) => setEdit({ ...edit, family })} />
+                  <span className="hint">{t('Es el color con el que aparece en las gráficas.')}</span>
+                </div>
+              )}
               <div className="field" style={{ marginBottom: 0 }}>
-                <span className="lbl" id="cat-color-lbl">{t('Color')}</span>
-                <ColorPicker label={t('Color')} value={edit.family} onChange={(family) => setEdit({ ...edit, family })} />
-                <span className="hint">{t('Es el color con el que aparece en las gráficas.')}</span>
+                <span className="lbl" id="cat-icon-lbl">{t('Icono')}</span>
+                <IconPicker
+                  label={t('Icono')} iconLabel={(ic) => t(ICON_LABELS[ic as keyof typeof ICON_LABELS] ?? ic)}
+                  value={edit.icon} onChange={(icon) => setEdit({ ...edit, icon })}
+                  color={kind === 'income' ? 'var(--income)' : FAMILIES.find((f) => f.id === edit.family)?.color ?? 'var(--s-other)'}
+                />
+                <span className="hint">{t('Es el icono con el que aparece en las listas y las gráficas.')}</span>
               </div>
-              <div className="field" style={{ marginBottom: 0 }}>
-                <label htmlFor="cat-nature">{t('Tipo de gasto')}</label>
-                <select id="cat-nature" className="input" value={edit.nature} onChange={(e) => setEdit({ ...edit, nature: e.target.value as Nature })}>
-                  <option value="variable">{t('Variable: cambia de un mes a otro')}</option>
-                  <option value="fixed">{t('Fijo: lo pagas todos los meses')}</option>
-                  <option value="discretionary">{t('Discrecional: ocio y caprichos')}</option>
-                </select>
-                <span className="hint">{t('Los consejos y la previsión lo usan para separar lo que puedes recortar de lo que no.')}</span>
-              </div>
+              {kind === 'expense' && (
+                <div className="field" style={{ marginBottom: 0 }}>
+                  <label htmlFor="cat-nature">{t('Tipo de gasto')}</label>
+                  <select id="cat-nature" className="input" value={edit.nature} onChange={(e) => setEdit({ ...edit, nature: e.target.value as Nature })}>
+                    <option value="variable">{t('Variable: cambia de un mes a otro')}</option>
+                    <option value="fixed">{t('Fijo: lo pagas todos los meses')}</option>
+                    <option value="discretionary">{t('Discrecional: ocio y caprichos')}</option>
+                  </select>
+                  <span className="hint">{t('Los consejos y la previsión lo usan para separar lo que puedes recortar de lo que no.')}</span>
+                </div>
+              )}
             </>
           )}
           {error && <p className="error" role="alert">{error}</p>}

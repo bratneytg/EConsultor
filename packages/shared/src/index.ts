@@ -55,6 +55,11 @@ export const CATEGORY_IDS = CATEGORIES.map((c) => c.id) as [string, ...string[]]
  */
 const customRegistry = new Map<string, Category>();
 export const FAMILY_IDS = ['home', 'food', 'move', 'subs', 'fun', 'shop', 'care', 'other'] as const;
+/** Iconos que la persona puede elegir para una categoría propia (home.tsx los dibuja; aquí solo se valida la lista). */
+export const CUSTOM_CATEGORY_ICONS = [
+  'home', 'bolt', 'umbrella', 'card', 'repeat', 'cart', 'fork', 'car', 'plane', 'bag', 'ticket',
+  'heart', 'book', 'briefcase', 'wallet', 'trend', 'gift', 'dumbbell', 'paw', 'music', 'gear', 'phone', 'trophy', 'dots',
+] as const;
 export const CUSTOM_ID = /^c_[a-z0-9]{8}$/;
 export const MAX_CUSTOM_CATEGORIES = 40;
 export const CATEGORY_LABEL_MAX = 30;
@@ -64,6 +69,8 @@ export interface CustomCategory {
   label: string;
   type: TxType;
   family?: (typeof FAMILY_IDS)[number];
+  /** Icono elegido por la persona; sin elegir, se usa uno genérico. */
+  icon?: (typeof CUSTOM_CATEGORY_ICONS)[number];
   fixed?: boolean;
   discretionary?: boolean;
 }
@@ -80,6 +87,7 @@ export function registerCategories(list: readonly CustomCategory[] | undefined, 
   if (replaceAll) customRegistry.clear();
   for (const c of list ?? []) customRegistry.set(c.id, { id: c.id, label: c.label, type: c.type, fixed: c.fixed, discretionary: c.discretionary, custom: true, family: c.family });
 }
+
 export const unregisterCategory = (id: string): void => { customRegistry.delete(id); };
 
 /** Familia de color de las categorías de serie (el color sigue a la entidad, nunca al puesto en un ranking). */
@@ -115,6 +123,7 @@ export const categoryPrefsInput = z.object({
         label: categoryLabelText,
         type: z.enum(['income', 'expense']),
         family: z.enum(FAMILY_IDS).optional(),
+        icon: z.enum(CUSTOM_CATEGORY_ICONS).optional(),
         fixed: z.boolean().optional(),
         discretionary: z.boolean().optional(),
       }),

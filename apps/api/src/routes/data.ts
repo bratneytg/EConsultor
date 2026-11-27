@@ -115,6 +115,7 @@ export async function dataRoutes(app: FastifyInstance): Promise<void> {
         label: c.label,
         type: prev?.type ?? c.type, // el tipo de una categoría con movimientos no cambia
         family: c.family,
+        icon: c.icon,
         fixed: c.fixed || undefined,
         discretionary: c.discretionary || undefined,
       };

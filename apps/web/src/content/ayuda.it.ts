@@ -344,13 +344,13 @@ export const AYUDA_IT: Record<string, Traduccion> = {
   },
   "categorias-propias": {
     titulo: "Creare e modificare le categorie",
-    resumen: "Aggiungi le tue, cambia il nome di quelle esistenti o nascondi quelle che non usi.",
-    claves: ["categoria", "categorie", "creare", "nome", "rinominare", "nascondere", "colore", "fisso", "variabile", "animali"],
+    resumen: "Aggiungi le tue, con icona e colore, cambia il nome di quelle che ci sono o elimina quelle che non usi.",
+    claves: ["categoria", "categorie", "crea", "nome", "rinomina", "elimina", "icona", "colore", "fisso", "variabile", "animali"],
     texto: [
       "In Impostazioni › Categorie puoi adattare le categorie di spese e di entrate alla tua vita.",
-      "- Nuova categoria: dai un nome e, se è una spesa, scegli il colore con cui compare nei grafici e se è fissa, variabile o discrezionale.",
+      "- Nuova categoria: dalle un nome, scegli la sua icona e, se è una spesa, il colore con cui compare nei grafici e se è fissa, variabile o discrezionale.",
       "- Modifica: puoi cambiare il nome di qualsiasi categoria, anche di quelle già presenti nell'app. Per tornare all'originale, riscrivi il suo nome.",
-      "- Nascondi: le categorie che non usi non compaiono più quando aggiungi un movimento. I movimenti che hanno già quella categoria non cambiano.",
+      "- Elimina una di serie: smette di comparire quando aggiungi un movimento, ma solo per te; puoi recuperarla con «Mostra» quando vuoi.",
       "- Elimina una tua categoria: i suoi movimenti passano a «Altre spese» o «Altre entrate».",
       "«Fissa» e «discrezionale» non sono un ornamento: i consigli e la previsione li usano per distinguere ciò che puoi ridurre da ciò che devi pagare comunque.",
       "Un consiglio: usa poche categorie, chiare. Con meno di 15 si vede meglio dove vanno i soldi.",

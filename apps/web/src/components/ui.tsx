@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { FAMILIES, categoryColor } from '../lib/categories';
+import { FAMILIES, categoryColor, categoryIcon } from '../lib/categories';
 import { moneyParts } from '../lib/format';
 import { t } from '../lib/i18n';
-import { CATEGORY_ICON, Icon } from './Icon';
+import { CUSTOM_CATEGORY_ICONS } from '@econsultor/shared';
+import { Icon, type IconName } from './Icon';
 
 /** Tamaño del contenedor, para gráficas SVG responsivas. */
 export function useWidth<T extends HTMLElement>(): [React.RefObject<T>, number] {
@@ -35,7 +36,7 @@ export function useNarrow(max = 719): boolean {
 export function CatTile({ id }: { id: string }) {
   return (
     <span className="tile" style={{ ['--tile-c' as string]: categoryColor(id) }}>
-      <Icon name={CATEGORY_ICON[id] ?? 'dots'} />
+      <Icon name={categoryIcon(id)} />
     </span>
   );
 }
@@ -87,6 +88,22 @@ export function ColorPicker({ value, onChange, label }: { value: string; onChang
           className="swatch" style={{ ['--sw' as string]: f.color, color: f.darkText ? '#1a1a1a' : '#fff' }} onClick={() => onChange(f.id)}
         >
           {value === f.id && <Icon name="check" size={16} />}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Selector de icono para una categoría propia: la vista previa usa el color ya elegido. */
+export function IconPicker({ value, onChange, color, label, iconLabel }: { value: string; onChange: (icon: string) => void; color: string; label: string; iconLabel: (icon: string) => string }) {
+  return (
+    <div className="icon-swatches" role="radiogroup" aria-label={label} style={{ ['--ic' as string]: color }}>
+      {CUSTOM_CATEGORY_ICONS.map((name) => (
+        <button
+          key={name} type="button" role="radio" aria-checked={value === name} aria-label={iconLabel(name)} title={iconLabel(name)}
+          className="icon-swatch" onClick={() => onChange(name)}
+        >
+          <Icon name={name as IconName} size={20} />
         </button>
       ))}
     </div>

@@ -93,6 +93,8 @@ h1, h2, h3, p { margin: 0; }
 .chip-btn { border: 1px solid var(--hair); background: transparent; color: var(--ink-2); border-radius: 999px; padding: 5px 11px; font-size: 12px; white-space: nowrap; }
 .chip-btn:hover { background: var(--surface-2); }
 .chip-btn[aria-pressed='true'] { background: var(--surface-2); color: var(--ink); }
+.chip-btn-danger { color: var(--serious); border-color: color-mix(in srgb, var(--serious) 45%, transparent); }
+.chip-btn-danger:hover { background: color-mix(in srgb, var(--serious) 12%, transparent); }
 .refetching { opacity: 0.6; transition: opacity 0.2s; }
 
 /* ───────── Gráficas ───────── */
@@ -656,3 +658,11 @@ textarea.input { resize: vertical; min-height: 110px; font: inherit; }
   .fun-card *, .fun-card *::before, .fun-card *::after { animation-delay: 0s !important; transition: none !important; }
   .fun-day.today .bar { animation-name: none; }
 }
+
+/* ───────── Selector de icono (categorías propias) ───────── */
+.icon-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); gap: 8px; padding: 4px 0; }
+.icon-swatch { width: 42px; height: 42px; border-radius: 13px; border: 2px solid transparent; background: var(--surface-2); color: var(--ink-2); display: grid; place-items: center; transition: transform .12s, background .12s, color .12s; }
+.icon-swatch:hover { transform: scale(1.06); }
+.icon-swatch[aria-checked="true"] { border-color: var(--ic); background: color-mix(in srgb, var(--ic) 18%, var(--surface-2)); color: var(--ic); }
+.icon-swatch:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .icon-swatch { transition: none; } }
